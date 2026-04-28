@@ -19,9 +19,6 @@ It will be a client-server architecture over TCP.
 config:
   theme: dark
 ---
----
-title: "ServerClientArchitecture"
----
 sequenceDiagram
     Server->>+Client: SEED
     Server->>+Client: CONSTANTS
