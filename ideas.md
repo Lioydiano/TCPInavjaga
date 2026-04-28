@@ -9,3 +9,41 @@
 - [x] loss condition: an enemy reaching top (TUNNEL_UNIT * 2)^2 square
 - [x] enemies dieing leave resources in the form of chests that replace them
 - [x] provide an option to drop the inventory in a chest on death
+
+# Multiplayer architecture
+
+It will be a client-server architecture over TCP.
+
+```mermaid
+---
+config:
+  theme: dark
+---
+---
+title: "ServerClientArchitecture"
+---
+sequenceDiagram
+    Server->>+Client: SEED
+    Server->>+Client: CONSTANTS
+    loop Until agreed
+        Client->>+Server: COORDS_OFFER
+        Server->>-Client: COORDS_RESPONSE
+    end
+    activate Client
+
+    Note left of Server: End lobby phase
+    Server->>+Client: ALL_PLAYERS
+    Note left of Server: Start game
+    
+    loop Main game loop
+        Server->>+Client: ACT
+        Client->>+Server: OWN_ACT
+        Server-->>+Client: PLAYER_LEFT
+    end
+
+    Client-->>Server: DISCONNECT
+    Note over Client,Server: Gracefully leave the game
+    Server-->>Client: END
+    Note left of Server: Game finished
+```
+_A sequence diagram of the communication between client and server_
