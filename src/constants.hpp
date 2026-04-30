@@ -4,6 +4,8 @@
 #define DATE "2026-04-29"
 #define AUTHOR "FLAK-ZOSO"
 
+#define SERVER 0
+#define CLIENT 1
 
 #define DEBUG 0
 #define INTRO 1 // Set to 0 to disable the intro screen on startup

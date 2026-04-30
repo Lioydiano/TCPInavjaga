@@ -34,6 +34,6 @@ void printSideInstructions(int);
 void printKeys();
 void reprint();
 void input();
-void act(char);
+bool act(char);
 void printEndInformation(EndReason);
 void deallocateAll();

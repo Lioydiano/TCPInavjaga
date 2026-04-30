@@ -14,6 +14,8 @@
 
 It will be a client-server architecture over TCP.
 
+## Handshake, flow
+
 ```mermaid
 ---
 config:
@@ -44,3 +46,9 @@ sequenceDiagram
     Note left of Server: Game finished
 ```
 _A sequence diagram of the communication between client and server_
+
+- consider that a client disconnect could just be a `Q` sent by the player
+
+## TCP sockets
+
+- https://stackoverflow.com/a/13021852/15888601

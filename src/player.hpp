@@ -18,6 +18,7 @@ public:
         DUMPCHEST, TRAP, MINE
     } mode;
     Inventory inventory;
+    unsigned short id = 0;
 
     Player();
     Player(sista::Coordinates);

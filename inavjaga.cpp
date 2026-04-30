@@ -1,5 +1,6 @@
 #include "include/cross_platform.hpp"
 #include "inavjaga.hpp"
+#include "io.hpp"
 #include <algorithm>
 #include <memory>
 #include <future>
@@ -615,16 +616,24 @@ void spawnEnemies() {
 }
 
 void input() {
+    InavjagaIO io = LocalInavjagaIO(); // Will have to be initialized with the output socket
     char input_ = '_';
     while (input_ != 'Q' /*&& input_ != 'q'*/) {
         if (end) return;
-        input_ = getch();
+        input_ = io.getMove().move;
         if (end) return;
-        act(input_);
+        if (act(input_)) {
+            #if CLIENT
+            // The locks are handled internally
+            io.sendMove(MoveEvent{Player::player->id, input_});
+            #elif SERVER
+            // TODO: send it to all the clients
+            #endif
+        }
     }
 }
 
-void act(char input_) {
+bool act(char input_) {
     switch (input_) {
         case 'w': case 'W': {
             std::scoped_lock<std::mutex> lock(streamMutex);
@@ -692,19 +701,20 @@ void act(char input_) {
             Player::player->mode = Player::Mode::MINE;
             break;
 
-        case '+': case '-':
-            speedup = !speedup;
-            break;
-        case '.': case 'p': case 'P':
-            pause_ = !pause_;
-            break;
+        // case '+': case '-':
+        //     speedup = !speedup;
+        //     break;
+        // case '.': case 'p': case 'P':
+        //     pause_ = !pause_;
+        //     break;
         case 'Q': /* case 'q': */
             printEndInformation(EndReason::QUIT);
             end = true;
-            return;
-        default:
             break;
+        default:
+            return false;
     }
+    return true;
 }
 
 void printEndInformation(EndReason endReason) {
