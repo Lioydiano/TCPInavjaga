@@ -10,8 +10,12 @@
 #include <stack>
 #include <iostream>
 #include <random>
+#include <netinet/tcp.h>
+#include <arpa/inet.h>
+#include <string.h>
 
 std::shared_ptr<Player> Player::localPlayer;
+std::vector<std::shared_ptr<Player>> Player::players;
 std::vector<std::shared_ptr<Wall>> Wall::walls;
 std::vector<std::shared_ptr<Bullet>> Bullet::bullets;
 std::vector<std::shared_ptr<EnemyBullet>> EnemyBullet::enemyBullets;
@@ -53,6 +57,9 @@ int main(int argc, char* argv[]) {
     sista::Coordinates spawn = SPAWN_COORDINATES;
     Player::localPlayer = std::make_shared<Player>(spawn);
     Player::localPlayer->mode = Player::Mode::BULLET;
+    #if SERVER
+    Player::players.push_back(Player::localPlayer);
+    #endif // The client instead will get its ID from the server
     field->addPawn(Player::localPlayer);
     #if INTRO
     intro();
@@ -62,6 +69,42 @@ int main(int argc, char* argv[]) {
     #endif
     spawnInitialEnemies();
     field->print(border);
+
+    #if CLIENT
+    std::unique_ptr<ClientInavjagaGSPIO> connectionToServer;
+    {
+        int clientSocket = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
+        // https://www.unixguide.net/network/socketfaq/2.16.shtml
+        int flag = 1;
+        int result = setsockopt(clientSocket, IPPROTO_TCP, TCP_NODELAY, &flag, sizeof(int));
+        struct sockaddr_in serverAddress;
+        bzero((char*)&serverAddress, sizeof(serverAddress)); // Clearing
+        inet_pton(AF_INET, argv[1], &(serverAddress.sin_addr)); // https://stackoverflow.com/a/5328184/15888601
+        // inet_aton(AF_INET, argv[1], &(serverAddress.sin_addr)); // man inet_pton (does it accept less than 3 digits?)
+        serverAddress.sin_port = htons(atoi(argv[2]));
+        serverAddress.sin_family = AF_INET;
+        connectionToServer = std::make_unique<TCPClientInavjagaGSPIO>(clientSocket, &serverAddress);
+    }
+    // Here we will do the whole handshake
+    #elif SERVER
+    // STILL A DRAFT
+    ServerInavjagaGSPIO currentClient;
+    std::future stopLobbySignal = std::async(std::launch::async, getch);
+    std::chrono::duration zeroTime = std::chrono::microseconds(0);
+    while (true) {
+        if (stopLobbySignal.wait_for(zeroTime) != std::future_status::ready) {
+            char input_ = stopLobbySignal.get();
+            if (input_ == 'n' || input_ == 'N') {
+                break;
+            } else {
+                stopLobbySignal = std::async(std::launch::async, getch);
+            }
+        }
+        currentClient.listen();
+    }
+    // STILL A DRAFT
+    #endif
+
     InavjagaIO localIO;
     #if CLIENT
     localIO = ClientLocalInavjagaIO();

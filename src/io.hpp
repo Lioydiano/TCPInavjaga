@@ -27,7 +27,10 @@ public:
  * @note takes input from stdin
  * @note writes output as ACT with InavjagaGSP
  */
-class LocalInavjagaIO: public InavjagaIO {};
+class LocalInavjagaIO: public InavjagaIO {
+public:
+    MoveEvent getMove() override;
+};
 
 /** @brief Reads the local moves and communicates them to all clients
  * @note takes input from stdin
@@ -35,7 +38,6 @@ class LocalInavjagaIO: public InavjagaIO {};
  */
 class ServerLocalInavjagaIO: public InavjagaIO {
 public:
-    MoveEvent getMove() override;
     void sendMove(MoveEvent) override;
 };
 
@@ -45,9 +47,8 @@ public:
  */
 class ClientLocalInavjagaIO: public InavjagaIO {
 private:
-    std::unique_ptr<InavjagaClientGSPIO> server;
+    std::unique_ptr<ClientInavjagaGSPIO> server;
 public:
-    MoveEvent getMove() override;
     void sendMove(MoveEvent) override;
 };
 
@@ -74,6 +75,7 @@ private:
      * Confirms the coordinates and sends the Player ID to the client
      */
     void leaseCoordinates(sista::Coordinates, int);
+    int connection;
 
 public:
     int recvRandomSeed();
@@ -84,10 +86,7 @@ public:
 
     virtual sista::Coordinates negotiateCoordinates();
 
-    /**
-     * @note specify the ID of the user so that it is not included in the vector
-     */
-    std::vector<std::shared_ptr<Player>> recvPlayers(int);
+    std::vector<std::shared_ptr<Player>> recvPlayers();
     void sendPlayers();
 
     void sendReady();
@@ -99,13 +98,33 @@ public:
 /**
  * @note receives OWN_ACT, sends ACT
  */
-class InavjagaServerGSPIO: public InavjagaGSPIO {
+class ServerInavjagaGSPIO: public InavjagaGSPIO {
+public:
+    void listen();
     sista::Coordinates negotiateCoordinates() override;
 };
 
 /**
  * @note receives ACT, sends OWN_ACT
  */
-class InavjagaClientGSPIO: public InavjagaGSPIO {
+class ClientInavjagaGSPIO: public InavjagaGSPIO {
+public:
+    ClientInavjagaGSPIO(int, sockaddr*);
     sista::Coordinates negotiateCoordinates() override;
+};
+
+/**
+ * @note it works over TCP
+ */
+class TCPServerInavjagaGSPIO: public ServerInavjagaGSPIO {
+public:
+    TCPServerInavjagaGSPIO(int);
+};
+
+/**
+ * @note it works over TCP
+ */
+class TCPClientInavjagaGSPIO: public ClientInavjagaGSPIO {
+public:
+    TCPClientInavjagaGSPIO(int, sockaddr_in*);
 };
