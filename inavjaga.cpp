@@ -13,6 +13,7 @@
 #include <netinet/tcp.h>
 #include <arpa/inet.h>
 #include <string.h>
+#include <poll.h>
 
 std::shared_ptr<Player> Player::localPlayer;
 std::vector<std::shared_ptr<Player>> Player::players;
@@ -87,8 +88,21 @@ int main(int argc, char* argv[]) {
     }
     // Here we will do the whole handshake
     #elif SERVER
-    // STILL A DRAFT
-    ServerInavjagaGSPIO currentClient;
+    int serverSocket;
+    {
+        serverSocket = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
+        struct sockaddr_in serverAddress;
+        bzero((char*)&serverAddress, sizeof(serverAddress)); // Clearing
+        serverAddress.sin_family = AF_INET;
+        // serverAddress.sin_addr.s_addr = INADDR_ANY; // Accept any incoming address
+        inet_pton(AF_INET, argv[1], &(serverAddress.sin_addr)); // https://stackoverflow.com/a/5328184/15888601
+        serverAddress.sin_port = htons(atoi(argv[2]));
+        if (bind(serverSocket, (struct sockaddr*)&serverAddress, sizeof(serverAddress)) < 0) {
+            std::cerr << "Could not bind address " << argv[1] << ":" << argv[2] << std::endl;
+        }
+    }
+    std::vector<std::unique_ptr<ServerInavjagaGSPIO>> clientConnections = {nullptr};
+    std::unique_ptr<ServerInavjagaGSPIO> currentClient;
     std::future stopLobbySignal = std::async(std::launch::async, getch);
     std::chrono::duration zeroTime = std::chrono::microseconds(0);
     while (true) {
@@ -100,9 +114,21 @@ int main(int argc, char* argv[]) {
                 stopLobbySignal = std::async(std::launch::async, getch);
             }
         }
-        currentClient.listen();
+        struct pollfd pollFd = {
+            .fd = serverSocket,
+            .events = POLLIN
+        };
+        int returnValue = poll(&pollFd, 1, 100);
+        if (returnValue < 0) {
+            std::cerr << "Error polling " << argv[1] << ":" << argv[2] << std::endl;
+        }
+        if (pollFd.revents & POLLIN) {
+            currentClient = std::make_unique<TCPServerInavjagaGSPIO>();
+            currentClient->acceptConnection(serverSocket);
+            clientConnections.push_back(currentClient);
+        }
     }
-    // STILL A DRAFT
+    // This is just the stage in which we have established connections, but the handshake still misses
     #endif
 
     InavjagaIO localIO;

@@ -21,5 +21,15 @@ ClientInavjagaGSPIO::ClientInavjagaGSPIO(int sockfd, sockaddr* srvaddr) {
     if (connect(sockfd, (struct sockaddr*)&srvaddr, sizeof(srvaddr)) < 0) {
         std::cerr << "Could not connect to " << srvaddr->sa_data;
     }
+    this->socketfd = sockfd;
 }
 TCPClientInavjagaGSPIO::TCPClientInavjagaGSPIO(int sockfd, sockaddr_in* srvaddr): ClientInavjagaGSPIO(sockfd, (sockaddr*)srvaddr) {}
+
+void ServerInavjagaGSPIO::acceptConnection(int sockfd) {
+    sockaddr clientAddress;
+    socklen_t length = sizeof(clientAddress);
+    this->connection = accept(sockfd, &clientAddress, &length);
+    if (this->connection < 0) {
+        std::cerr << "Something went wrong with accepting the connection from " << clientAddress.sa_data << std::endl;
+    }
+}
