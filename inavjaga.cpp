@@ -62,7 +62,15 @@ int main(int argc, char* argv[]) {
     #endif
     spawnInitialEnemies();
     field->print(border);
-    std::thread th(input);
+    InavjagaIO localIO;
+    #if CLIENT
+    localIO = ClientLocalInavjagaIO();
+    // Here we will add the InavjagaGSPIO object representing the channel with the server
+    #elif SERVER
+    localIO = ServerLocalInavjagaIO();
+    // Here we will add ever InavjagaGSPIO object representing the channels with clients
+    #endif
+    std::thread th(input, localIO);
     for (int i=0; !end; i++) {
         while (pause_) {
             std::this_thread::sleep_for(std::chrono::milliseconds(100));
@@ -615,20 +623,15 @@ void spawnEnemies() {
     }
 }
 
-void input() {
-    InavjagaIO io = LocalInavjagaIO(); // Will have to be initialized with the output socket
+void input(InavjagaIO io) {
     char input_ = '_';
     while (input_ != 'Q' /*&& input_ != 'q'*/) {
         if (end) return;
         input_ = io.getMove().move;
         if (end) return;
         if (act(input_)) {
-            #if CLIENT
             // The locks are handled internally
             io.sendMove(MoveEvent{Player::localPlayerId, input_});
-            #elif SERVER
-            // TODO: send it to all the clients
-            #endif
         }
     }
 }

@@ -33,7 +33,7 @@ bool endConditions();
 void printSideInstructions(int);
 void printKeys();
 void reprint();
-void input();
+void input(InavjagaIO);
 bool act(char);
 bool act(MoveEvent);
 void printEndInformation(EndReason);
