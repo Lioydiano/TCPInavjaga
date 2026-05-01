@@ -181,9 +181,9 @@ void Archer::shoot() {
         this->shoot(randomDirection());
         return;
     }
-    if (coordinates.x == Player::player->getCoordinates().x) {
+    if (coordinates.x == Player::localPlayer->getCoordinates().x) {
         // Roughly vertically aligned with the player
-        if (coordinates.y / (TUNNEL_UNIT * 3) != Player::player->getCoordinates().y / (TUNNEL_UNIT * 3)) {
+        if (coordinates.y / (TUNNEL_UNIT * 3) != Player::localPlayer->getCoordinates().y / (TUNNEL_UNIT * 3)) {
             // They was a wall between them so the archer cannot see
             int next_breaches_y = (coordinates.y % (TUNNEL_UNIT * 3)) - 1;
             if (!breaches[next_breaches_y].empty()) {
@@ -196,24 +196,24 @@ void Archer::shoot() {
             this->shoot(randomDirection());
             return;
         }
-        if (coordinates.y < Player::player->getCoordinates().y) {
+        if (coordinates.y < Player::localPlayer->getCoordinates().y) {
             this->shoot(Direction::DOWN);
-        } else if (coordinates.y > Player::player->getCoordinates().y) {
+        } else if (coordinates.y > Player::localPlayer->getCoordinates().y) {
             this->shoot(Direction::UP);
         }
         // Exactly vertically aligned with the player
-        if (coordinates.x == Player::player->getCoordinates().x) {
+        if (coordinates.x == Player::localPlayer->getCoordinates().x) {
             this->move(Direction::DOWN); // Dodges incoming bullets
         }
-    } else if (coordinates.y == Player::player->getCoordinates().y) {
+    } else if (coordinates.y == Player::localPlayer->getCoordinates().y) {
         // Roughly horizontally aligned with the player
-        if (coordinates.x < Player::player->getCoordinates().x) {
+        if (coordinates.x < Player::localPlayer->getCoordinates().x) {
             this->shoot(Direction::RIGHT);
-        } else if (coordinates.x > Player::player->getCoordinates().x) {
+        } else if (coordinates.x > Player::localPlayer->getCoordinates().x) {
             this->shoot(Direction::LEFT);
         }
         // Exactly horizontally aligned with the player
-        if (coordinates.y == Player::player->getCoordinates().y) {
+        if (coordinates.y == Player::localPlayer->getCoordinates().y) {
             this->move(Direction::LEFT); // Dodges incoming bullets
         }
     } else {

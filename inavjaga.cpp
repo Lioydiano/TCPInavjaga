@@ -11,7 +11,7 @@
 #include <iostream>
 #include <random>
 
-std::shared_ptr<Player> Player::player;
+std::shared_ptr<Player> Player::localPlayer;
 std::vector<std::shared_ptr<Wall>> Wall::walls;
 std::vector<std::shared_ptr<Bullet>> Bullet::bullets;
 std::vector<std::shared_ptr<EnemyBullet>> EnemyBullet::enemyBullets;
@@ -51,9 +51,9 @@ int main(int argc, char* argv[]) {
     field = std::make_shared<sista::SwappableField>(WIDTH, HEIGHT);
     generateTunnels();
     sista::Coordinates spawn = SPAWN_COORDINATES;
-    Player::player = std::make_shared<Player>(spawn);
-    Player::player->mode = Player::Mode::BULLET;
-    field->addPawn(Player::player);
+    Player::localPlayer = std::make_shared<Player>(spawn);
+    Player::localPlayer->mode = Player::Mode::BULLET;
+    field->addPawn(Player::localPlayer);
     #if INTRO
     intro();
     #endif
@@ -75,18 +75,18 @@ int main(int argc, char* argv[]) {
         if (dead) {
             dead = false;
             lastDeathFrame = i;
-            sista::Coordinates deathCoordinates = Player::player->getCoordinates();
+            sista::Coordinates deathCoordinates = Player::localPlayer->getCoordinates();
             sista::Coordinates respawnCoordinates = RESPAWN_COORDINATES;
-            field->movePawn(Player::player.get(), respawnCoordinates);
+            field->movePawn(Player::localPlayer.get(), respawnCoordinates);
             #if DROP_INVENTORY_ON_DEATH
             {
-                auto c = std::make_shared<Chest>(deathCoordinates, Inventory{Player::player->inventory.clay, Player::player->inventory.bullets, 0});
+                auto c = std::make_shared<Chest>(deathCoordinates, Inventory{Player::localPlayer->inventory.clay, Player::localPlayer->inventory.bullets, 0});
                 Chest::chests.push_back(c);
                 field->addPrintPawn(c);
             }
             #endif
-            Player::player->inventory.clay = 0;
-            Player::player->inventory.bullets = 0;
+            Player::localPlayer->inventory.clay = 0;
+            Player::localPlayer->inventory.bullets = 0;
         }
         if (lastDeathFrame && i - lastDeathFrame == 20) {
             // After 20 frames it deletes the death reason
@@ -197,12 +197,12 @@ int main(int argc, char* argv[]) {
             }
         }
         if (i % MEAT_DURATION_PERIOD == MEAT_DURATION_PERIOD - 1) {
-            Player::player->inventory.meat--;
+            Player::localPlayer->inventory.meat--;
         }
         spawnEnemies();
         printSideInstructions(i);
         // Check for negative amount of meat
-        if (Player::player->inventory.meat < 0) {
+        if (Player::localPlayer->inventory.meat < 0) {
             printEndInformation(EndReason::STARVED);
             dead = true;
             end = true;
@@ -324,7 +324,7 @@ void tutorial() {
         std::cout << std::flush;
     }
     {
-        auto a = std::make_shared<Archer>(sista::Coordinates{Player::player->getCoordinates().y, (unsigned short)(WIDTH - 3 * TUNNEL_UNIT - 1)});
+        auto a = std::make_shared<Archer>(sista::Coordinates{Player::localPlayer->getCoordinates().y, (unsigned short)(WIDTH - 3 * TUNNEL_UNIT - 1)});
         Archer::archers.push_back(a);
         field->addPrintPawn(a);
     }
@@ -443,14 +443,14 @@ void printSideInstructions(int i) {
     std::cout << "Inventory\n";
     sista::resetAttribute(sista::Attribute::BRIGHT);
     cursor.goTo(4, WIDTH + 10);
-    std::cout << "Clay: " << Player::player->inventory.clay << "   \n";
+    std::cout << "Clay: " << Player::localPlayer->inventory.clay << "   \n";
     cursor.goTo(5, WIDTH + 10);
-    std::cout << "Bullets: " << Player::player->inventory.bullets << "   \n";
+    std::cout << "Bullets: " << Player::localPlayer->inventory.bullets << "   \n";
     cursor.goTo(6, WIDTH + 10);
-    std::cout << "Meat: " << Player::player->inventory.meat << "   \n";
+    std::cout << "Meat: " << Player::localPlayer->inventory.meat << "   \n";
     cursor.goTo(7, WIDTH + 10);
     std::cout << "Mode: ";
-    switch (Player::player->mode) {
+    switch (Player::localPlayer->mode) {
         case Player::Mode::COLLECT:
             std::cout << "Collect";
             break;
@@ -625,7 +625,7 @@ void input() {
         if (act(input_)) {
             #if CLIENT
             // The locks are handled internally
-            io.sendMove(MoveEvent{Player::player->id, input_});
+            io.sendMove(MoveEvent{Player::localPlayerId, input_});
             #elif SERVER
             // TODO: send it to all the clients
             #endif
@@ -633,88 +633,84 @@ void input() {
     }
 }
 
-bool act(char input_) {
-    switch (input_) {
+/** Process an action to the field from a Player
+ * \param event the move event to process
+ * \return whether the event was a valid one
+ */
+bool act(MoveEvent event) {
+    std::shared_ptr<Player> player = Player::players[event.playerId];
+    switch (event.move) {
         case 'w': case 'W': {
             std::scoped_lock<std::mutex> lock(streamMutex);
-            if (pause_) break;
-            Player::player->move(Direction::UP);
+            player->move(Direction::UP);
             break;
         }
         case 'a': case 'A': {
             std::scoped_lock<std::mutex> lock(streamMutex);
-            if (pause_) break;
-            Player::player->move(Direction::LEFT);
+            player->move(Direction::LEFT);
             break;
         }
         case 's': case 'S': {
             std::scoped_lock<std::mutex> lock(streamMutex);
-            if (pause_) break;
-            Player::player->move(Direction::DOWN);
+            player->move(Direction::DOWN);
             break;
         }
         case 'd': case 'D': {
             std::scoped_lock<std::mutex> lock(streamMutex);
-            if (pause_) break;
-            Player::player->move(Direction::RIGHT);
+            player->move(Direction::RIGHT);
             break;
         }
 
         case 'j': case 'J': {
             std::scoped_lock<std::mutex> lock(streamMutex);
-            if (pause_) break;
-            Player::player->shoot(Direction::LEFT);
+            player->shoot(Direction::LEFT);
             break;
         }
         case 'k': case 'K': {
             std::scoped_lock<std::mutex> lock(streamMutex);
-            if (pause_) break;
-            Player::player->shoot(Direction::DOWN);
+            player->shoot(Direction::DOWN);
             break;
         }
         case 'l': case 'L': {
             std::scoped_lock<std::mutex> lock(streamMutex);
-            if (pause_) break;
-            Player::player->shoot(Direction::RIGHT);
+            player->shoot(Direction::RIGHT);
             break;
         }
         case 'i': case 'I': {
             std::scoped_lock<std::mutex> lock(streamMutex);
-            if (pause_) break;
-            Player::player->shoot(Direction::UP);
+            player->shoot(Direction::UP);
             break;
         }
 
         case 'c': case 'C':
-            Player::player->mode = Player::Mode::COLLECT;
+            player->mode = Player::Mode::COLLECT;
             break;
         case 'b': case 'B':
-            Player::player->mode = Player::Mode::BULLET;
+            player->mode = Player::Mode::BULLET;
             break;
         case 'e': case 'E': case 'q':
-            Player::player->mode = Player::Mode::DUMPCHEST;
+            player->mode = Player::Mode::DUMPCHEST;
             break;
-        // case 't': case 'T':
-        //     Player::player->mode = Player::Mode::TRAP;
-        //     break;
         case 'm': case 'M': case '*':
-            Player::player->mode = Player::Mode::MINE;
+            player->mode = Player::Mode::MINE;
             break;
 
-        // case '+': case '-':
-        //     speedup = !speedup;
-        //     break;
-        // case '.': case 'p': case 'P':
-        //     pause_ = !pause_;
-        //     break;
         case 'Q': /* case 'q': */
-            printEndInformation(EndReason::QUIT);
-            end = true;
+            if (event.playerId == Player::localPlayerId) {
+                printEndInformation(EndReason::QUIT);
+                end = true;
+            } else {
+                Player::disconnectPlayer(event.playerId);
+            }
             break;
         default:
             return false;
     }
     return true;
+}
+
+bool act(char input_) {
+    return act(MoveEvent{Player::localPlayerId, input_});
 }
 
 void printEndInformation(EndReason endReason) {

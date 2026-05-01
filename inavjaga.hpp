@@ -35,5 +35,6 @@ void printKeys();
 void reprint();
 void input();
 bool act(char);
+bool act(MoveEvent);
 void printEndInformation(EndReason);
 void deallocateAll();

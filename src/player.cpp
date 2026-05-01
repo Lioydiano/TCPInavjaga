@@ -16,12 +16,12 @@ Player::Player(sista::Coordinates coordinates) : Entity('$', coordinates, player
 Player::Player() : Entity('$', {0, 0}, playerStyle, Type::PLAYER), mode(Player::Mode::COLLECT), inventory(INITIAL_INVENTORY) {}
 void Player::remove() {
     [[maybe_unused]] std::shared_ptr<Player> keepAlive;
-    if (Player::player.get() == this) {
-        keepAlive = Player::player;
+    if (Player::localPlayer.get() == this) {
+        keepAlive = Player::localPlayer;
     }
     field->erasePawn(this);
-    if (Player::player.get() == this) {
-        Player::player.reset();
+    if (Player::localPlayer.get() == this) {
+        Player::localPlayer.reset();
     }
 }
 void Player::move(Direction direction) {
