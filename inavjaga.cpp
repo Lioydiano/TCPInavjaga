@@ -224,13 +224,7 @@ int main(int argc, char* argv[]) {
     cursor.goTo(72, 0); // Move the cursor to the bottom of the screen, so the terminal is not left in a weird state
     std::this_thread::sleep_for(std::chrono::seconds(1)); // Give the time to see the final screen
     flushInput();
-    #if __linux__
-        getch();
-    #elif __APPLE__
-        getchar();
-    #elif _WIN32
-        getch();
-    #endif
+    getch();
     #ifdef __APPLE__
         tcsetattr(0, TCSANOW, &orig_termios);
     #endif
@@ -318,11 +312,7 @@ void tutorial() {
     char input_;
     flushInput();
     for (int i = 0; i < 5; i++) {
-        #if defined(_WIN32) or defined(__linux__)
-            input_ = getch();
-        #elif __APPLE__
-            input_ = getchar();
-        #endif
+        input_ = getch();
         if (movementKeys.find(input_) != movementKeys.end()) {
             act(input_);
         } else if (input_ == 'n') {
@@ -349,11 +339,7 @@ void tutorial() {
     flushInput();
     input_ = ' ';
     while (input_ != 'j' && input_ != 'J') {
-        #if defined(_WIN32) or defined(__linux__)
-            input_ = getch();
-        #elif __APPLE__
-            input_ = getchar();
-        #endif
+        input_ = getch();
         if (movementKeys.find(input_) != movementKeys.end())
             continue;
         if (input_ == 'n') {
@@ -381,11 +367,7 @@ void tutorial() {
     std::cout << ". Enter collect mode and pick it up." << std::endl;
 
     while (!Chest::chests.empty()) {
-        #if defined(_WIN32) or defined(__linux__)
-            input_ = getch();
-        #elif __APPLE__
-            input_ = getchar();
-        #endif
+        input_ = getch();
         if (input_ == 'n') {
             flushInput();
             sista::clearScreen(true);
@@ -441,12 +423,7 @@ void tutorial() {
     std::cout << std::flush;
     std::this_thread::sleep_for(std::chrono::seconds(1));
     flushInput();
-
-    #if defined(_WIN32) or defined(__linux__)
-        input_ = getch();
-    #elif __APPLE__
-        input_ = getchar();
-    #endif
+    input_ = getch();
 
     while (!highlightPawns.empty()) {
         field->erasePawn(highlightPawns.back().get());
@@ -641,11 +618,7 @@ void input() {
     char input_ = '_';
     while (input_ != 'Q' /*&& input_ != 'q'*/) {
         if (end) return;
-        #if defined(_WIN32) or defined(__linux__)
-            input_ = getch();
-        #elif __APPLE__
-            input_ = getchar();
-        #endif
+        input_ = getch();
         if (end) return;
         act(input_);
     }

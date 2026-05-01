@@ -26,6 +26,8 @@
         tcsetattr(0, TCSANOW, &noecho);
     }
 
+    char getch(void) { return getchar(); }
+
     void flushInput() {
         // Flush stdin (discard data not read yet)
         tcflush(STDIN_FILENO, TCIFLUSH);
