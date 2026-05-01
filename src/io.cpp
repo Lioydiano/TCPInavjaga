@@ -5,11 +5,7 @@
 #define INAVJAGA_PLAYER_ID_IGNORE 0
 
 MoveEvent LocalInavjagaIO::getMove() {
-    #if defined(_WIN32) or defined(__linux__)
-        return {INAVJAGA_PLAYER_ID_IGNORE, getch()};
-    #elif __APPLE__
-        return {INAVJAGA_PLAYER_ID_IGNORE, getchar()};
-    #endif
+    return {INAVJAGA_PLAYER_ID_IGNORE, getch()};
 }
 
 /** @brief Waits for a move event and returns it
