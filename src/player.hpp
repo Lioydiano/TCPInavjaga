@@ -24,6 +24,7 @@ public:
     Inventory inventory;
     sista::Coordinates respawnCoordinates;
     player_id_t id = 0;
+    bool connected = true;
 
     Player();
     Player(sista::Coordinates);

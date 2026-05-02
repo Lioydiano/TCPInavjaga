@@ -11,7 +11,7 @@
 #include <netinet/ip.h>
 
 struct MoveEvent {
-    unsigned short playerId;
+    player_id_t playerId;
     char move;
 };
 

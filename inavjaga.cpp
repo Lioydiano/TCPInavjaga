@@ -96,39 +96,29 @@ int main(int argc, char* argv[]) {
     for (size_t i = 0; i < clientConnections.size(); i++) {
         clientConnections[i]->sendPlayers(Player::players, i + 1);
     }
+    std::this_thread::sleep_for(std::chrono::seconds(2)); // Give the time to send ready
     std::vector<player_id_t> nonReady;
     for (size_t i = 0; i < clientConnections.size(); i++) {
         if (!clientConnections[i]->recvReady()) {
+            Player::players[i + 1]->connected = false;
+            clientConnections[i] = nullptr;
             nonReady.push_back(i + 1);
         }
     }
-    // https://stackoverflow.com/questions/4478636/stdremove-if-lambda-not-removing-anything-from-the-collection
-    Player::players.erase(std::remove_if(
-        Player::players.begin(), Player::players.end(),
-        [&](const std::shared_ptr<Player>& p) {
-            for (std::shared_ptr<Player> p_ : Player::players) {
-                if (p->id == p_->id) {
-                    return true;
-                }
-            }
-            return false;
-        }),
-        Player::players.end()
-    ); // Ok but the clients have the outdated list anyway TODO
     for (size_t i = 1; i < Player::players.size(); i++) {
+        if (!Player::players[i]->connected) {
+            for (size_t j = 0; j < clientConnections.size(); j++) {
+                if (clientConnections[j] == nullptr) continue;
+                clientConnections[j]->sendAct(MoveEvent{(player_id_t)i, 'Q'});
+            }
+        }
         field->addPawn(Player::players[i]);
     }
     #elif CLIENT
     std::map<std::string, std::variant<int, float>> constants = connectionToServer->recvConstants();
     setConstantsToReceivedValues(constants);
-    #endif
-
-    #if CLIENT
     field = std::make_shared<sista::SwappableField>(WIDTH, HEIGHT);
     generateTunnels();
-    #endif
-
-    #if CLIENT
     placeClientPlayer(connectionToServer);
     // This will also place the Player::localPlayer in the right position and assign the Id to it
     Player::players = connectionToServer->recvPlayers();
