@@ -1,4 +1,4 @@
-#include "include/cross_platform.hpp"
+#include "../include/cross_platform.hpp"
 #include "io.hpp"
 #include <iostream>
 

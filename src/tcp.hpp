@@ -1,4 +1,4 @@
-#include "src/io.hpp"
+#include "io.hpp"
 
 std::unique_ptr<ClientInavjagaGSPIO> connectClientToServer(int, char*, char*);
 void bindServerSocketToPort(int, char*, char*);
