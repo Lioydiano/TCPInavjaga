@@ -46,10 +46,10 @@ std::vector<std::shared_ptr<ServerInavjagaGSPIO>> waitForConnections(int sockfd)
                 stopLobbySignal = std::async(std::launch::async, getch);
             }
         }
-        struct pollfd pollFd = {
-            .fd = sockfd,
-            .events = POLLIN
-        };
+        struct pollfd pollFd;
+        bzero(&pollFd, sizeof(pollfd));
+        pollFd.fd = sockfd;
+        pollFd.events = POLLIN;
         int returnValue = poll(&pollFd, 1, 100);
         if (returnValue < 0) {
             std::cerr << "Error polling socket " << sockfd << std::endl;
