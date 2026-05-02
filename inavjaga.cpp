@@ -9,10 +9,6 @@
 #include <stack>
 #include <iostream>
 #include <random>
-#include <netinet/tcp.h>
-#include <arpa/inet.h>
-#include <string.h>
-#include <poll.h>
 
 std::shared_ptr<Player> Player::localPlayer;
 std::vector<std::shared_ptr<Player>> Player::players;
@@ -49,8 +45,6 @@ int main(int argc, char* argv[]) {
     #endif
     std::ios_base::sync_with_stdio(false);
     sista::resetAnsi(); // Reset the settings
-    int seed = randomDevice();
-    rng.seed(seed);
 
     field = std::make_shared<sista::SwappableField>(WIDTH, HEIGHT);
     generateTunnels();
@@ -67,68 +61,29 @@ int main(int argc, char* argv[]) {
     #if TUTORIAL
     tutorial();
     #endif
-    spawnInitialEnemies();
-    field->print(border);
 
     #if CLIENT
-    std::unique_ptr<ClientInavjagaGSPIO> connectionToServer;
-    {
-        int clientSocket = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
-        // https://www.unixguide.net/network/socketfaq/2.16.shtml
-        int flag = 1;
-        int result = setsockopt(clientSocket, IPPROTO_TCP, TCP_NODELAY, &flag, sizeof(int));
-        struct sockaddr_in serverAddress;
-        bzero((char*)&serverAddress, sizeof(serverAddress)); // Clearing
-        inet_pton(AF_INET, argv[1], &(serverAddress.sin_addr)); // https://stackoverflow.com/a/5328184/15888601
-        // inet_aton(AF_INET, argv[1], &(serverAddress.sin_addr)); // man inet_pton (does it accept less than 3 digits?)
-        serverAddress.sin_port = htons(atoi(argv[2]));
-        serverAddress.sin_family = AF_INET;
-        connectionToServer = std::make_unique<TCPClientInavjagaGSPIO>(clientSocket, &serverAddress);
-    }
-    // Here we will do the whole handshake
+    int clientSocket = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
+    std::unique_ptr<ClientInavjagaGSPIO> connectionToServer = connectClientToServer(clientSocket, argv[1], argv[2]);
     #elif SERVER
-    int serverSocket;
-    {
-        serverSocket = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
-        struct sockaddr_in serverAddress;
-        bzero((char*)&serverAddress, sizeof(serverAddress)); // Clearing
-        serverAddress.sin_family = AF_INET;
-        // serverAddress.sin_addr.s_addr = INADDR_ANY; // Accept any incoming address
-        inet_pton(AF_INET, argv[1], &(serverAddress.sin_addr)); // https://stackoverflow.com/a/5328184/15888601
-        serverAddress.sin_port = htons(atoi(argv[2]));
-        if (bind(serverSocket, (struct sockaddr*)&serverAddress, sizeof(serverAddress)) < 0) {
-            std::cerr << "Could not bind address " << argv[1] << ":" << argv[2] << std::endl;
-        }
-    }
-    std::vector<std::unique_ptr<ServerInavjagaGSPIO>> clientConnections = {nullptr};
-    std::unique_ptr<ServerInavjagaGSPIO> currentClient;
-    std::future stopLobbySignal = std::async(std::launch::async, getch);
-    std::chrono::duration zeroTime = std::chrono::microseconds(0);
-    while (true) {
-        if (stopLobbySignal.wait_for(zeroTime) != std::future_status::ready) {
-            char input_ = stopLobbySignal.get();
-            if (input_ == 'n' || input_ == 'N') {
-                break;
-            } else {
-                stopLobbySignal = std::async(std::launch::async, getch);
-            }
-        }
-        struct pollfd pollFd = {
-            .fd = serverSocket,
-            .events = POLLIN
-        };
-        int returnValue = poll(&pollFd, 1, 100);
-        if (returnValue < 0) {
-            std::cerr << "Error polling " << argv[1] << ":" << argv[2] << std::endl;
-        }
-        if (pollFd.revents & POLLIN) {
-            currentClient = std::make_unique<TCPServerInavjagaGSPIO>();
-            currentClient->acceptConnection(serverSocket);
-            clientConnections.push_back(currentClient);
-        }
-    }
-    // This is just the stage in which we have established connections, but the handshake still misses
+    int serverSocket = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
+    bindServerSocketToPort(serverSocket, argv[1], argv[2]);
+    std::vector<std::shared_ptr<ServerInavjagaGSPIO>> clientConnections = waitForConnections(serverSocket);
     #endif
+    // This is just the stage in which we have established connections, but the handshake still misses
+
+    #if SERVER
+    int seed = randomDevice();
+    for (auto client : clientConnections) {
+        client->sendRandomSeed(seed);
+    }
+    #elif CLIENT
+    int seed = connectionToServer->recvRandomSeed();
+    #endif
+    rng.seed(seed);
+
+    spawnInitialEnemies();
+    field->print(border);
 
     InavjagaIO localIO;
     #if CLIENT

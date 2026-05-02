@@ -13,6 +13,7 @@
 #include "src/enemyBullet.hpp"
 #include "src/archer.hpp"
 #include "src/io.hpp"
+#include "src/tcp.hpp"
 #include <random>
 #include <vector>
 #include <set>

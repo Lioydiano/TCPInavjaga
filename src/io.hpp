@@ -2,6 +2,7 @@
 
 #include "player.hpp"
 #include <map>
+#include <mutex>
 #include <string>
 #include <memory>
 #include <vector>
@@ -106,6 +107,9 @@ public:
  * @note writes output as ACT with InavjagaGSP
  */
 class ServerLocalInavjagaIO: public InavjagaIO {
+private:
+    std::shared_ptr<std::mutex> writeToChannelsMutex;
+    std::vector<std::shared_ptr<InavjagaGSPIO>> neighbors;
 public:
     void sendMove(MoveEvent) override;
 };
@@ -126,7 +130,7 @@ public:
  */
 class RemoteInavjagaIO: public InavjagaIO {
 private:
-    std::vector<std::unique_ptr<InavjagaGSPIO>> neighbors;
+    std::vector<std::shared_ptr<InavjagaGSPIO>> neighbors;
 public:
     MoveEvent getMove() override;
     void sendMove(MoveEvent) override;
