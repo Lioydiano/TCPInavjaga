@@ -104,8 +104,10 @@ void Player::shoot(Direction direction) {
             }
             break;
         case Mode::MINE:
-            if (this->inventory.containsAtLeast(COST_OF_MINE)) {
-                this->inventory -= COST_OF_MINE;
+            if (this->inventory.containsAtLeast({COST_OF_MINE_CLAY,COST_OF_MINE_BULLETS,COST_OF_MINE_MEAT})) {
+                this->inventory.clay -= COST_OF_MINE_CLAY;
+                this->inventory.bullets -= COST_OF_MINE_BULLETS;
+                this->inventory.meat -= COST_OF_MINE_MEAT;
                 {
                     auto m = std::make_shared<Mine>(target);
                     Mine::mines.push_back(m);

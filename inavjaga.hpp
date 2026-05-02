@@ -26,6 +26,8 @@ extern std::map<int, std::vector<int>> passages; // {y, {x1, x2, x3...}}
 extern std::map<int, std::vector<int>> breaches; // {y, {x1, x2, x3...}}
 enum EndReason {STARVED, SHOT, EATEN, STABBED, TOUCHDOWN, QUIT};
 
+void setConstantsToReceivedValues(const std::map<std::string, std::variant<int, float>>&);
+
 void generateTunnels();
 void intro();
 void tutorial();

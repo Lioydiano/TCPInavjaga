@@ -9,6 +9,7 @@
 #include <stack>
 #include <iostream>
 #include <random>
+#include <map>
 
 std::shared_ptr<Player> Player::localPlayer;
 std::vector<std::shared_ptr<Player>> Player::players;
@@ -46,14 +47,13 @@ int main(int argc, char* argv[]) {
     std::ios_base::sync_with_stdio(false);
     sista::resetAnsi(); // Reset the settings
 
+    #if SERVER
     field = std::make_shared<sista::SwappableField>(WIDTH, HEIGHT);
     generateTunnels();
-    sista::Coordinates spawn = SPAWN_COORDINATES;
+    sista::Coordinates spawn = sista::Coordinates(SPAWN_COORDINATES_Y, SPAWN_COORDINATES_X);
     Player::localPlayer = std::make_shared<Player>(spawn);
     Player::localPlayer->mode = Player::Mode::BULLET;
-    #if SERVER
     Player::players.push_back(Player::localPlayer);
-    #endif // The client instead will get its ID from the server
     field->addPawn(Player::localPlayer);
     #if INTRO
     intro();
@@ -61,6 +61,7 @@ int main(int argc, char* argv[]) {
     #if TUTORIAL
     tutorial();
     #endif
+    #endif // The client instead will get its ID from the server
 
     #if CLIENT
     int clientSocket = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
@@ -74,13 +75,22 @@ int main(int argc, char* argv[]) {
 
     #if SERVER
     int seed = randomDevice();
-    for (auto client : clientConnections) {
-        client->sendRandomSeed(seed);
+    for (std::shared_ptr<ServerInavjagaGSPIO> clientConnection : clientConnections) {
+        clientConnection->sendRandomSeed(seed);
     }
     #elif CLIENT
     int seed = connectionToServer->recvRandomSeed();
     #endif
     rng.seed(seed);
+
+    #if SERVER
+    for (std::shared_ptr<ServerInavjagaGSPIO> clientConnection : clientConnections) {
+        clientConnection->sendConstants();
+    }
+    #elif CLIENT
+    std::map<std::string, std::variant<int, float>> constants = connectionToServer->recvConstants();
+    setConstantsToReceivedValues(constants);
+    #endif
 
     spawnInitialEnemies();
     field->print(border);
@@ -107,7 +117,7 @@ int main(int argc, char* argv[]) {
             dead = false;
             lastDeathFrame = i;
             sista::Coordinates deathCoordinates = Player::localPlayer->getCoordinates();
-            sista::Coordinates respawnCoordinates = RESPAWN_COORDINATES;
+            sista::Coordinates respawnCoordinates{RESPAWN_COORDINATES_Y, RESPAWN_COORDINATES_X};
             field->movePawn(Player::localPlayer.get(), respawnCoordinates);
             #if DROP_INVENTORY_ON_DEATH
             {
@@ -777,6 +787,55 @@ void printEndInformation(EndReason endReason) {
             break;
     }
     std::cout << std::flush;
+}
+
+void setConstantsToReceivedValues(const std::map<std::string, std::variant<int, float>>& constants) {
+    WIDTH = std::get<int>(constants.at("WIDTH"));
+    HEIGHT = std::get<int>(constants.at("HEIGHT"));
+    TUNNEL_UNIT = std::get<int>(constants.at("TUNNEL_UNIT"));
+    PORTALS_PER_LINE = std::get<int>(constants.at("PORTALS_PER_LINE"));
+    FRAME_DURATION = std::get<int>(constants.at("FRAME_DURATION"));
+    BULLET_SPEED = std::get<int>(constants.at("BULLET_SPEED"));
+    DROP_INVENTORY_ON_DEATH = std::get<int>(constants.at("DROP_INVENTORY_ON_DEATH"));
+    INITIAL_CLAY = std::get<int>(constants.at("INITIAL_CLAY"));
+    INITIAL_BULLETS = std::get<int>(constants.at("INITIAL_BULLETS"));
+    INITIAL_MEAT = std::get<int>(constants.at("INITIAL_MEAT"));
+    LOOT_ARCHER_CLAY = std::get<int>(constants.at("LOOT_ARCHER_CLAY"));
+    LOOT_ARCHER_BULLETS = std::get<int>(constants.at("LOOT_ARCHER_BULLETS"));
+    LOOT_ARCHER_MEAT = std::get<int>(constants.at("LOOT_ARCHER_MEAT"));
+    LOOT_WORM_HEAD_CLAY = std::get<int>(constants.at("LOOT_WORM_HEAD_CLAY"));
+    LOOT_WORM_HEAD_BULLETS = std::get<int>(constants.at("LOOT_WORM_HEAD_BULLETS"));
+    LOOT_WORM_HEAD_MEAT = std::get<int>(constants.at("LOOT_WORM_HEAD_MEAT"));
+    COST_OF_MINE_CLAY = std::get<int>(constants.at("COST_OF_MINE_CLAY"));
+    COST_OF_MINE_BULLETS = std::get<int>(constants.at("COST_OF_MINE_BULLETS"));
+    COST_OF_MINE_MEAT = std::get<int>(constants.at("COST_OF_MINE_MEAT"));
+    MEAT_DURATION_PERIOD = std::get<int>(constants.at("MEAT_DURATION_PERIOD"));
+    SPAWN_COORDINATES_Y = std::get<int>(constants.at("SPAWN_COORDINATES_Y"));
+    SPAWN_COORDINATES_X = std::get<int>(constants.at("SPAWN_COORDINATES_X"));
+    RESPAWN_COORDINATES_Y = std::get<int>(constants.at("RESPAWN_COORDINATES_Y"));
+    RESPAWN_COORDINATES_X = std::get<int>(constants.at("RESPAWN_COORDINATES_X"));
+    MINE_MINIMUM_DAMAGE = std::get<int>(constants.at("MINE_MINIMUM_DAMAGE"));
+    MINE_MAXIMUM_DAMAGE = std::get<int>(constants.at("MINE_MAXIMUM_DAMAGE"));
+    MINE_SENSITIVITY_RADIUS = std::get<int>(constants.at("MINE_SENSITIVITY_RADIUS"));
+    MINE_DAMAGE_RADIUS = std::get<int>(constants.at("MINE_DAMAGE_RADIUS"));
+    INITIAL_WALL_STRENGTH = std::get<int>(constants.at("INITIAL_WALL_STRENGTH"));
+    WORM_HEALTH_POINTS = std::get<int>(constants.at("WORM_HEALTH_POINTS"));
+    WALL_WEARING_PROBABILITY = std::get<float>(constants.at("WALL_WEARING_PROBABILITY"));
+    DAMAGED_WALLS_COUNT = std::get<int>(constants.at("DAMAGED_WALLS_COUNT"));
+    MINE_EXPLOSION_IN_FRAME_PROBABILITY = std::get<float>(constants.at("MINE_EXPLOSION_IN_FRAME_PROBABILITY"));
+    DUMB_MOVE_PROBABILITY = std::get<float>(constants.at("DUMB_MOVE_PROBABILITY"));
+    ARCHER_SPAWNING_PROBABILITY = std::get<float>(constants.at("ARCHER_SPAWNING_PROBABILITY"));
+    ARCHER_MOVING_PROBABILITY = std::get<float>(constants.at("ARCHER_MOVING_PROBABILITY"));
+    ARCHER_SHOOTING_PROBABILITY = std::get<float>(constants.at("ARCHER_SHOOTING_PROBABILITY"));
+    WORM_TURNING_PROBABILITY = std::get<float>(constants.at("WORM_TURNING_PROBABILITY"));
+    WORM_SPAWNING_PROBABILITY = std::get<float>(constants.at("WORM_SPAWNING_PROBABILITY"));
+    WORM_EATING_ARCHER_PROBABILITY = std::get<float>(constants.at("WORM_EATING_ARCHER_PROBABILITY"));
+    WORM_EATING_TAIL_PROBABILITY = std::get<float>(constants.at("WORM_EATING_TAIL_PROBABILITY"));
+    WORM_MOVING_PROBABILITY = std::get<float>(constants.at("WORM_MOVING_PROBABILITY"));
+    CLAY_RELEASE_PROBABILITY = std::get<float>(constants.at("CLAY_RELEASE_PROBABILITY"));
+    INITIAL_ARCHERS = std::get<int>(constants.at("INITIAL_ARCHERS"));
+    INITIAL_WORMS = std::get<int>(constants.at("INITIAL_WORMS"));
+    WORM_LENGTH = std::get<int>(constants.at("WORM_LENGTH"));
 }
 
 void deallocateAll() {

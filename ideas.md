@@ -1,3 +1,5 @@
+# Main game
+
 - [x] the field goes wearing out with time passing
 - [x] when you kill a worm with an headshot, the rest of the body becomes bullets that you can harvest
 - [x] the worms leave clay around
@@ -49,6 +51,12 @@ _A sequence diagram of the communication between client and server_
 
 - consider that a client disconnect could just be a `Q` sent by the player
 
+- the client will just set the constants from the server
+
 ## TCP sockets
 
 - https://stackoverflow.com/a/13021852/15888601
+
+# Saving/sending game state
+
+We need serialization, I was thinking of looking into [cereal](https://uscilab.github.io/cereal/quickstart.html).

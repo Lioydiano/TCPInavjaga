@@ -21,6 +21,8 @@ struct MoveEvent {
  */
 class InavjagaGSPIO {
 private:
+    void sendNo();
+    void sendYes();
     sista::Coordinates recvCoordinates();
     void sendCoordinates(sista::Coordinates);
     /**
@@ -32,8 +34,8 @@ public:
     int recvRandomSeed();
     void sendRandomSeed(int);
 
-    std::map<std::string, std::string> recvConstants();
-    void sendConstants();
+    std::map<std::string, std::variant<int, float>> recvConstants();
+    bool sendConstants();
 
     virtual sista::Coordinates negotiateCoordinates();
 
