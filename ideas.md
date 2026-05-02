@@ -33,6 +33,7 @@ sequenceDiagram
     activate Server
 
     Note left of Server: End lobby phase
+    Note over Server,Client: Also provides Player ID, number of players and coordinates for all
     Server->>+Client: ALL_PLAYERS
     Note left of Server: Start game
     

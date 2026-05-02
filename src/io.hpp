@@ -37,13 +37,6 @@ public:
     std::map<std::string, std::variant<int, float>> recvConstants();
     bool sendConstants();
 
-    virtual sista::Coordinates negotiateCoordinates() const;
-
-    std::vector<std::shared_ptr<Player>> recvPlayers();
-    void sendPlayers();
-
-    void sendReady();
-
     MoveEvent recvAct();
     void sendAct(MoveEvent);
 };
@@ -56,7 +49,9 @@ private:
     int connection;
 public:
     void acceptConnection(int);
-    sista::Coordinates negotiateCoordinates() const override;
+    sista::Coordinates negotiateCoordinates(std::weak_ptr<sista::SwappableField>) const;
+    void sendPlayers(std::vector<std::shared_ptr<Player>>&, player_id_t);
+    bool recvReady();
 };
 
 /**
@@ -67,7 +62,9 @@ private:
     int socketfd;
 public:
     ClientInavjagaGSPIO(int, sockaddr*);
-    sista::Coordinates negotiateCoordinates() const override;
+    sista::Coordinates negotiateCoordinates() const;
+    std::vector<std::shared_ptr<Player>> recvPlayers();
+    void sendReady();
 };
 
 /**

@@ -52,7 +52,7 @@ int main(int argc, char* argv[]) {
     generateTunnels();
     sista::Coordinates spawn = sista::Coordinates(SPAWN_COORDINATES_Y, SPAWN_COORDINATES_X);
     Player::localPlayer = std::make_shared<Player>(spawn);
-    Player::localPlayer->respawnCoordinates = {RESPAWN_COORDINATES_Y, RESPAWN_COORDINATES_X}
+    Player::localPlayer->respawnCoordinates = {RESPAWN_COORDINATES_Y, RESPAWN_COORDINATES_X};
     Player::localPlayer->mode = Player::Mode::BULLET;
     Player::players.push_back(Player::localPlayer);
     field->addPawn(Player::localPlayer);
@@ -86,7 +86,37 @@ int main(int argc, char* argv[]) {
 
     #if SERVER
     for (std::shared_ptr<ServerInavjagaGSPIO> clientConnection : clientConnections) {
-        clientConnection->sendConstants();
+        if (clientConnection->sendConstants()) {
+            sista::Coordinates spawn_client = clientConnection->negotiateCoordinates(field);
+            Player::players.push_back(std::make_shared<Player>(spawn_client));
+            Player::players.back()->id = Player::players.size() - 1;
+            Player::players.back()->respawnCoordinates = spawn_client;
+        }
+    }
+    for (size_t i = 0; i < clientConnections.size(); i++) {
+        clientConnections[i]->sendPlayers(Player::players, i + 1);
+    }
+    std::vector<player_id_t> nonReady;
+    for (size_t i = 0; i < clientConnections.size(); i++) {
+        if (!clientConnections[i]->recvReady()) {
+            nonReady.push_back(i + 1);
+        }
+    }
+    // https://stackoverflow.com/questions/4478636/stdremove-if-lambda-not-removing-anything-from-the-collection
+    Player::players.erase(std::remove_if(
+        Player::players.begin(), Player::players.end(),
+        [&](const std::shared_ptr<Player>& p) {
+            for (std::shared_ptr<Player> p_ : Player::players) {
+                if (p->id == p_->id) {
+                    return true;
+                }
+            }
+            return false;
+        }),
+        Player::players.end()
+    ); // Ok but the clients have the outdated list anyway TODO
+    for (size_t i = 1; i < Player::players.size(); i++) {
+        field->addPawn(Player::players[i]);
     }
     #elif CLIENT
     std::map<std::string, std::variant<int, float>> constants = connectionToServer->recvConstants();
@@ -100,6 +130,12 @@ int main(int argc, char* argv[]) {
 
     #if CLIENT
     placeClientPlayer(connectionToServer);
+    // This will also place the Player::localPlayer in the right position and assign the Id to it
+    Player::players = connectionToServer->recvPlayers();
+    for (size_t i = 0; i < Player::players.size(); i++) {
+        if (i != Player::localPlayerId) // That one was added already
+            field->addPawn(Player::players[i]);
+    }
     #endif
 
     spawnInitialEnemies();
@@ -798,6 +834,7 @@ void printEndInformation(EndReason endReason) {
     std::cout << std::flush;
 }
 
+#if CLIENT
 void setConstantsToReceivedValues(const std::map<std::string, std::variant<int, float>>& constants) {
     WIDTH = std::get<int>(constants.at("WIDTH"));
     HEIGHT = std::get<int>(constants.at("HEIGHT"));
@@ -846,6 +883,7 @@ void setConstantsToReceivedValues(const std::map<std::string, std::variant<int, 
     INITIAL_WORMS = std::get<int>(constants.at("INITIAL_WORMS"));
     WORM_LENGTH = std::get<int>(constants.at("WORM_LENGTH"));
 }
+#endif
 
 /** @brief Places the client's player at the coordinates negotiated with the server
  * @param connectionToServer the connection over which to negotiate with the server
