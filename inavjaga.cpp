@@ -23,6 +23,8 @@ std::vector<std::shared_ptr<Archer>> Archer::archers;
 std::vector<std::shared_ptr<WormBody>> WormBody::wormBodies;
 std::vector<std::shared_ptr<Worm>> Worm::worms;
 
+std::bernoulli_distribution dumbMoveDistribution(DUMB_MOVE_PROBABILITY);
+
 std::shared_ptr<sista::SwappableField> field;
 sista::Cursor cursor;
 sista::Border border(
@@ -154,13 +156,11 @@ int main(int argc, char* argv[]) {
             lastDeathFrame = i;
             sista::Coordinates deathCoordinates = Player::localPlayer->getCoordinates();
             field->movePawn(Player::localPlayer.get(), Player::localPlayer->respawnCoordinates);
-            #if DROP_INVENTORY_ON_DEATH
-            {
+            if (DROP_INVENTORY_ON_DEATH) {
                 auto c = std::make_shared<Chest>(deathCoordinates, Inventory{Player::localPlayer->inventory.clay, Player::localPlayer->inventory.bullets, 0});
                 Chest::chests.push_back(c);
                 field->addPrintPawn(c);
             }
-            #endif
             Player::localPlayer->inventory.clay = 0;
             Player::localPlayer->inventory.bullets = 0;
         }
@@ -854,21 +854,34 @@ void setConstantsToReceivedValues(const std::map<std::string, std::variant<int, 
     MINE_MAXIMUM_DAMAGE = std::get<int>(constants.at("MINE_MAXIMUM_DAMAGE"));
     MINE_SENSITIVITY_RADIUS = std::get<int>(constants.at("MINE_SENSITIVITY_RADIUS"));
     MINE_DAMAGE_RADIUS = std::get<int>(constants.at("MINE_DAMAGE_RADIUS"));
+    Mine::explosion = std::bernoulli_distribution(MINE_EXPLOSION_IN_FRAME_PROBABILITY);
+    Mine::mineDamage = std::uniform_int_distribution<int>(MINE_MINIMUM_DAMAGE, MINE_MAXIMUM_DAMAGE);
     INITIAL_WALL_STRENGTH = std::get<int>(constants.at("INITIAL_WALL_STRENGTH"));
     WORM_HEALTH_POINTS = std::get<int>(constants.at("WORM_HEALTH_POINTS"));
     WALL_WEARING_PROBABILITY = std::get<float>(constants.at("WALL_WEARING_PROBABILITY"));
+    Wall::wearing = std::bernoulli_distribution(WALL_WEARING_PROBABILITY);
     DAMAGED_WALLS_COUNT = std::get<int>(constants.at("DAMAGED_WALLS_COUNT"));
     MINE_EXPLOSION_IN_FRAME_PROBABILITY = std::get<float>(constants.at("MINE_EXPLOSION_IN_FRAME_PROBABILITY"));
     DUMB_MOVE_PROBABILITY = std::get<float>(constants.at("DUMB_MOVE_PROBABILITY"));
+    dumbMoveDistribution = std::bernoulli_distribution(DUMB_MOVE_PROBABILITY);
     ARCHER_SPAWNING_PROBABILITY = std::get<float>(constants.at("ARCHER_SPAWNING_PROBABILITY"));
     ARCHER_MOVING_PROBABILITY = std::get<float>(constants.at("ARCHER_MOVING_PROBABILITY"));
     ARCHER_SHOOTING_PROBABILITY = std::get<float>(constants.at("ARCHER_SHOOTING_PROBABILITY"));
+    Archer::moving = std::bernoulli_distribution(ARCHER_MOVING_PROBABILITY);
+    Archer::shooting = std::bernoulli_distribution(ARCHER_SHOOTING_PROBABILITY);
+    Archer::spawning = std::bernoulli_distribution(ARCHER_SPAWNING_PROBABILITY);
     WORM_TURNING_PROBABILITY = std::get<float>(constants.at("WORM_TURNING_PROBABILITY"));
     WORM_SPAWNING_PROBABILITY = std::get<float>(constants.at("WORM_SPAWNING_PROBABILITY"));
     WORM_EATING_ARCHER_PROBABILITY = std::get<float>(constants.at("WORM_EATING_ARCHER_PROBABILITY"));
     WORM_EATING_TAIL_PROBABILITY = std::get<float>(constants.at("WORM_EATING_TAIL_PROBABILITY"));
     WORM_MOVING_PROBABILITY = std::get<float>(constants.at("WORM_MOVING_PROBABILITY"));
     CLAY_RELEASE_PROBABILITY = std::get<float>(constants.at("CLAY_RELEASE_PROBABILITY"));
+    Worm::turning = std::bernoulli_distribution(WORM_TURNING_PROBABILITY);
+    Worm::moving = std::bernoulli_distribution(WORM_MOVING_PROBABILITY);
+    Worm::spawning = std::bernoulli_distribution(WORM_SPAWNING_PROBABILITY);
+    Worm::eatingTail = std::bernoulli_distribution(WORM_EATING_TAIL_PROBABILITY);
+    Worm::eatingArcher = std::bernoulli_distribution(WORM_EATING_ARCHER_PROBABILITY);
+    Worm::clayRelease = std::bernoulli_distribution(CLAY_RELEASE_PROBABILITY);
     INITIAL_ARCHERS = std::get<int>(constants.at("INITIAL_ARCHERS"));
     INITIAL_WORMS = std::get<int>(constants.at("INITIAL_WORMS"));
     WORM_LENGTH = std::get<int>(constants.at("WORM_LENGTH"));
@@ -918,4 +931,3 @@ std::random_device randomDevice;
 std::mt19937 rng;
 std::map<int, std::vector<int>> passages; // Lateral passages, "main tunnel" tresholds
 std::map<int, std::vector<int>> breaches; // Central breaches, "holes"
-std::bernoulli_distribution dumbMoveDistribution(DUMB_MOVE_PROBABILITY);
