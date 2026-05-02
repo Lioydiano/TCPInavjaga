@@ -9,7 +9,7 @@ MoveEvent LocalInavjagaIO::getMove() {
 }
 
 /** @brief Waits for a move event and returns it
- * @note polls asynchronously all the sockets it owns
+ * @note polls asynchronously all the connections it owns
  * @note if it is the server, then it will poll multiple ones
  * @return a move event representing the received move
  */

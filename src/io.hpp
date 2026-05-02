@@ -14,55 +14,6 @@ struct MoveEvent {
     char move;
 };
 
-/**
- * Provides an abstraction over the input sources
- */
-class InavjagaIO {
-public:
-    virtual MoveEvent getMove();
-    virtual void sendMove(MoveEvent);
-};
-
-/** @brief Reads the local moves and communicates them
- * @note takes input from stdin
- * @note writes output as ACT with InavjagaGSP
- */
-class LocalInavjagaIO: public InavjagaIO {
-public:
-    MoveEvent getMove() override;
-};
-
-/** @brief Reads the local moves and communicates them to all clients
- * @note takes input from stdin
- * @note writes output as ACT with InavjagaGSP
- */
-class ServerLocalInavjagaIO: public InavjagaIO {
-public:
-    void sendMove(MoveEvent) override;
-};
-
-/** @brief Reads the local moves and communicates them to the server
- * @note takes input from stdin
- * @note writes output as ACT with InavjagaGSP
- */
-class ClientLocalInavjagaIO: public InavjagaIO {
-private:
-    std::unique_ptr<ClientInavjagaGSPIO> server;
-public:
-    void sendMove(MoveEvent) override;
-};
-
-/**
- * Communicates over InavjagaGSP in both directions
- */
-class RemoteInavjagaIO: public InavjagaIO {
-private:
-    std::vector<std::unique_ptr<InavjagaGSPIO>> neighbors;
-public:
-    MoveEvent getMove() override;
-    void sendMove(MoveEvent) override;
-};
-
 /** InavjagaGSP input/output
  * It is the abstraction layer between the struct MoveEvent to be sent/received and a socket
  * @note the socket is typically TCP, but subclasses can implement it to be protocol agnostic
@@ -130,4 +81,53 @@ public:
 class TCPClientInavjagaGSPIO: public ClientInavjagaGSPIO {
 public:
     TCPClientInavjagaGSPIO(int, sockaddr_in*);
+};
+
+/**
+ * Provides an abstraction over the input sources
+ */
+class InavjagaIO {
+public:
+    virtual MoveEvent getMove();
+    virtual void sendMove(MoveEvent);
+};
+
+/** @brief Reads the local moves and communicates them
+ * @note takes input from stdin
+ * @note writes output as ACT with InavjagaGSP
+ */
+class LocalInavjagaIO: public InavjagaIO {
+public:
+    MoveEvent getMove() override;
+};
+
+/** @brief Reads the local moves and communicates them to all clients
+ * @note takes input from stdin
+ * @note writes output as ACT with InavjagaGSP
+ */
+class ServerLocalInavjagaIO: public InavjagaIO {
+public:
+    void sendMove(MoveEvent) override;
+};
+
+/** @brief Reads the local moves and communicates them to the server
+ * @note takes input from stdin
+ * @note writes output as ACT with InavjagaGSP
+ */
+class ClientLocalInavjagaIO: public InavjagaIO {
+private:
+    std::unique_ptr<ClientInavjagaGSPIO> server;
+public:
+    void sendMove(MoveEvent) override;
+};
+
+/**
+ * Communicates over InavjagaGSP in both directions
+ */
+class RemoteInavjagaIO: public InavjagaIO {
+private:
+    std::vector<std::unique_ptr<InavjagaGSPIO>> neighbors;
+public:
+    MoveEvent getMove() override;
+    void sendMove(MoveEvent) override;
 };
