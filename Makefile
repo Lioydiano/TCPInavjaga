@@ -1,4 +1,11 @@
-# Makefile for Inavjaga
+# Makefile for TCPInavjaga
+SERVER ?= 0
+ifeq ($(SERVER),1)
+DEFINEFLAGS = -DSERVER=1 -DCLIENT=0
+else
+DEFINEFLAGS = -DSERVER=0 -DCLIENT=1
+endif
+
 CXX = g++
 CXXFLAGS = -std=c++17 -Wpedantic -Wall -Wno-narrowing -g
 DEPFLAGS = -MMD -MP
@@ -35,18 +42,31 @@ STATIC ?= 1
 OBJ = $(SRC:.cpp=.o)
 DEP = $(OBJ:.o=.d)
 
+ifeq ($(SERVER),1)
+all: inavjagaServer
+else
 all: inavjaga
+endif
 
 ifeq ($(STATIC),1)
 inavjaga: $(OBJ)
 	@echo "Trying to link statically..."
-	@($(CXX) $(CXXFLAGS) -static -o $@ $^ $(LDFLAGS) || \
-	  $(CXX) $(CXXFLAGS) -o $@ $^ $(LDFLAGS))
+	@($(CXX) $(CXXFLAGS) $(DEFINEFLAGS) -static -o $@ $^ $(LDFLAGS) || \
+	  $(CXX) $(CXXFLAGS) $(DEFINEFLAGS) -o $@ $^ $(LDFLAGS))
+	@echo "Inavjaga compiled successfully!"
+inavjagaServer: $(OBJ)
+	@echo "Trying to link statically..."
+	@($(CXX) $(CXXFLAGS) $(DEFINEFLAGS) -static -o $@ $^ $(LDFLAGS) || \
+	  $(CXX) $(CXXFLAGS) $(DEFINEFLAGS) -o $@ $^ $(LDFLAGS))
 	@echo "Inavjaga compiled successfully!"
 else
 inavjaga: $(OBJ)
 	@echo "Linking dynamically..."
-	$(CXX) $(CXXFLAGS) -o $@ $^ $(LDFLAGS)
+	$(CXX) $(CXXFLAGS) $(DEFINEFLAGS) -o $@ $^ $(LDFLAGS)
+	@echo "Inavjaga compiled successfully!"
+inavjagaServer: $(OBJ)
+	@echo "Linking dynamically..."
+	$(CXX) $(CXXFLAGS) $(DEFINEFLAGS) -o $@ $^ $(LDFLAGS)
 	@echo "Inavjaga compiled successfully!"
 endif
 
