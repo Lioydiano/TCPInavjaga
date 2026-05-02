@@ -73,7 +73,7 @@ endif
 $(SISTA_LOCAL_SRC): | prepare-local-sista
 
 %.o: %.cpp Makefile
-	$(CXX) $(CXXFLAGS) $(DEPFLAGS) -c $< -o $@
+	$(CXX) $(CXXFLAGS) $(DEFINEFLAGS) $(DEPFLAGS) -c $< -o $@
 
 ifeq ($(USE_LOCAL_SISTA),1)
 $(OBJ): | prepare-local-sista

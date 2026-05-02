@@ -2,6 +2,7 @@ inavjaga
 .vscode/
 *.d
 *.o
+*.gch
 *.exe
 *.out
 *.log
