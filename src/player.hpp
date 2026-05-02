@@ -22,6 +22,7 @@ public:
         DUMPCHEST, TRAP, MINE
     } mode;
     Inventory inventory;
+    sista::Coordinates respawnCoordinates;
     player_id_t id = 0;
 
     Player();

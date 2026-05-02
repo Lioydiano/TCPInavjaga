@@ -27,10 +27,10 @@ sequenceDiagram
     Server->>+Client: SEED
     Server->>+Client: CONSTANTS
     loop Until agreed
-        Client->>+Server: COORDS_OFFER
-        Server->>-Client: COORDS_RESPONSE
+        Server->>+Client: COORDS_OFFER
+        Client->>-Server: COORDS_RESPONSE
     end
-    activate Client
+    activate Server
 
     Note left of Server: End lobby phase
     Server->>+Client: ALL_PLAYERS

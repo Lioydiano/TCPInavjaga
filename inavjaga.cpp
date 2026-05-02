@@ -52,6 +52,7 @@ int main(int argc, char* argv[]) {
     generateTunnels();
     sista::Coordinates spawn = sista::Coordinates(SPAWN_COORDINATES_Y, SPAWN_COORDINATES_X);
     Player::localPlayer = std::make_shared<Player>(spawn);
+    Player::localPlayer->respawnCoordinates = {RESPAWN_COORDINATES_Y, RESPAWN_COORDINATES_X}
     Player::localPlayer->mode = Player::Mode::BULLET;
     Player::players.push_back(Player::localPlayer);
     field->addPawn(Player::localPlayer);
@@ -92,6 +93,15 @@ int main(int argc, char* argv[]) {
     setConstantsToReceivedValues(constants);
     #endif
 
+    #if CLIENT
+    field = std::make_shared<sista::SwappableField>(WIDTH, HEIGHT);
+    generateTunnels();
+    #endif
+
+    #if CLIENT
+    placeClientPlayer(connectionToServer);
+    #endif
+
     spawnInitialEnemies();
     field->print(border);
 
@@ -117,8 +127,7 @@ int main(int argc, char* argv[]) {
             dead = false;
             lastDeathFrame = i;
             sista::Coordinates deathCoordinates = Player::localPlayer->getCoordinates();
-            sista::Coordinates respawnCoordinates{RESPAWN_COORDINATES_Y, RESPAWN_COORDINATES_X};
-            field->movePawn(Player::localPlayer.get(), respawnCoordinates);
+            field->movePawn(Player::localPlayer.get(), Player::localPlayer->respawnCoordinates);
             #if DROP_INVENTORY_ON_DEATH
             {
                 auto c = std::make_shared<Chest>(deathCoordinates, Inventory{Player::localPlayer->inventory.clay, Player::localPlayer->inventory.bullets, 0});
@@ -836,6 +845,18 @@ void setConstantsToReceivedValues(const std::map<std::string, std::variant<int, 
     INITIAL_ARCHERS = std::get<int>(constants.at("INITIAL_ARCHERS"));
     INITIAL_WORMS = std::get<int>(constants.at("INITIAL_WORMS"));
     WORM_LENGTH = std::get<int>(constants.at("WORM_LENGTH"));
+}
+
+/** @brief Places the client's player at the coordinates negotiated with the server
+ * @param connectionToServer the connection over which to negotiate with the server
+ * @note by default the respawnCoordinates of said Player will be set to the spawn ones
+ */
+void placeClientPlayer(const std::unique_ptr<ClientInavjagaGSPIO>& connectionToServer) {
+    sista::Coordinates spawn = connectionToServer->negotiateCoordinates();
+    Player::localPlayer = std::make_shared<Player>(spawn);
+    Player::localPlayer->respawnCoordinates = spawn;
+    Player::localPlayer->mode = Player::Mode::BULLET;
+    field->addPawn(Player::localPlayer);
 }
 
 void deallocateAll() {

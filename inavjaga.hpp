@@ -27,6 +27,7 @@ extern std::map<int, std::vector<int>> breaches; // {y, {x1, x2, x3...}}
 enum EndReason {STARVED, SHOT, EATEN, STABBED, TOUCHDOWN, QUIT};
 
 void setConstantsToReceivedValues(const std::map<std::string, std::variant<int, float>>&);
+void placeClientPlayer(const std::unique_ptr<ClientInavjagaGSPIO>&);
 
 void generateTunnels();
 void intro();

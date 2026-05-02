@@ -124,3 +124,4 @@ sista::ANSISettings Player::playerStyle = {
     sista::BackgroundColor::BLACK,
     sista::Attribute::BRIGHT
 };
+player_id_t Player::localPlayerId = 0;
