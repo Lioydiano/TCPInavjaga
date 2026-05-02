@@ -55,11 +55,11 @@
     // Costs
     // The cost of building a mine
     #define cCOST_OF_MINE_CLAY 1
-    const int COST_OF_MINE_CLAY = cCOST_OF_MINE_CLAY;
+    const short COST_OF_MINE_CLAY = cCOST_OF_MINE_CLAY;
     #define cCOST_OF_MINE_BULLETS 3
-    const int COST_OF_MINE_BULLETS = cCOST_OF_MINE_BULLETS;
+    const short COST_OF_MINE_BULLETS = cCOST_OF_MINE_BULLETS;
     #define cCOST_OF_MINE_MEAT 0
-    const int COST_OF_MINE_MEAT = cCOST_OF_MINE_MEAT;
+    const short COST_OF_MINE_MEAT = cCOST_OF_MINE_MEAT;
     #define cMEAT_DURATION_PERIOD 50 // Every how many frames the player eats a unit of meat
     const int MEAT_DURATION_PERIOD = cMEAT_DURATION_PERIOD;
 
@@ -127,52 +127,52 @@
     #define cWORM_LENGTH 7 // The maximum length to which a worm can grow
     const int WORM_LENGTH = cWORM_LENGTH;
 #elif CLIENT
-    int WIDTH;
-    int HEIGHT;
-    int TUNNEL_UNIT;
-    int PORTALS_PER_LINE;
-    int FRAME_DURATION;
-    int BULLET_SPEED;
-    int DROP_INVENTORY_ON_DEATH;
-    int INITIAL_CLAY;
-    int INITIAL_BULLETS;
-    int INITIAL_MEAT;
-    int LOOT_ARCHER_CLAY;
-    int LOOT_ARCHER_BULLETS;
-    int LOOT_ARCHER_MEAT;
-    int LOOT_WORM_HEAD_CLAY;
-    int LOOT_WORM_HEAD_BULLETS;
-    int LOOT_WORM_HEAD_MEAT;
-    int COST_OF_MINE_CLAY;
-    int COST_OF_MINE_BULLETS;
-    int COST_OF_MINE_MEAT;
-    int MEAT_DURATION_PERIOD;
-    unsigned short SPAWN_COORDINATES_Y;
-    unsigned short SPAWN_COORDINATES_X;
-    unsigned short RESPAWN_COORDINATES_Y;
-    unsigned short RESPAWN_COORDINATES_X;
-    int MINE_MINIMUM_DAMAGE;
-    int MINE_MAXIMUM_DAMAGE;
-    int MINE_SENSITIVITY_RADIUS;
-    int MINE_DAMAGE_RADIUS;
-    int INITIAL_WALL_STRENGTH;
-    int WORM_HEALTH_POINTS;
-    float WALL_WEARING_PROBABILITY;
-    int DAMAGED_WALLS_COUNT;
-    float MINE_EXPLOSION_IN_FRAME_PROBABILITY;
-    float DUMB_MOVE_PROBABILITY;
-    float ARCHER_SPAWNING_PROBABILITY;
-    float ARCHER_MOVING_PROBABILITY;
-    float ARCHER_SHOOTING_PROBABILITY;
-    float WORM_TURNING_PROBABILITY;
-    float WORM_SPAWNING_PROBABILITY;
-    float WORM_EATING_ARCHER_PROBABILITY;
-    float WORM_EATING_TAIL_PROBABILITY;
-    float WORM_MOVING_PROBABILITY;
-    float CLAY_RELEASE_PROBABILITY;
-    int INITIAL_ARCHERS;
-    int INITIAL_WORMS;
-    int WORM_LENGTH;
+    inline int WIDTH;
+    inline int HEIGHT;
+    inline int TUNNEL_UNIT;
+    inline int PORTALS_PER_LINE;
+    inline int FRAME_DURATION;
+    inline int BULLET_SPEED;
+    inline int DROP_INVENTORY_ON_DEATH;
+    inline int INITIAL_CLAY;
+    inline int INITIAL_BULLETS;
+    inline int INITIAL_MEAT;
+    inline int LOOT_ARCHER_CLAY;
+    inline int LOOT_ARCHER_BULLETS;
+    inline int LOOT_ARCHER_MEAT;
+    inline int LOOT_WORM_HEAD_CLAY;
+    inline int LOOT_WORM_HEAD_BULLETS;
+    inline int LOOT_WORM_HEAD_MEAT;
+    inline short COST_OF_MINE_CLAY;
+    inline short COST_OF_MINE_BULLETS;
+    inline short COST_OF_MINE_MEAT;
+    inline int MEAT_DURATION_PERIOD;
+    inline unsigned short SPAWN_COORDINATES_Y;
+    inline unsigned short SPAWN_COORDINATES_X;
+    inline unsigned short RESPAWN_COORDINATES_Y;
+    inline unsigned short RESPAWN_COORDINATES_X;
+    inline int MINE_MINIMUM_DAMAGE;
+    inline int MINE_MAXIMUM_DAMAGE;
+    inline int MINE_SENSITIVITY_RADIUS;
+    inline int MINE_DAMAGE_RADIUS;
+    inline int INITIAL_WALL_STRENGTH;
+    inline int WORM_HEALTH_POINTS;
+    inline float WALL_WEARING_PROBABILITY;
+    inline int DAMAGED_WALLS_COUNT;
+    inline float MINE_EXPLOSION_IN_FRAME_PROBABILITY;
+    inline float DUMB_MOVE_PROBABILITY;
+    inline float ARCHER_SPAWNING_PROBABILITY;
+    inline float ARCHER_MOVING_PROBABILITY;
+    inline float ARCHER_SHOOTING_PROBABILITY;
+    inline float WORM_TURNING_PROBABILITY;
+    inline float WORM_SPAWNING_PROBABILITY;
+    inline float WORM_EATING_ARCHER_PROBABILITY;
+    inline float WORM_EATING_TAIL_PROBABILITY;
+    inline float WORM_MOVING_PROBABILITY;
+    inline float CLAY_RELEASE_PROBABILITY;
+    inline int INITIAL_ARCHERS;
+    inline int INITIAL_WORMS;
+    inline int WORM_LENGTH;
 #endif
 
 // Colors

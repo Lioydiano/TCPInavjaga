@@ -7,7 +7,7 @@
     // #pragma comment(lib,"winmm.lib")
     #include <conio.h>
 
-    void flushInput() {
+    inline void flushInput() {
         // Flush the input buffer (discard data not read yet)
         HANDLE hInput = GetStdHandle(STD_INPUT_HANDLE);
         FlushConsoleInputBuffer(hInput);
@@ -28,9 +28,9 @@
         tcsetattr(0, TCSANOW, &noecho);
     }
 
-    char getch(void) { return getchar(); }
+    inline char getch(void) { return getchar(); }
 
-    void flushInput() {
+    inline void flushInput() {
         // Flush stdin (discard data not read yet)
         tcflush(STDIN_FILENO, TCIFLUSH);
     }
@@ -38,7 +38,7 @@
     #include <unistd.h>
     #include <termios.h>
 
-    char getch(void) {
+    inline char getch(void) {
         char buf = 0;
         struct termios old = {0};
         fflush(stdout);
@@ -60,7 +60,7 @@
         return buf;
     }
 
-    void flushInput() {
+    inline void flushInput() {
         // Flush stdin (discard data not read yet)
         tcflush(STDIN_FILENO, TCIFLUSH);
     }
