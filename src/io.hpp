@@ -45,7 +45,7 @@ public:
  * @note receives OWN_ACT, sends ACT
  */
 class ServerInavjagaGSPIO: public InavjagaGSPIO {
-private:
+protected:
     int connection;
 public:
     void acceptConnection(int);
@@ -58,7 +58,7 @@ public:
  * @note receives ACT, sends OWN_ACT
  */
 class ClientInavjagaGSPIO: public InavjagaGSPIO {
-private:
+protected:
     int socketfd;
 public:
     ClientInavjagaGSPIO(int, sockaddr*);
@@ -120,9 +120,9 @@ public:
  */
 class ClientLocalInavjagaIO: public LocalInavjagaIO {
 private:
-    std::unique_ptr<ClientInavjagaGSPIO> server;
+    std::shared_ptr<ClientInavjagaGSPIO> server;
 public:
-    ClientLocalInavjagaIO(std::unique_ptr<ClientInavjagaGSPIO>);
+    ClientLocalInavjagaIO(std::shared_ptr<ClientInavjagaGSPIO>);
     void sendMove(MoveEvent) override;
 };
 
@@ -130,9 +130,18 @@ public:
  * Communicates over InavjagaGSP in both directions
  */
 class RemoteInavjagaIO: public InavjagaIO {
-private:
+protected:
     std::vector<std::shared_ptr<InavjagaGSPIO>> neighbors;
 public:
     MoveEvent getMove() override;
     void sendMove(MoveEvent) override;
+};
+
+class ServerRemoteInavjagaIO: public RemoteInavjagaIO {
+public:
+    ServerRemoteInavjagaIO(std::vector<std::shared_ptr<ServerInavjagaGSPIO>>&);
+};
+class ClientRemoteInavjagaIO: public RemoteInavjagaIO {
+public:
+    ClientRemoteInavjagaIO(std::shared_ptr<ClientInavjagaGSPIO>);
 };

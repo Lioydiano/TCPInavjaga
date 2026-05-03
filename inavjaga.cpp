@@ -68,7 +68,7 @@ int main(int argc, char* argv[]) {
 
     #if CLIENT
     int clientSocket = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
-    std::unique_ptr<ClientInavjagaGSPIO> connectionToServer = connectClientToServer(clientSocket, argv[1], argv[2]);
+    std::shared_ptr<ClientInavjagaGSPIO> connectionToServer = connectClientToServer(clientSocket, argv[1], argv[2]);
     #elif SERVER
     int serverSocket = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
     bindServerSocketToPort(serverSocket, argv[1], argv[2]);
@@ -134,12 +134,16 @@ int main(int argc, char* argv[]) {
     field->print(border);
 
     LocalInavjagaIO localIO;
+    RemoteInavjagaIO remoteIO;
     #if CLIENT
-    localIO = ClientLocalInavjagaIO(std::move(connectionToServer));
+    localIO = ClientLocalInavjagaIO(connectionToServer);
+    remoteIO = ClientRemoteInavjagaIO(connectionToServer);
     #elif SERVER
     localIO = ServerLocalInavjagaIO(clientConnections);
+    remoteIO = ServerRemoteInavjagaIO(clientConnections);
     #endif
-    std::thread th(input, localIO);
+    std::thread localInputThread(input, localIO);
+    std::thread remoteInputThread(remoteInput, remoteIO);
     for (int i=0; !end; i++) {
         while (pause_) {
             std::this_thread::sleep_for(std::chrono::milliseconds(100));
@@ -292,9 +296,10 @@ int main(int argc, char* argv[]) {
         #endif
     }
 
-    end = true; // Needed to ensure the input function returns and the thread th gets joined
+    end = true; // Needed to ensure the input function returns and the thread localInputThread gets joined
     deallocateAll();
-    th.join();
+    localInputThread.join();
+    remoteInputThread.join();
     field->clear();
     cursor.goTo(72, 0); // Move the cursor to the bottom of the screen, so the terminal is not left in a weird state
     std::this_thread::sleep_for(std::chrono::seconds(1)); // Give the time to see the final screen
@@ -689,7 +694,7 @@ void spawnEnemies() {
     }
 }
 
-void input(LocalInavjagaIO& io) {
+void input(LocalInavjagaIO io) {
     char input_ = '_';
     while (input_ != 'Q' /*&& input_ != 'q'*/) {
         if (end) return;
@@ -701,6 +706,8 @@ void input(LocalInavjagaIO& io) {
         if (end) return;
     }
 }
+
+void remoteInput(RemoteInavjagaIO io) {}
 
 /** Process an action to the field from a Player
  * \param event the move event to process
@@ -890,7 +897,7 @@ void setConstantsToReceivedValues(const std::map<std::string, std::variant<int, 
  * @param connectionToServer the connection over which to negotiate with the server
  * @note by default the respawnCoordinates of said Player will be set to the spawn ones
  */
-void placeClientPlayer(const std::unique_ptr<ClientInavjagaGSPIO>& connectionToServer) {
+void placeClientPlayer(std::shared_ptr<ClientInavjagaGSPIO> connectionToServer) {
     sista::Coordinates spawn = connectionToServer->negotiateCoordinates();
     Player::localPlayer = std::make_shared<Player>(spawn);
     Player::localPlayer->respawnCoordinates = spawn;

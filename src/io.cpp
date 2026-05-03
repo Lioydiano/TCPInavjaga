@@ -49,6 +49,19 @@ ServerLocalInavjagaIO::ServerLocalInavjagaIO(std::vector<std::shared_ptr<ServerI
  * @param connectionToServer the connection from the client to the server
  * @warning At this stage the connection to the server must be ready to transmit and receive moves
  */
-ClientLocalInavjagaIO::ClientLocalInavjagaIO(std::unique_ptr<ClientInavjagaGSPIO> connectionToServer) {
-    this->server = std::move(connectionToServer);
+ClientLocalInavjagaIO::ClientLocalInavjagaIO(std::shared_ptr<ClientInavjagaGSPIO> connectionToServer) {
+    this->server = connectionToServer;
+}
+
+ServerRemoteInavjagaIO::ServerRemoteInavjagaIO(std::vector<std::shared_ptr<ServerInavjagaGSPIO>>& connectionsToClients) {
+    this->neighbors = {};
+    for (std::shared_ptr<ServerInavjagaGSPIO> connection : connectionsToClients) {
+        // https://stackoverflow.com/a/43682576/15888601
+        this->neighbors.push_back(std::static_pointer_cast<InavjagaGSPIO>(connection));
+    }
+}
+
+ClientRemoteInavjagaIO::ClientRemoteInavjagaIO(std::shared_ptr<ClientInavjagaGSPIO> connectionToServer) {
+    // https://stackoverflow.com/a/43682576/15888601
+    this->neighbors = {std::static_pointer_cast<InavjagaGSPIO>(connectionToServer)};
 }
