@@ -31,7 +31,8 @@ private:
      * Confirms the coordinates and sends the Player ID to the client
      */
     void leaseCoordinates(sista::Coordinates, int);
-
+protected:
+    int socketfd;
 public:
     int recvRandomSeed();
     void sendRandomSeed(int);
@@ -47,8 +48,6 @@ public:
  * @note receives OWN_ACT, sends ACT
  */
 class ServerInavjagaGSPIO: public InavjagaGSPIO {
-protected:
-    int connection;
 public:
     void acceptConnection(int);
     sista::Coordinates negotiateCoordinates(std::weak_ptr<sista::SwappableField>) const;
@@ -60,8 +59,6 @@ public:
  * @note receives ACT, sends OWN_ACT
  */
 class ClientInavjagaGSPIO: public InavjagaGSPIO {
-protected:
-    int socketfd;
 public:
     ClientInavjagaGSPIO(int, sockaddr*);
     sista::Coordinates negotiateCoordinates() const;

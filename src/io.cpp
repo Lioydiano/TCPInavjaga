@@ -26,8 +26,8 @@ TCPClientInavjagaGSPIO::TCPClientInavjagaGSPIO(int sockfd, sockaddr_in* srvaddr)
 void ServerInavjagaGSPIO::acceptConnection(int sockfd) {
     sockaddr clientAddress;
     socklen_t length = sizeof(clientAddress);
-    this->connection = accept(sockfd, &clientAddress, &length);
-    if (this->connection < 0) {
+    this->socketfd = accept(sockfd, &clientAddress, &length);
+    if (this->socketfd < 0) {
         std::cerr << "Something went wrong with accepting the connection from " << clientAddress.sa_data << std::endl;
     }
 }
