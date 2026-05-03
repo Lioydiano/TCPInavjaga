@@ -10,6 +10,8 @@
 #include <sys/types.h>
 #include <netinet/ip.h>
 
+#define INAVJAGA_PLAYER_ID_IGNORE 0
+
 struct MoveEvent {
     player_id_t playerId;
     char move;

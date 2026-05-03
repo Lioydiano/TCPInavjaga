@@ -2,8 +2,6 @@
 #include "io.hpp"
 #include <iostream>
 
-#define INAVJAGA_PLAYER_ID_IGNORE 0
-
 MoveEvent LocalInavjagaIO::getMove() {
     return {INAVJAGA_PLAYER_ID_IGNORE, getch()};
 }

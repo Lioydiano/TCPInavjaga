@@ -699,15 +699,30 @@ void input(LocalInavjagaIO io) {
     while (input_ != 'Q' /*&& input_ != 'q'*/) {
         if (end) return;
         input_ = io.getMove().move;
+        if (end) return;
         if (act(input_)) {
             // The locks are handled internally
             io.sendMove(MoveEvent{Player::localPlayerId, input_});
         }
-        if (end) return;
     }
 }
 
-void remoteInput(RemoteInavjagaIO io) {}
+/** Takes input from InavjagaGSP connections and processes the moves.
+ * @param io the handler for the InavjagaGSP connections
+ * @note this function is meant to run in a separate thread
+ * @note the RemoteInavjagaIO object handles the mutex locks on its own
+ */
+void remoteInput(RemoteInavjagaIO io) {
+    MoveEvent moveEvent = {INAVJAGA_PLAYER_ID_IGNORE, '_'};
+    while (moveEvent.move != 'Q') {
+        if (end) return;
+        moveEvent = io.getMove();
+        if (end) return;
+        if (act(moveEvent)) {
+            io.sendMove(moveEvent);
+        }
+    }
+}
 
 /** Process an action to the field from a Player
  * \param event the move event to process
