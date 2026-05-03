@@ -40,8 +40,8 @@ public:
     std::map<std::string, std::variant<int, float>> recvConstants();
     bool sendConstants();
 
-    MoveEvent recvAct();
-    void sendAct(MoveEvent);
+    MoveEvent recvMove();
+    void sendMove(MoveEvent);
 };
 
 /**

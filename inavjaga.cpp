@@ -111,7 +111,7 @@ int main(int argc, char* argv[]) {
         if (!Player::players[i]->connected) {
             for (size_t j = 0; j < clientConnections.size(); j++) {
                 if (clientConnections[j] == nullptr) continue;
-                clientConnections[j]->sendAct(MoveEvent{(player_id_t)i, 'Q'});
+                clientConnections[j]->sendMove(MoveEvent{(player_id_t)i, 'Q'});
             }
         }
         field->addPawn(Player::players[i]);
