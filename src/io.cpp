@@ -1,6 +1,10 @@
 #include "../include/cross_platform.hpp"
 #include "io.hpp"
+#include <netinet/tcp.h>
+#include <arpa/inet.h>
+#include <string.h>
 #include <iostream>
+#include <poll.h>
 
 MoveEvent LocalInavjagaIO::getMove() {
     return {INAVJAGA_PLAYER_ID_IGNORE, getch()};
@@ -12,6 +16,14 @@ MoveEvent LocalInavjagaIO::getMove() {
  * @return a move event representing the received move
  */
 MoveEvent RemoteInavjagaIO::getMove() {
+    struct pollfd pollFd[this->neighbors.size()];
+    bzero(&pollFd, sizeof(pollFd));
+    for (size_t i = 0; i < this->neighbors.size(); i++) {
+        if (this->neighbors[i] == nullptr) continue;
+        pollFd[i].events = POLLIN;
+        pollFd[i].fd = this->neighbors[i]->socketfd; // Oh, nevermind, the socket is private, encapsulation
+
+    }
 
 }
 
