@@ -33,3 +33,22 @@ void ServerInavjagaGSPIO::acceptConnection(int sockfd) {
         std::cerr << "Something went wrong with accepting the connection from " << clientAddress.sa_data << std::endl;
     }
 }
+
+/** Constructs ServerLocalInavjagaIO with the connections to its clients.
+ * @param connectionsToClients a collection of the connections to clients
+ * @warning At this stage the connections to the clients must be ready to transmit and receive moves
+ * @warning Some of the connections have already been disconnected and are nullptr
+ * @note The reason why the dead connections are kept there is that we want alignment of indices with Player::players[i + 1]
+ */
+ServerLocalInavjagaIO::ServerLocalInavjagaIO(std::vector<std::shared_ptr<ServerInavjagaGSPIO>>& connectionsToClients) {
+    // I should check if the copy is how I would expect it to be https://stackoverflow.com/a/11348411/15888601
+    this->neighbors = connectionsToClients;
+}
+
+/** Constructs ClientLocalInavjagaIO by providing it with a connection to the server.
+ * @param connectionToServer the connection from the client to the server
+ * @warning At this stage the connection to the server must be ready to transmit and receive moves
+ */
+ClientLocalInavjagaIO::ClientLocalInavjagaIO(std::unique_ptr<ClientInavjagaGSPIO> connectionToServer) {
+    this->server = std::move(connectionToServer);
+}

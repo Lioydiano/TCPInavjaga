@@ -133,13 +133,11 @@ int main(int argc, char* argv[]) {
     spawnInitialEnemies();
     field->print(border);
 
-    InavjagaIO localIO;
+    LocalInavjagaIO localIO;
     #if CLIENT
-    localIO = ClientLocalInavjagaIO();
-    // Here we will add the InavjagaGSPIO object representing the channel with the server
+    localIO = ClientLocalInavjagaIO(std::move(connectionToServer));
     #elif SERVER
-    localIO = ServerLocalInavjagaIO();
-    // Here we will add ever InavjagaGSPIO object representing the channels with clients
+    localIO = ServerLocalInavjagaIO(clientConnections);
     #endif
     std::thread th(input, localIO);
     for (int i=0; !end; i++) {
@@ -691,16 +689,16 @@ void spawnEnemies() {
     }
 }
 
-void input(InavjagaIO io) {
+void input(LocalInavjagaIO& io) {
     char input_ = '_';
     while (input_ != 'Q' /*&& input_ != 'q'*/) {
         if (end) return;
         input_ = io.getMove().move;
-        if (end) return;
         if (act(input_)) {
             // The locks are handled internally
             io.sendMove(MoveEvent{Player::localPlayerId, input_});
         }
+        if (end) return;
     }
 }
 

@@ -105,11 +105,12 @@ public:
  * @note takes input from stdin
  * @note writes output as ACT with InavjagaGSP
  */
-class ServerLocalInavjagaIO: public InavjagaIO {
+class ServerLocalInavjagaIO: public LocalInavjagaIO {
 private:
     std::shared_ptr<std::mutex> writeToChannelsMutex;
-    std::vector<std::shared_ptr<InavjagaGSPIO>> neighbors;
+    std::vector<std::shared_ptr<ServerInavjagaGSPIO>> neighbors;
 public:
+    ServerLocalInavjagaIO(std::vector<std::shared_ptr<ServerInavjagaGSPIO>>&);
     void sendMove(MoveEvent) override;
 };
 
@@ -117,10 +118,11 @@ public:
  * @note takes input from stdin
  * @note writes output as ACT with InavjagaGSP
  */
-class ClientLocalInavjagaIO: public InavjagaIO {
+class ClientLocalInavjagaIO: public LocalInavjagaIO {
 private:
     std::unique_ptr<ClientInavjagaGSPIO> server;
 public:
+    ClientLocalInavjagaIO(std::unique_ptr<ClientInavjagaGSPIO>);
     void sendMove(MoveEvent) override;
 };
 
