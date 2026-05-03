@@ -10,7 +10,7 @@
 #include <sys/types.h>
 #include <netinet/ip.h>
 
-#define INAVJAGA_PLAYER_ID_IGNORE 0
+#define INAVJAGA_PLAYER_ID_IGNORE 65535
 
 struct MoveEvent {
     player_id_t playerId;

@@ -143,7 +143,7 @@ int main(int argc, char* argv[]) {
     remoteIO = ServerRemoteInavjagaIO(clientConnections);
     #endif
     std::thread localInputThread(input, localIO);
-    std::thread remoteInputThread(remoteInput, remoteIO);
+    std::thread remoteInputThread(input, remoteIO);
     for (int i=0; !end; i++) {
         while (pause_) {
             std::this_thread::sleep_for(std::chrono::milliseconds(100));
@@ -694,29 +694,19 @@ void spawnEnemies() {
     }
 }
 
-void input(LocalInavjagaIO io) {
-    char input_ = '_';
-    while (input_ != 'Q' /*&& input_ != 'q'*/) {
-        if (end) return;
-        input_ = io.getMove().move;
-        if (end) return;
-        if (act(input_)) {
-            // The locks are handled internally
-            io.sendMove(MoveEvent{Player::localPlayerId, input_});
-        }
-    }
-}
-
-/** Takes input from InavjagaGSP connections and processes the moves.
- * @param io the handler for the InavjagaGSP connections
+/** Takes input and processes the moves.
+ * @param io the handler for the input and output sources
  * @note this function is meant to run in a separate thread
- * @note the RemoteInavjagaIO object handles the mutex locks on its own
+ * @note the InavjagaIO object handles the mutex locks on its own
  */
-void remoteInput(RemoteInavjagaIO io) {
+void input(InavjagaIO io) {
     MoveEvent moveEvent = {INAVJAGA_PLAYER_ID_IGNORE, '_'};
     while (moveEvent.move != 'Q') {
         if (end) return;
         moveEvent = io.getMove();
+        if (moveEvent.playerId == INAVJAGA_PLAYER_ID_IGNORE) {
+            moveEvent.playerId = Player::localPlayerId;
+        }
         if (end) return;
         if (act(moveEvent)) {
             io.sendMove(moveEvent);
