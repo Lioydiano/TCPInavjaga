@@ -10,7 +10,7 @@
  * @return a move event representing the received move
  */
 MoveEvent InavjagaGSPIO::recvMove() {
-    static char buffer[10] = {0};
+    static char buffer[4] = {0};
     /** Messages are in the form "ID;MOVE"
      * @note the ID has a variable length, that we can fix by padding
      * @warning for the moment we are capping it to 9 clients
