@@ -27,7 +27,7 @@ MoveEvent InavjagaGSPIO::recvMove() {
         }
     }
     MoveEvent moveEvent = {};
-    sscanf(buffer, "%u;%c", &moveEvent.playerId, moveEvent.move);
+    sscanf(buffer, "%u;%c", &moveEvent.playerId, &moveEvent.move);
     return moveEvent;
 }
 
