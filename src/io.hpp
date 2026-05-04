@@ -11,6 +11,7 @@
 #include <netinet/ip.h>
 
 #define INAVJAGA_PLAYER_ID_IGNORE 65535
+#define INAVJAGA_CHAR_MOVE_IGNORE '_'
 
 struct MoveEvent {
     player_id_t playerId;

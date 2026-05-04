@@ -19,14 +19,14 @@ MoveEvent InavjagaGSPIO::recvMove() {
      */
     // https://stackoverflow.com/questions/71744538/why-would-one-need-to-use-msg-waitall-flag-instead-of-0-flag-why-to-use-it
     int returnCode = recv(this->socketfd, &buffer, 1+1+1, MSG_WAITALL);
+    MoveEvent moveEvent = {INAVJAGA_PLAYER_ID_IGNORE, INAVJAGA_CHAR_MOVE_IGNORE};
     if (returnCode < 0) {
         if (errno == EAGAIN || errno == EWOULDBLOCK) {
-            // The connection timed out
+            return moveEvent;
         } else {
             /** @todo throw an exception */
         }
     }
-    MoveEvent moveEvent = {};
     sscanf(buffer, "%u;%c", &moveEvent.playerId, &moveEvent.move);
     return moveEvent;
 }

@@ -700,7 +700,7 @@ void spawnEnemies() {
  * @note the InavjagaIO object handles the mutex locks on its own
  */
 void input(InavjagaIO io) {
-    MoveEvent moveEvent = {INAVJAGA_PLAYER_ID_IGNORE, '_'};
+    MoveEvent moveEvent = {INAVJAGA_PLAYER_ID_IGNORE, INAVJAGA_CHAR_MOVE_IGNORE};
     while (moveEvent.move != 'Q') {
         if (end) return;
         moveEvent = io.getMove();
