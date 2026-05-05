@@ -101,12 +101,17 @@ MoveEvent LocalInavjagaIO::getMove() {
  * @return a move event representing the received move
  */
 MoveEvent RemoteInavjagaIO::getMove() {
-    try {
-        // Now a question is what will happen to the nullptr neighbors
-        return InavjagaGSPIO::pollMany(this->neighbors).second;
-    } catch (std::exception& e) {
-        // It technically doesn't throw at the current stage
+    MoveEvent moveEvent = {INAVJAGA_PLAYER_ID_IGNORE, INAVJAGA_CHAR_MOVE_IGNORE};
+    while (moveEvent.playerId == INAVJAGA_PLAYER_ID_IGNORE) {
+        /// @warning This doesn't return the flow for... potentially forever
+        try {
+            // Now a question is what will happen to the nullptr neighbors
+            moveEvent = InavjagaGSPIO::pollMany(this->neighbors).second;
+        } catch (std::exception& e) {
+            // It technically doesn't throw at the current stage
+        }
     }
+    return moveEvent;
 }
 
 ClientInavjagaGSPIO::ClientInavjagaGSPIO(int sockfd, sockaddr* srvaddr) {
