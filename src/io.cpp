@@ -39,10 +39,10 @@ MoveEvent InavjagaGSPIO::recvMove() {
 std::pair<size_t, MoveEvent> InavjagaGSPIO::pollMany(
     const std::vector<std::shared_ptr<InavjagaGSPIO>>& ios, int timeout = 1000) {
         struct pollfd pollFds[ios.size()];
-        bzero(&pollFds, sizoef(pollFds));
+        bzero(&pollFds, sizeof(pollFds));
         for (size_t i = 0; i < ios.size(); i++) {
-            pollfd[i].fd = ios[i]->socketfd;
-            pollfd[i].event = POLLIN;
+            pollFds[i].fd = ios[i]->socketfd;
+            pollFds[i].events = POLLIN;
         }
         // TODO
 }
