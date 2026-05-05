@@ -56,7 +56,7 @@ std::pair<size_t, MoveEvent> InavjagaGSPIO::pollMany(
                  * but it can fail without throwing for now,
                  * we just don't need it outside debugging
                  */
-            }
+            } // else it just timed out (https://en.ittrip.xyz/c-language/c-timeout-handling)
             return std::make_pair(
                 INAVJAGA_PLAYER_ID_IGNORE,
                 MoveEvent{
@@ -115,6 +115,11 @@ ClientInavjagaGSPIO::ClientInavjagaGSPIO(int sockfd, sockaddr* srvaddr) {
     this->socketfd = sockfd;
 }
 TCPClientInavjagaGSPIO::TCPClientInavjagaGSPIO(int sockfd, sockaddr_in* srvaddr): ClientInavjagaGSPIO(sockfd, (sockaddr*)srvaddr) {}
+
+ServerInavjagaGSPIO::ServerInavjagaGSPIO(int sockfd) {
+    this->acceptConnection(sockfd);
+}
+TCPServerInavjagaGSPIO::TCPServerInavjagaGSPIO(int sockfd): ServerInavjagaGSPIO(sockfd) {}
 
 void ServerInavjagaGSPIO::acceptConnection(int sockfd) {
     sockaddr clientAddress;

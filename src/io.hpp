@@ -51,8 +51,10 @@ public:
  * @note receives OWN_ACT, sends ACT
  */
 class ServerInavjagaGSPIO: public InavjagaGSPIO {
-public:
+protected:
     void acceptConnection(int);
+public:
+    ServerInavjagaGSPIO(int);
     sista::Coordinates negotiateCoordinates(std::weak_ptr<sista::SwappableField>) const;
     void sendPlayers(std::vector<std::shared_ptr<Player>>&, player_id_t);
     bool recvReady();
@@ -74,7 +76,7 @@ public:
  */
 class TCPServerInavjagaGSPIO: public ServerInavjagaGSPIO {
 public:
-    TCPServerInavjagaGSPIO();
+    TCPServerInavjagaGSPIO(int);
 };
 
 /**

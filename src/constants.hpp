@@ -5,8 +5,8 @@
 #define AUTHOR "FLAK-ZOSO"
 
 #ifndef SERVER
-    #define SERVER 0
-    #define CLIENT 1
+    #define SERVER 1
+    #define CLIENT 0
 #endif
 
 #define DEBUG 0
