@@ -101,11 +101,12 @@ MoveEvent LocalInavjagaIO::getMove() {
  * @return a move event representing the received move
  */
 MoveEvent RemoteInavjagaIO::getMove() {
-    for (size_t i = 0; i < this->neighbors.size(); i++) {
-        if (this->neighbors[i] == nullptr) continue;
-
+    try {
+        // Now a question is what will happen to the nullptr neighbors
+        return InavjagaGSPIO::pollMany(this->neighbors).second;
+    } catch (std::exception& e) {
+        // It technically doesn't throw at the current stage
     }
-
 }
 
 ClientInavjagaGSPIO::ClientInavjagaGSPIO(int sockfd, sockaddr* srvaddr) {
