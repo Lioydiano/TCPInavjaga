@@ -43,6 +43,8 @@ public:
 
     MoveEvent recvMove();
     void sendMove(MoveEvent);
+
+    static std::pair<size_t, MoveEvent> pollMany(const std::vector<std::shared_ptr<InavjagaGSPIO>>&, int);
 };
 
 /**

@@ -7,7 +7,7 @@
 #include <poll.h>
 
 /** @brief Waits for a message from the other end of the socket
- * @return a move event representing the received move
+ * @return A move event representing the received move
  */
 MoveEvent InavjagaGSPIO::recvMove() {
     static char buffer[4] = {0};
@@ -21,14 +21,24 @@ MoveEvent InavjagaGSPIO::recvMove() {
     int returnCode = recv(this->socketfd, &buffer, 1+1+1, MSG_WAITALL);
     MoveEvent moveEvent = {INAVJAGA_PLAYER_ID_IGNORE, INAVJAGA_CHAR_MOVE_IGNORE};
     if (returnCode < 0) {
-        if (errno == EAGAIN || errno == EWOULDBLOCK) {
-            return moveEvent;
-        } else {
-            /** @todo throw an exception */
-        }
+        /** @todo throw an exception */
     }
     sscanf(buffer, "%hu;%c", &moveEvent.playerId, &moveEvent.move);
     return moveEvent;
+}
+
+/** @brief Polls the InavjagaGSP connections and returns the first one to return
+ * @note For the moment we accept at most 9 ios, our cap to the number of clients
+ * @warning For the moment we trust the clients to not lie about their Player ID
+ * @param ios The input sources to poll for move events
+ * @param timeout The time expressed in milliseconds for which to poll for moves
+ *                after which the method just returns an empty move
+ * @retval {INAVJAGA_PLAYER_ID_IGNORE,INAVJAGA_CHAR_MOVE_IGNORE} when no input
+ * @returns The move event and the index of the input source in the given vector
+ */
+std::pair<size_t, MoveEvent> InavjagaGSPIO::pollMany(
+    const std::vector<std::shared_ptr<InavjagaGSPIO>>& ios, int timeout = 1000) {
+
 }
 
 MoveEvent LocalInavjagaIO::getMove() {
@@ -63,11 +73,6 @@ void ServerInavjagaGSPIO::acceptConnection(int sockfd) {
     if (this->socketfd < 0) {
         std::cerr << "Something went wrong with accepting the connection from " << clientAddress.sa_data << std::endl;
     }
-    // https://stackoverflow.com/questions/2876024/linux-is-there-a-read-or-recv-from-socket-with-timeout
-    struct timeval tv;
-    tv.tv_sec = 1;
-    tv.tv_usec = 0;
-    setsockopt(sockfd, SOL_SOCKET, SO_RCVTIMEO, (const char*)&tv, sizeof tv);
 }
 
 /** Constructs ServerLocalInavjagaIO with the connections to its clients.
