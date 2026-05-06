@@ -179,7 +179,7 @@ void ServerInavjagaGSPIO::acceptConnection(int sockfd) {
 
 const char InavjagaGSPIO::acceptMessage[2] = "A";
 
-bool ServerInavjagaGSPIO::recvReady(int timeout = 1000) {
+bool ServerInavjagaGSPIO::recvReady(int timeout) {
     char inputBuffer[2] = {0};
     std::future<ssize_t> input_ = std::async(recv, socketfd, inputBuffer, (size_t)2, 0);
     std::future_status status = input_.wait_for(std::chrono::milliseconds(timeout));
