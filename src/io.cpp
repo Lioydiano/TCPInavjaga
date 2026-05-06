@@ -42,8 +42,15 @@ MoveEvent InavjagaGSPIO::recvMove() {
 std::pair<size_t, MoveEvent> InavjagaGSPIO::pollMany(
     const std::vector<std::shared_ptr<InavjagaGSPIO>>& ios, int timeout = 1000) {
         const size_t iosLen = ios.size();
-        struct pollfd* pollFds = (struct pollfd*)calloc(iosLen, sizeof(pollfd));
+        struct pollfd* pollFds = _pollFds.release();
+        if (pollFds == nullptr) {
+            pollFds = (struct pollfd*)calloc(iosLen, sizeof(pollfd));
+        }
+        if (iosLen != sizeof(pollFds)) {
+            pollFds = (struct pollfd*)realloc(pollFds, iosLen * sizeof(struct pollfd));
+        }
         bzero(&pollFds, sizeof(pollFds));
+        _pollFds.reset(pollFds);
         for (size_t i = 0; i < iosLen; i++) {
             pollFds[i].fd = ios[i]->socketfd;
             pollFds[i].events = POLLIN;
@@ -81,7 +88,6 @@ std::pair<size_t, MoveEvent> InavjagaGSPIO::pollMany(
                 }
             }
         }
-        free(pollFds);
         return std::make_pair(
             INAVJAGA_PLAYER_ID_IGNORE,
             MoveEvent{
