@@ -111,7 +111,7 @@ int main(int argc, char* argv[]) {
         if (!Player::players[i]->connected) {
             for (size_t j = 0; j < clientConnections.size(); j++) {
                 if (clientConnections[j] == nullptr) continue;
-                clientConnections[j]->sendAct(MoveEvent{(player_id_t)i, 'Q'});
+                clientConnections[j]->sendMove(MoveEvent{(player_id_t)i, 'Q'});
             }
         }
         field->addPawn(Player::players[i]);
@@ -700,7 +700,7 @@ void spawnEnemies() {
  * @note the InavjagaIO object handles the mutex locks on its own
  */
 void input(InavjagaIO io) {
-    MoveEvent moveEvent = {INAVJAGA_PLAYER_ID_IGNORE, '_'};
+    MoveEvent moveEvent = {INAVJAGA_PLAYER_ID_IGNORE, INAVJAGA_CHAR_MOVE_IGNORE};
     while (moveEvent.move != 'Q') {
         if (end) return;
         moveEvent = io.getMove();
@@ -708,6 +708,9 @@ void input(InavjagaIO io) {
             moveEvent.playerId = Player::localPlayerId;
         }
         if (end) return;
+        if (moveEvent.move == INAVJAGA_CHAR_MOVE_IGNORE) {
+            continue;
+        }
         if (act(moveEvent)) {
             io.sendMove(moveEvent);
         }

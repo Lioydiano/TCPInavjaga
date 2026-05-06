@@ -11,6 +11,7 @@
 #include <netinet/ip.h>
 
 #define INAVJAGA_PLAYER_ID_IGNORE 65535
+#define INAVJAGA_CHAR_MOVE_IGNORE '_'
 
 struct MoveEvent {
     player_id_t playerId;
@@ -31,6 +32,7 @@ private:
      * Confirms the coordinates and sends the Player ID to the client
      */
     void leaseCoordinates(sista::Coordinates, int);
+    static std::vector<struct pollfd> pollFds;
 protected:
     int socketfd;
 public:
@@ -40,16 +42,20 @@ public:
     std::map<std::string, std::variant<int, float>> recvConstants();
     bool sendConstants();
 
-    MoveEvent recvAct();
-    void sendAct(MoveEvent);
+    MoveEvent recvMove();
+    void sendMove(MoveEvent);
+
+    static std::pair<size_t, MoveEvent> pollMany(const std::vector<std::shared_ptr<InavjagaGSPIO>>&, int);
 };
 
 /**
  * @note receives OWN_ACT, sends ACT
  */
 class ServerInavjagaGSPIO: public InavjagaGSPIO {
-public:
+protected:
     void acceptConnection(int);
+public:
+    ServerInavjagaGSPIO(int);
     sista::Coordinates negotiateCoordinates(std::weak_ptr<sista::SwappableField>) const;
     void sendPlayers(std::vector<std::shared_ptr<Player>>&, player_id_t);
     bool recvReady();
@@ -71,7 +77,7 @@ public:
  */
 class TCPServerInavjagaGSPIO: public ServerInavjagaGSPIO {
 public:
-    TCPServerInavjagaGSPIO();
+    TCPServerInavjagaGSPIO(int);
 };
 
 /**
@@ -87,7 +93,7 @@ public:
  */
 class InavjagaIO {
 public:
-    virtual MoveEvent getMove();
+    virtual MoveEvent getMove(int timeout=3000);
     virtual void sendMove(MoveEvent);
 };
 
@@ -97,7 +103,7 @@ public:
  */
 class LocalInavjagaIO: public InavjagaIO {
 public:
-    MoveEvent getMove() override;
+    MoveEvent getMove(int) override;
 };
 
 /** @brief Reads the local moves and communicates them to all clients
@@ -132,7 +138,7 @@ class RemoteInavjagaIO: public InavjagaIO {
 protected:
     std::vector<std::shared_ptr<InavjagaGSPIO>> neighbors;
 public:
-    MoveEvent getMove() override;
+    MoveEvent getMove(int) override;
     void sendMove(MoveEvent) override;
 };
 

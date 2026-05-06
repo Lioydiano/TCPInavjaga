@@ -11,7 +11,10 @@
 std::unique_ptr<ClientInavjagaGSPIO> connectClientToServer(int sockfd, char* addr, char* portno) {
     // https://www.unixguide.net/network/socketfaq/2.16.shtml
     int flag = 1;
-    int result = setsockopt(sockfd, IPPROTO_TCP, TCP_NODELAY, &flag, sizeof(int));
+    int rc = setsockopt(sockfd, IPPROTO_TCP, TCP_NODELAY, &flag, sizeof(int));
+    if (rc < 0) {
+        std::cerr << "Setting the TCP_NODELAY to disable Nagle's algorithm failed" << std::endl;
+    }
     struct sockaddr_in serverAddress;
     bzero((char*)&serverAddress, sizeof(serverAddress)); // Clearing
     inet_pton(AF_INET, addr, &(serverAddress.sin_addr)); // https://stackoverflow.com/a/5328184/15888601
@@ -55,8 +58,7 @@ std::vector<std::shared_ptr<ServerInavjagaGSPIO>> waitForConnections(int sockfd)
             std::cerr << "Error polling socket " << sockfd << std::endl;
         }
         if (pollFd.revents & POLLIN) {
-            collectedConnections.push_back(std::make_unique<TCPServerInavjagaGSPIO>());
-            collectedConnections.back()->acceptConnection(sockfd);
+            collectedConnections.push_back(std::make_unique<TCPServerInavjagaGSPIO>(sockfd));
         }
     }
     return collectedConnections;
