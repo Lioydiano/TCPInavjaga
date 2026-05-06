@@ -22,7 +22,7 @@ void InavjagaGSPIO::sendRandomSeed(int seed) {
     write(socketfd, &converted, sizeof(converted));
 }
 
-/** @brief Waits for a message from the other end of the socket
+/** @brief Waits for a message from the other end of the channel
  * @throws std::runtime_error when the recv call on the file descriptor fails
  * @return A move event representing the received move
  */
@@ -43,6 +43,15 @@ MoveEvent InavjagaGSPIO::recvMove() {
     }
     sscanf(buffer, "%hu;%c", &moveEvent.playerId, &moveEvent.move);
     return moveEvent;
+}
+
+/** @brief Sends a message to the other end of the channel
+ * @param moveEvent The move event to transmit
+ */
+void InavjagaGSPIO::sendMove(MoveEvent moveEvent) {
+    static char buffer[4] = {0};
+    snprintf(buffer, 4, "%hu;%c", &moveEvent.playerId, &moveEvent.move);
+    send(socketfd, buffer, 4, 0);
 }
 
 /** @brief Polls the InavjagaGSP connections and returns the first one to return
