@@ -54,6 +54,8 @@ void InavjagaGSPIO::sendMove(MoveEvent moveEvent) {
     send(socketfd, buffer, 4, 0);
 }
 
+std::vector<struct pollfd> InavjagaGSPIO::pollFds = {};
+
 /** @brief Polls the InavjagaGSP connections and returns the first one to return
  * @note For the moment we accept at most 9 ios, our cap to the number of clients
  * @warning For the moment we trust the clients to not lie about their Player ID
