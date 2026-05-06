@@ -125,3 +125,8 @@ sista::ANSISettings Player::playerStyle = {
     sista::Attribute::BRIGHT
 };
 player_id_t Player::localPlayerId = 0;
+
+void Player::disconnectPlayer(player_id_t playerId) {
+    std::shared_ptr<Player> victim = players[playerId];
+    victim->remove();
+}
