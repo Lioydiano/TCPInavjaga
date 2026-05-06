@@ -145,6 +145,16 @@ MoveEvent RemoteInavjagaIO::getMove(int timeout = 3000) {
     return moveEvent;
 }
 
+/** @brief Sends a move to all the listening clients
+ * @param moveEvent The move event to be sent
+ */
+void RemoteInavjagaIO::sendMove(MoveEvent moveEvent) {
+    for (std::shared_ptr<InavjagaGSPIO> gspio : this->neighbors) {
+        if (!gspio) continue;
+        gspio->sendMove(moveEvent);
+    }
+}
+
 ClientInavjagaGSPIO::ClientInavjagaGSPIO(int sockfd, sockaddr* srvaddr) {
     if (connect(sockfd, (struct sockaddr*)&srvaddr, sizeof(srvaddr)) < 0) {
         std::cerr << "Could not connect to " << srvaddr->sa_data;
