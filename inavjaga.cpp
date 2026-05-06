@@ -708,6 +708,9 @@ void input(InavjagaIO io) {
             moveEvent.playerId = Player::localPlayerId;
         }
         if (end) return;
+        if (moveEvent.move == INAVJAGA_CHAR_MOVE_IGNORE) {
+            continue;
+        }
         if (act(moveEvent)) {
             io.sendMove(moveEvent);
         }

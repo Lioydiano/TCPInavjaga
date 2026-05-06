@@ -5,6 +5,8 @@
 #include <exception>
 #include <string.h>
 #include <iostream>
+#include <future>
+#include <chrono>
 #include <poll.h>
 
 /** @brief Waits for a message from the other end of the socket
@@ -89,16 +91,29 @@ std::pair<size_t, MoveEvent> InavjagaGSPIO::pollMany(
         );
 }
 
-MoveEvent LocalInavjagaIO::getMove() {
-    return {INAVJAGA_PLAYER_ID_IGNORE, getch()};
+/** Returns a move event by the local player
+ * @param timeout The time expressed in milliseconds for which to wait for moves
+ *                after which the method just returns an empty move
+ * @retval {INAVJAGA_PLAYER_ID_IGNORE,INAVJAGA_CHAR_MOVE_IGNORE} when no input
+ * @return A move event received as local input, typically from stdin
+ */
+MoveEvent LocalInavjagaIO::getMove(int timeout = 3000) {
+    std::future<char> input_ = std::async(getch);
+    std::future_status status = input_.wait_for(std::chrono::milliseconds(timeout));
+    if (status != std::future_status::ready) {
+        return {INAVJAGA_PLAYER_ID_IGNORE,INAVJAGA_CHAR_MOVE_IGNORE};
+    }
+    return {INAVJAGA_PLAYER_ID_IGNORE, input_.get()};
 }
 
 /** @brief Waits for a move event and returns it
  * @note polls asynchronously all the connections it owns
  * @note if it is the server, then it will poll multiple ones
+ * @param timeout The time expressed in milliseconds for which to wait for moves
+ *                after which the method just returns an empty move
  * @return a move event representing the received move
  */
-MoveEvent RemoteInavjagaIO::getMove() {
+MoveEvent RemoteInavjagaIO::getMove(int timeout = 3000) {
     MoveEvent moveEvent = {INAVJAGA_PLAYER_ID_IGNORE, INAVJAGA_CHAR_MOVE_IGNORE};
     while (moveEvent.playerId == INAVJAGA_PLAYER_ID_IGNORE) {
         /// @warning This doesn't return the flow for... potentially forever

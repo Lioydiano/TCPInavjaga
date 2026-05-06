@@ -93,7 +93,7 @@ public:
  */
 class InavjagaIO {
 public:
-    virtual MoveEvent getMove();
+    virtual MoveEvent getMove(int timeout=3000);
     virtual void sendMove(MoveEvent);
 };
 
@@ -103,7 +103,7 @@ public:
  */
 class LocalInavjagaIO: public InavjagaIO {
 public:
-    MoveEvent getMove() override;
+    MoveEvent getMove(int) override;
 };
 
 /** @brief Reads the local moves and communicates them to all clients
@@ -138,7 +138,7 @@ class RemoteInavjagaIO: public InavjagaIO {
 protected:
     std::vector<std::shared_ptr<InavjagaGSPIO>> neighbors;
 public:
-    MoveEvent getMove() override;
+    MoveEvent getMove(int) override;
     void sendMove(MoveEvent) override;
 };
 
