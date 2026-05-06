@@ -115,6 +115,8 @@ MoveEvent LocalInavjagaIO::getMove(int timeout = 3000) {
  */
 MoveEvent RemoteInavjagaIO::getMove(int timeout = 3000) {
     MoveEvent moveEvent = {INAVJAGA_PLAYER_ID_IGNORE, INAVJAGA_CHAR_MOVE_IGNORE};
+    std::chrono::high_resolution_clock timer;
+    std::chrono::time_point start = timer.now();
     while (moveEvent.playerId == INAVJAGA_PLAYER_ID_IGNORE) {
         /// @warning This doesn't return the flow for... potentially forever
         try {
@@ -122,6 +124,9 @@ MoveEvent RemoteInavjagaIO::getMove(int timeout = 3000) {
             moveEvent = InavjagaGSPIO::pollMany(this->neighbors).second;
         } catch (std::exception& e) {
             // It technically doesn't throw at the current stage
+        }
+        if (std::chrono::duration_cast<std::chrono::milliseconds>(timer.now() - start).count() > timeout) {
+            return moveEvent; // If timeout expires, it returns even if no input was received
         }
     }
     return moveEvent;
