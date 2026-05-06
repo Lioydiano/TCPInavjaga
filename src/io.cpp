@@ -9,6 +9,19 @@
 #include <chrono>
 #include <poll.h>
 
+int InavjagaGSPIO::recvRandomSeed() {
+    // https://stackoverflow.com/a/64357776/15888601
+    int32_t seed;
+    read(socketfd, &seed, sizeof(int32_t));
+    return ntohl(seed);
+}
+
+void InavjagaGSPIO::sendRandomSeed(int seed) {
+    // https://stackoverflow.com/a/64357776/15888601
+    int32_t converted = htonl(seed);
+    write(socketfd, &converted, sizeof(converted));
+}
+
 /** @brief Waits for a message from the other end of the socket
  * @throws std::runtime_error when the recv call on the file descriptor fails
  * @return A move event representing the received move
