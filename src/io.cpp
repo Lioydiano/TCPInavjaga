@@ -50,7 +50,7 @@ MoveEvent InavjagaGSPIO::recvMove() {
  */
 void InavjagaGSPIO::sendMove(MoveEvent moveEvent) {
     static char buffer[4] = {0};
-    snprintf(buffer, 4, "%hu;%c", &moveEvent.playerId, &moveEvent.move);
+    snprintf(buffer, 4, "%hu;%c", moveEvent.playerId, moveEvent.move);
     send(socketfd, buffer, 4, 0);
 }
 
