@@ -32,7 +32,7 @@ private:
      * Confirms the coordinates and sends the Player ID to the client
      */
     void leaseCoordinates(sista::Coordinates, int);
-    static std::unique_ptr<struct pollfd[]> _pollFds;
+    static std::vector<struct pollfd> pollFds;
 protected:
     int socketfd;
 public:
