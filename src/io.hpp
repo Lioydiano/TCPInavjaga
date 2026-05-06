@@ -34,6 +34,7 @@ private:
     void leaseCoordinates(sista::Coordinates, int);
     static std::vector<struct pollfd> pollFds;
 protected:
+    static const char acceptMessage[2];
     int socketfd;
 public:
     int recvRandomSeed();
@@ -58,7 +59,7 @@ public:
     ServerInavjagaGSPIO(int);
     sista::Coordinates negotiateCoordinates(std::weak_ptr<sista::SwappableField>) const;
     void sendPlayers(std::vector<std::shared_ptr<Player>>&, player_id_t);
-    bool recvReady();
+    bool recvReady(int timeout=1000);
 };
 
 /**

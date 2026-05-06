@@ -177,6 +177,27 @@ void ServerInavjagaGSPIO::acceptConnection(int sockfd) {
     }
 }
 
+const char InavjagaGSPIO::acceptMessage[2] = "A";
+
+bool ServerInavjagaGSPIO::recvReady(int timeout = 1000) {
+    char inputBuffer[2] = {0};
+    std::future<ssize_t> input_ = std::async(recv, socketfd, inputBuffer, (size_t)2, 0);
+    std::future_status status = input_.wait_for(std::chrono::milliseconds(timeout));
+    if (status == std::future_status::ready) {
+        int rc = input_.get();
+        if (rc < 0) return false;
+        /// @todo fix, this is dangerous asf
+        if (strcmp(InavjagaGSPIO::acceptMessage, inputBuffer) == 0) {
+            return true;
+        }
+    }
+    return false;
+}
+
+void ClientInavjagaGSPIO::sendReady() {
+    send(socketfd, acceptMessage, 2, 0);
+}
+
 /** Constructs ServerLocalInavjagaIO with the connections to its clients.
  * @param connectionsToClients a collection of the connections to clients
  * @warning At this stage the connections to the clients must be ready to transmit and receive moves
