@@ -142,8 +142,8 @@ int main(int argc, char* argv[]) {
     localIO = new ServerLocalInavjagaIO(clientConnections);
     remoteIO = new ServerRemoteInavjagaIO(clientConnections);
     #endif
-    std::thread localInputThread(input, localIO);
-    std::thread remoteInputThread(input, remoteIO);
+    std::thread localInputThread(input<LocalInavjagaIO>, localIO);
+    std::thread remoteInputThread(input<RemoteInavjagaIO>, remoteIO);
     for (int i=0; !end; i++) {
         while (pause_) {
             std::this_thread::sleep_for(std::chrono::milliseconds(100));
@@ -699,7 +699,8 @@ void spawnEnemies() {
  * @note this function is meant to run in a separate thread
  * @note the InavjagaIO object handles the mutex locks on its own
  */
-void input(InavjagaIO* io) {
+template<typename IO>
+void input(IO* io) {
     MoveEvent moveEvent = {INAVJAGA_PLAYER_ID_IGNORE, INAVJAGA_CHAR_MOVE_IGNORE};
     while (moveEvent.move != 'Q') {
         if (end) return;

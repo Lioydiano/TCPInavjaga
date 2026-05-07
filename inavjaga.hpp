@@ -38,7 +38,7 @@ bool endConditions();
 void printSideInstructions(int);
 void printKeys();
 void reprint();
-void input(InavjagaIO*);
+template<typename IO> void input(IO*);
 bool act(char);
 bool act(MoveEvent);
 void printEndInformation(EndReason);
