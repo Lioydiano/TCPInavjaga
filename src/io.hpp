@@ -99,8 +99,8 @@ protected:
     InavjagaIO();
 public:
     virtual ~InavjagaIO();
-    virtual MoveEvent getMove(int timeout=3000); // https://stackoverflow.com/a/9260274/15888601
-    virtual void sendMove(MoveEvent);
+    virtual MoveEvent getMove(int timeout=3000) = 0; // https://stackoverflow.com/a/9260274/15888601
+    virtual void sendMove(MoveEvent) = 0;
 };
 
 /** @brief Reads the local moves and communicates them
