@@ -147,6 +147,7 @@ public:
 class RemoteInavjagaIO: public InavjagaIO {
 protected:
     std::vector<std::shared_ptr<InavjagaGSPIO>> neighbors;
+    RemoteInavjagaIO();
 public:
     RemoteInavjagaIO(std::vector<std::shared_ptr<ServerInavjagaGSPIO>>&);
     RemoteInavjagaIO(std::initializer_list<std::shared_ptr<ClientInavjagaGSPIO>>);
@@ -155,10 +156,14 @@ public:
 };
 
 class ServerRemoteInavjagaIO: public RemoteInavjagaIO {
+protected:
+    ServerRemoteInavjagaIO();
 public:
     ServerRemoteInavjagaIO(std::vector<std::shared_ptr<ServerInavjagaGSPIO>>&);
 };
 class ClientRemoteInavjagaIO: public RemoteInavjagaIO {
+protected:
+    ClientRemoteInavjagaIO();
 public:
     ClientRemoteInavjagaIO(std::shared_ptr<ClientInavjagaGSPIO>);
 };

@@ -234,6 +234,7 @@ ClientLocalInavjagaIO::ClientLocalInavjagaIO(std::shared_ptr<ClientInavjagaGSPIO
     this->server = connectionToServer;
 }
 
+RemoteInavjagaIO::RemoteInavjagaIO() {}
 RemoteInavjagaIO::RemoteInavjagaIO(std::vector<std::shared_ptr<ServerInavjagaGSPIO>>& connections) {
     this->neighbors = {};
     for (std::shared_ptr<ServerInavjagaGSPIO> connection : connections) {
@@ -249,10 +250,12 @@ RemoteInavjagaIO::RemoteInavjagaIO(std::initializer_list<std::shared_ptr<ClientI
     }
 }
 
+ServerRemoteInavjagaIO::ServerRemoteInavjagaIO() {}
 ServerRemoteInavjagaIO::ServerRemoteInavjagaIO(
     std::vector<std::shared_ptr<ServerInavjagaGSPIO>>& connectionsToClients
 ): RemoteInavjagaIO(connectionsToClients) {}
 
+ClientRemoteInavjagaIO::ClientRemoteInavjagaIO() {}
 ClientRemoteInavjagaIO::ClientRemoteInavjagaIO(
     std::shared_ptr<ClientInavjagaGSPIO> connectionToServer
 ): RemoteInavjagaIO({connectionToServer}) {}
