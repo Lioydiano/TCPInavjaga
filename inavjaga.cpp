@@ -133,6 +133,11 @@ int main(int argc, char* argv[]) {
     spawnInitialEnemies();
     field->print(border);
 
+    // https://en.cppreference.com/cpp/thread/shared_mutex
+    std::shared_ptr<std::shared_mutex> remoteOutputMutex = std::make_shared<std::shared_mutex>();
+    InavjagaGSPIO::initializeOutputMutex(remoteOutputMutex);
+    RemoteInavjagaIO::initializeOutputMutex(remoteOutputMutex);
+
     LocalInavjagaIO* localIO;
     RemoteInavjagaIO* remoteIO;
     #if CLIENT

@@ -22,6 +22,10 @@ void InavjagaGSPIO::sendRandomSeed(int seed) {
     write(socketfd, &converted, sizeof(converted));
 }
 
+void InavjagaGSPIO::initializeOutputMutex(std::shared_ptr<std::shared_mutex> mutex) {
+    outputMutex = mutex;
+}
+
 /** @brief Waits for a message from the other end of the channel
  * @throws std::runtime_error when the recv call on the file descriptor fails
  * @return A move event representing the received move
@@ -51,6 +55,7 @@ MoveEvent InavjagaGSPIO::recvMove() {
 void InavjagaGSPIO::sendMove(MoveEvent moveEvent) {
     static char buffer[4] = {0};
     snprintf(buffer, 4, "%hu;%c", moveEvent.playerId, moveEvent.move);
+    std::unique_lock lock(outputMutex);
     send(socketfd, buffer, 4, 0);
 }
 
@@ -128,6 +133,10 @@ MoveEvent LocalInavjagaIO::getMove(int timeout = 3000) {
         return {INAVJAGA_PLAYER_ID_IGNORE,INAVJAGA_CHAR_MOVE_IGNORE};
     }
     return {INAVJAGA_PLAYER_ID_IGNORE, input_.get()};
+}
+
+void RemoteInavjagaIO::initializeOutputMutex(std::shared_ptr<std::shared_mutex> mutex) {
+    outputMutex = mutex;
 }
 
 /** @brief Waits for a move event and returns it
