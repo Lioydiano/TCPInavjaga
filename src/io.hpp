@@ -35,7 +35,7 @@ private:
     void leaseCoordinates(sista::Coordinates, int);
     static std::vector<struct pollfd> pollFds;
 protected:
-    static std::shared_ptr<std::shared_mutex> outputMutex;
+    static std::shared_mutex outputMutex;
     static const char acceptMessage[2];
     int socketfd;
 public:
@@ -49,7 +49,6 @@ public:
     void sendMove(MoveEvent);
 
     static std::pair<size_t, MoveEvent> pollMany(const std::vector<std::shared_ptr<InavjagaGSPIO>>&, int);
-    static void initializeOutputMutex(std::shared_ptr<std::shared_mutex> mutex);
 };
 
 /**
@@ -150,15 +149,12 @@ public:
 class RemoteInavjagaIO: public InavjagaIO {
 protected:
     std::vector<std::shared_ptr<InavjagaGSPIO>> neighbors;
-    static std::shared_ptr<std::shared_mutex> outputMutex;
     RemoteInavjagaIO();
 public:
     RemoteInavjagaIO(std::vector<std::shared_ptr<ServerInavjagaGSPIO>>&);
     RemoteInavjagaIO(std::initializer_list<std::shared_ptr<ClientInavjagaGSPIO>>);
     MoveEvent getMove(int) override;
     void sendMove(MoveEvent) override;
-
-    static void initializeOutputMutex(std::shared_ptr<std::shared_mutex> mutex);
 };
 
 class ServerRemoteInavjagaIO: public RemoteInavjagaIO {

@@ -22,9 +22,7 @@ void InavjagaGSPIO::sendRandomSeed(int seed) {
     write(socketfd, &converted, sizeof(converted));
 }
 
-void InavjagaGSPIO::initializeOutputMutex(std::shared_ptr<std::shared_mutex> mutex) {
-    outputMutex = mutex;
-}
+std::shared_mutex InavjagaGSPIO::outputMutex = std::shared_mutex();
 
 /** @brief Waits for a message from the other end of the channel
  * @throws std::runtime_error when the recv call on the file descriptor fails
@@ -135,10 +133,6 @@ MoveEvent LocalInavjagaIO::getMove(int timeout = 3000) {
     return {INAVJAGA_PLAYER_ID_IGNORE, input_.get()};
 }
 
-void RemoteInavjagaIO::initializeOutputMutex(std::shared_ptr<std::shared_mutex> mutex) {
-    outputMutex = mutex;
-}
-
 /** @brief Waits for a move event and returns it
  * @note polls asynchronously all the connections it owns
  * @note if it is the server, then it will poll multiple ones
@@ -214,6 +208,10 @@ bool ServerInavjagaGSPIO::recvReady(int timeout) {
     return false;
 }
 
+/** @brief Communicates to the server that the client is ready
+ * @note The operations up to this point are assumed to be synchronous,
+ *       which explains why the mutex is not used for the lock here
+ */
 void ClientInavjagaGSPIO::sendReady() {
     send(socketfd, acceptMessage, 2, 0);
 }
