@@ -124,13 +124,30 @@ std::pair<size_t, MoveEvent> InavjagaGSPIO::pollMany(
  * @retval {INAVJAGA_PLAYER_ID_IGNORE,INAVJAGA_CHAR_MOVE_IGNORE} when no input
  * @return A move event received as local input, typically from stdin
  */
-MoveEvent LocalInavjagaIO::getMove(int timeout = 3000) {
+MoveEvent LocalInavjagaIO::getMove(int timeout) {
     std::future<char> input_ = std::async(getch);
     std::future_status status = input_.wait_for(std::chrono::milliseconds(timeout));
     if (status != std::future_status::ready) {
         return {INAVJAGA_PLAYER_ID_IGNORE,INAVJAGA_CHAR_MOVE_IGNORE};
     }
     return {INAVJAGA_PLAYER_ID_IGNORE, input_.get()};
+}
+
+/** @brief Sends a move event to the server
+ * @param moveEvent The move event to send
+ */
+void ClientLocalInavjagaIO::sendMove(MoveEvent moveEvent) {
+    this->server->sendMove(moveEvent);
+}
+
+/** @brief Sends a move event to every client
+ * @param moveEvent The move event to send
+ */
+void ServerLocalInavjagaIO::sendMove(MoveEvent moveEvent) {
+    for (std::shared_ptr<InavjagaGSPIO> gspio : this->neighbors) {
+        if (!gspio) continue;
+        gspio->sendMove(moveEvent);
+    }
 }
 
 /** @brief Waits for a move event and returns it
@@ -140,7 +157,7 @@ MoveEvent LocalInavjagaIO::getMove(int timeout = 3000) {
  *                after which the method just returns an empty move
  * @return a move event representing the received move
  */
-MoveEvent RemoteInavjagaIO::getMove(int timeout = 3000) {
+MoveEvent RemoteInavjagaIO::getMove(int timeout) {
     MoveEvent moveEvent = {INAVJAGA_PLAYER_ID_IGNORE, INAVJAGA_CHAR_MOVE_IGNORE};
     std::chrono::high_resolution_clock timer;
     std::chrono::time_point start = timer.now();
