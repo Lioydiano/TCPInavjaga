@@ -133,17 +133,17 @@ int main(int argc, char* argv[]) {
     spawnInitialEnemies();
     field->print(border);
 
-    LocalInavjagaIO localIO;
-    RemoteInavjagaIO remoteIO;
+    LocalInavjagaIO* localIO;
+    RemoteInavjagaIO* remoteIO;
     #if CLIENT
-    localIO = ClientLocalInavjagaIO(connectionToServer);
-    remoteIO = ClientRemoteInavjagaIO(connectionToServer);
+    localIO = new ClientLocalInavjagaIO(connectionToServer);
+    remoteIO = new ClientRemoteInavjagaIO(connectionToServer);
     #elif SERVER
-    localIO = ServerLocalInavjagaIO(clientConnections);
-    remoteIO = ServerRemoteInavjagaIO(clientConnections);
+    localIO = new ServerLocalInavjagaIO(clientConnections);
+    remoteIO = new ServerRemoteInavjagaIO(clientConnections);
     #endif
-    std::thread localInputThread(input, &localIO);
-    std::thread remoteInputThread(input, &remoteIO);
+    std::thread localInputThread(input, localIO);
+    std::thread remoteInputThread(input, remoteIO);
     for (int i=0; !end; i++) {
         while (pause_) {
             std::this_thread::sleep_for(std::chrono::milliseconds(100));

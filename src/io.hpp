@@ -93,7 +93,10 @@ public:
  * Provides an abstraction over the input sources
  */
 class InavjagaIO {
+protected:
+    InavjagaIO();
 public:
+    virtual ~InavjagaIO();
     virtual MoveEvent getMove(int timeout=3000);
     virtual void sendMove(MoveEvent);
 };
@@ -103,6 +106,8 @@ public:
  * @note writes output as ACT with InavjagaGSP
  */
 class LocalInavjagaIO: public InavjagaIO {
+protected:
+    LocalInavjagaIO();
 public:
     MoveEvent getMove(int) override;
 };
@@ -115,6 +120,8 @@ class ServerLocalInavjagaIO: public LocalInavjagaIO {
 private:
     std::shared_ptr<std::mutex> writeToChannelsMutex;
     std::vector<std::shared_ptr<ServerInavjagaGSPIO>> neighbors;
+protected:
+    ServerLocalInavjagaIO();
 public:
     ServerLocalInavjagaIO(std::vector<std::shared_ptr<ServerInavjagaGSPIO>>&);
     void sendMove(MoveEvent) override;
@@ -127,6 +134,8 @@ public:
 class ClientLocalInavjagaIO: public LocalInavjagaIO {
 private:
     std::shared_ptr<ClientInavjagaGSPIO> server;
+protected:
+    ClientLocalInavjagaIO();
 public:
     ClientLocalInavjagaIO(std::shared_ptr<ClientInavjagaGSPIO>);
     void sendMove(MoveEvent) override;
@@ -139,6 +148,8 @@ class RemoteInavjagaIO: public InavjagaIO {
 protected:
     std::vector<std::shared_ptr<InavjagaGSPIO>> neighbors;
 public:
+    RemoteInavjagaIO(std::vector<std::shared_ptr<ServerInavjagaGSPIO>>&);
+    RemoteInavjagaIO(std::initializer_list<std::shared_ptr<ClientInavjagaGSPIO>>);
     MoveEvent getMove(int) override;
     void sendMove(MoveEvent) override;
 };

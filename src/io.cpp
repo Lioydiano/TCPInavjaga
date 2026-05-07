@@ -209,6 +209,12 @@ void ClientInavjagaGSPIO::sendReady() {
     send(socketfd, acceptMessage, 2, 0);
 }
 
+InavjagaIO::InavjagaIO() {}
+InavjagaIO::~InavjagaIO() {}
+LocalInavjagaIO::LocalInavjagaIO(): InavjagaIO::InavjagaIO() {}
+ServerLocalInavjagaIO::ServerLocalInavjagaIO(): LocalInavjagaIO::LocalInavjagaIO() {}
+ClientLocalInavjagaIO::ClientLocalInavjagaIO(): LocalInavjagaIO::LocalInavjagaIO() {}
+
 /** Constructs ServerLocalInavjagaIO with the connections to its clients.
  * @param connectionsToClients a collection of the connections to clients
  * @warning At this stage the connections to the clients must be ready to transmit and receive moves
@@ -228,15 +234,25 @@ ClientLocalInavjagaIO::ClientLocalInavjagaIO(std::shared_ptr<ClientInavjagaGSPIO
     this->server = connectionToServer;
 }
 
-ServerRemoteInavjagaIO::ServerRemoteInavjagaIO(std::vector<std::shared_ptr<ServerInavjagaGSPIO>>& connectionsToClients) {
+RemoteInavjagaIO::RemoteInavjagaIO(std::vector<std::shared_ptr<ServerInavjagaGSPIO>>& connections) {
     this->neighbors = {};
-    for (std::shared_ptr<ServerInavjagaGSPIO> connection : connectionsToClients) {
+    for (std::shared_ptr<ServerInavjagaGSPIO> connection : connections) {
+        // https://stackoverflow.com/a/43682576/15888601
+        this->neighbors.push_back(std::static_pointer_cast<InavjagaGSPIO>(connection));
+    }
+}
+RemoteInavjagaIO::RemoteInavjagaIO(std::initializer_list<std::shared_ptr<ClientInavjagaGSPIO>> connections) {
+    this->neighbors = {};
+    for (std::shared_ptr<InavjagaGSPIO> connection : connections) {
         // https://stackoverflow.com/a/43682576/15888601
         this->neighbors.push_back(std::static_pointer_cast<InavjagaGSPIO>(connection));
     }
 }
 
-ClientRemoteInavjagaIO::ClientRemoteInavjagaIO(std::shared_ptr<ClientInavjagaGSPIO> connectionToServer) {
-    // https://stackoverflow.com/a/43682576/15888601
-    this->neighbors = {std::static_pointer_cast<InavjagaGSPIO>(connectionToServer)};
-}
+ServerRemoteInavjagaIO::ServerRemoteInavjagaIO(
+    std::vector<std::shared_ptr<ServerInavjagaGSPIO>>& connectionsToClients
+): RemoteInavjagaIO(connectionsToClients) {}
+
+ClientRemoteInavjagaIO::ClientRemoteInavjagaIO(
+    std::shared_ptr<ClientInavjagaGSPIO> connectionToServer
+): RemoteInavjagaIO({connectionToServer}) {}
