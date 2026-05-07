@@ -37,6 +37,7 @@ private:
 protected:
     static std::shared_mutex outputMutex;
     static const char acceptMessage[2];
+    static const char constantsTermination[3];
     int socketfd;
 public:
     int recvRandomSeed();
