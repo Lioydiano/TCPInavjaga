@@ -209,7 +209,7 @@ void ServerInavjagaGSPIO::acceptConnection(int sockfd) {
 }
 
 const char InavjagaGSPIO::acceptMessage[2] = "A";
-const char InavjagaGSPIO::constantsTermination[3] = "-;";
+const char InavjagaGSPIO::constantsTermination[3] = "-:";
 
 /** @brief Sends the constants needed for the game from the server to the client
  * @warning This is only returning true, it does not have error handling yet
@@ -314,7 +314,39 @@ bool InavjagaGSPIO::sendConstants() {
     return true;
 }
 
-std::map<std::string, std::variant<int, float>> recvConstants() {
+/**
+ * @note Probably the most unsafe funciton I have ever written
+ * @related https://stackoverflow.com/questions/79938349/achieve-getdelim-functionality-but-on-a-socket-rather-than-on-a-file
+ */
+std::map<std::string, std::variant<int, float>> InavjagaGSPIO::recvConstants() {
+    std::map<std::string, std::variant<int, float>> constants;
+    std::variant<int, float> value;
+    float floatValue;
+    int intValue;
+
+    char* buffer = nullptr;
+    char* valueBuffer = nullptr;
+    size_t length = 0;
+
+    while (true) {
+        getdelim(&buffer, &length, ':', this->socketfd);
+        if (buffer[0] == InavjagaGSPIO::constantsTermination[0]) break;
+        getdelim(&valueBuffer, &length, ';', this->socketfd);
+        errno = 0;
+        intValue = strtol(valueBuffer, nullptr, 10);
+        if (errno != 0) {
+            errno = 0;
+            floatValue = strtof(valueBuffer, nullptr);
+            if (errno != 0) {
+                std::cerr << "The constant " << buffer << " has a non supported value of " << valueBuffer << std::endl;
+                continue;
+            }
+            value = floatValue;
+        } else {
+            value = intValue;
+        }
+        constants[std::string(buffer)] = value;
+    }
     // We could first read everything to a buffer
     // Or we could also read character by character and do the finite state machine thingy
 }
