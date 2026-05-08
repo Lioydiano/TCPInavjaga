@@ -317,6 +317,7 @@ bool InavjagaGSPIO::sendConstants() {
 /**
  * @note Probably the most unsafe funciton I have ever written
  * @related https://stackoverflow.com/questions/79938349/achieve-getdelim-functionality-but-on-a-socket-rather-than-on-a-file
+ * @related https://stackoverflow.com/a/7781019/15888601
  */
 std::map<std::string, std::variant<int, float>> InavjagaGSPIO::recvConstants() {
     std::map<std::string, std::variant<int, float>> constants;
@@ -328,10 +329,12 @@ std::map<std::string, std::variant<int, float>> InavjagaGSPIO::recvConstants() {
     char* valueBuffer = nullptr;
     size_t length = 0;
 
+    FILE* fd = fdopen(this->socketfd, "r");
+
     while (true) {
-        getdelim(&buffer, &length, ':', this->socketfd);
+        getdelim(&buffer, &length, ':', fd);
         if (buffer[0] == InavjagaGSPIO::constantsTermination[0]) break;
-        getdelim(&valueBuffer, &length, ';', this->socketfd);
+        getdelim(&valueBuffer, &length, ';', fd);
         errno = 0;
         intValue = strtol(valueBuffer, nullptr, 10);
         if (errno != 0) {
@@ -347,6 +350,7 @@ std::map<std::string, std::variant<int, float>> InavjagaGSPIO::recvConstants() {
         }
         constants[std::string(buffer)] = value;
     }
+    fclose(fd);
     // We could first read everything to a buffer
     // Or we could also read character by character and do the finite state machine thingy
 }
