@@ -25,8 +25,6 @@ struct MoveEvent {
  */
 class InavjagaGSPIO {
 private:
-    void sendNo();
-    void sendYes();
     /**
      * Confirms the coordinates and sends the Player ID to the client
      */
@@ -38,6 +36,9 @@ protected:
     static const char constantsTermination[3];
     int socketfd;
 
+    void sendNo();
+    void sendYes();
+    bool recvBool() const;
     sista::Coordinates recvCoordinates();
     void sendCoordinates(const sista::Coordinates& coordinates) const;
 public:
