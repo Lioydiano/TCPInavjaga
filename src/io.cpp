@@ -318,6 +318,8 @@ bool InavjagaGSPIO::sendConstants() {
  * @note Probably the most unsafe funciton I have ever written
  * @related https://stackoverflow.com/questions/79938349/achieve-getdelim-functionality-but-on-a-socket-rather-than-on-a-file
  * @related https://stackoverflow.com/a/7781019/15888601
+ * @note We could first read everything to a buffer
+ * @note Or we could also read character by character and do the finite state machine thingy
  */
 std::map<std::string, std::variant<int, float>> InavjagaGSPIO::recvConstants() {
     std::map<std::string, std::variant<int, float>> constants;
@@ -351,8 +353,7 @@ std::map<std::string, std::variant<int, float>> InavjagaGSPIO::recvConstants() {
         constants[std::string(buffer)] = value;
     }
     fclose(fd);
-    // We could first read everything to a buffer
-    // Or we could also read character by character and do the finite state machine thingy
+    return constants;
 }
 
 bool ServerInavjagaGSPIO::recvReady(int timeout) {
