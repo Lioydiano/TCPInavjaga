@@ -209,6 +209,8 @@ void ServerInavjagaGSPIO::acceptConnection(int sockfd) {
 }
 
 const char InavjagaGSPIO::acceptMessage[2] = "A";
+const char InavjagaGSPIO::yesMessage[2] = "y";
+const char InavjagaGSPIO::noMessage[2] = "n";
 const char InavjagaGSPIO::constantsTermination[3] = "-:";
 
 /** @brief Sends the constants needed for the game from the server to the client
@@ -385,9 +387,31 @@ void InavjagaGSPIO::sendCoordinates(const sista::Coordinates& coordinates) const
     send(socketfd, buffer.c_str(), buffer.length(), 0);
 }
 
+bool InavjagaGSPIO::recvBool(int timeout) const {
+    char inputBuffer[2] = {0};
+    std::future<ssize_t> input_ = std::async(recv, socketfd, inputBuffer, (size_t)2, 0);
+    std::future_status status = input_.wait_for(std::chrono::milliseconds(timeout));
+    if (status == std::future_status::ready) {
+        int rc = input_.get();
+        if (rc < 0) return false;
+        /// @todo fix, this is dangerous asf
+        if (strcmp(InavjagaGSPIO::yesMessage, inputBuffer) == 0) {
+            return true;
+        } else if (strcmp(InavjagaGSPIO::noMessage, inputBuffer) == 0) {
+            return true;
+        }
+    }
+    throw new std::runtime_error("Did not receive a boolean answer within the specified timeout");
+}
+
 bool ServerInavjagaGSPIO::offerCoordinates(const sista::Coordinates& coordinates) const {
     this->sendCoordinates(coordinates);
-    /// @todo IMPLEMENT
+    try {
+        return this->recvBool();
+    } catch (std::runtime_error& e) {
+        std::cerr << e.what();
+        return false;
+    }
 }
 
 InavjagaIO::InavjagaIO() {}

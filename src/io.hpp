@@ -33,12 +33,14 @@ private:
 protected:
     static std::shared_mutex outputMutex;
     static const char acceptMessage[2];
+    static const char yesMessage[2];
+    static const char noMessage[2];
     static const char constantsTermination[3];
     int socketfd;
 
     void sendNo();
     void sendYes();
-    bool recvBool() const;
+    bool recvBool(int timeout = 1000) const;
     sista::Coordinates recvCoordinates();
     void sendCoordinates(const sista::Coordinates& coordinates) const;
 public:
