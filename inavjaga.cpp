@@ -839,6 +839,10 @@ void printEndInformation(EndReason endReason) {
 }
 
 #if CLIENT
+/** @brief Sets the local constants to the values passed as parameter
+ * @param constants The constants to be set
+ * @todo Add error handling around std::get<T> or maybe just go for std::holds_alternative<T>
+ */
 void setConstantsToReceivedValues(const std::map<std::string, std::variant<int, float>>& constants) {
     WIDTH = std::get<int>(constants.at("WIDTH"));
     HEIGHT = std::get<int>(constants.at("HEIGHT"));
