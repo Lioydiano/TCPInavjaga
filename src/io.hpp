@@ -27,8 +27,6 @@ class InavjagaGSPIO {
 private:
     void sendNo();
     void sendYes();
-    sista::Coordinates recvCoordinates();
-    void sendCoordinates(sista::Coordinates);
     /**
      * Confirms the coordinates and sends the Player ID to the client
      */
@@ -39,6 +37,9 @@ protected:
     static const char acceptMessage[2];
     static const char constantsTermination[3];
     int socketfd;
+
+    sista::Coordinates recvCoordinates();
+    void sendCoordinates(const sista::Coordinates& coordinates) const;
 public:
     int recvRandomSeed();
     void sendRandomSeed(int);
@@ -60,7 +61,7 @@ protected:
     void acceptConnection(int);
 public:
     ServerInavjagaGSPIO(int);
-    sista::Coordinates negotiateCoordinates(std::weak_ptr<sista::SwappableField>) const;
+    bool offerCoordinates(const sista::Coordinates&) const;
     void sendPlayers(std::vector<std::shared_ptr<Player>>&, player_id_t);
     bool recvReady(int timeout=1000);
 };

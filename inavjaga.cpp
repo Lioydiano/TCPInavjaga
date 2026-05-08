@@ -89,7 +89,7 @@ int main(int argc, char* argv[]) {
     #if SERVER
     for (std::shared_ptr<ServerInavjagaGSPIO> clientConnection : clientConnections) {
         if (clientConnection->sendConstants()) {
-            sista::Coordinates spawn_client = clientConnection->negotiateCoordinates(field);
+            sista::Coordinates spawn_client = negotiateCoordinates(field, clientConnection);
             Player::players.push_back(std::make_shared<Player>(spawn_client));
             Player::players.back()->id = Player::players.size() - 1;
             Player::players.back()->respawnCoordinates = spawn_client;
@@ -916,6 +916,28 @@ void placeClientPlayer(std::shared_ptr<ClientInavjagaGSPIO> connectionToServer) 
     Player::localPlayer->respawnCoordinates = spawn;
     Player::localPlayer->mode = Player::Mode::BULLET;
     field->addPawn(Player::localPlayer);
+}
+
+/** @brief Negotiates the spawn coordinates with the client
+ * @param field_ The field on which to place the player of this client
+ * @param client The connection to the client to negotiate with
+ * @retval {SPAWN_COORDINATES_Y, SPAWN_COORDINATES_X} if no coordinates agreed upon
+ * @return The spawn coordinates agreed upon with the client
+ */
+sista::Coordinates negotiateCoordinates(std::weak_ptr<sista::SwappableField> field_, std::shared_ptr<ServerInavjagaGSPIO> client) {
+    sista::Coordinates candidate{SPAWN_COORDINATES_Y, SPAWN_COORDINATES_X};
+    // The < condition is actually a >=, it's just that we are dealing with unsigned integers
+    for (unsigned short y = TUNNEL_UNIT * 2 - 1; y < TUNNEL_UNIT * 2; y--) {
+        for (unsigned short x = WIDTH - 1; x < WIDTH; x--) {
+            candidate = {y, x};
+            if (field_.lock()->isFree(candidate)) {
+                if (client->offerCoordinates(candidate)) {
+                    return candidate;
+                }
+            }
+        }
+    }
+    return candidate;
 }
 
 void deallocateAll() {

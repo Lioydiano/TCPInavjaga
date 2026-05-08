@@ -379,6 +379,17 @@ void ClientInavjagaGSPIO::sendReady() {
     send(socketfd, acceptMessage, 2, 0);
 }
 
+void InavjagaGSPIO::sendCoordinates(const sista::Coordinates& coordinates) const {
+    std::string buffer = "{" + std::to_string(coordinates.y) + "," + std::to_string(coordinates.x) + "}";
+    std::unique_lock lock(outputMutex);
+    send(socketfd, buffer.c_str(), buffer.length(), 0);
+}
+
+bool ServerInavjagaGSPIO::offerCoordinates(const sista::Coordinates& coordinates) const {
+    this->sendCoordinates(coordinates);
+    /// @todo IMPLEMENT
+}
+
 InavjagaIO::InavjagaIO() {}
 InavjagaIO::~InavjagaIO() {}
 LocalInavjagaIO::LocalInavjagaIO(): InavjagaIO::InavjagaIO() {}
