@@ -15,17 +15,16 @@ int InavjagaGSPIO::recvRandomSeed() {
     #if DEBUG
     std::cerr << "Reading random seed" << std::endl;
     #endif
-    read(socketfd, &seed, sizeof(int32_t));
+    read(socketfd, &seed, sizeof(uint32_t));
     return ntohl(seed);
 }
 
 void InavjagaGSPIO::sendRandomSeed(int seed) {
     // https://stackoverflow.com/a/64357776/15888601
-    uint32_t* converted = new uint32_t;
-    *converted = htonl(seed);
-    std::cerr << *converted << " at " << converted << " is our integer" << std::endl;
+    uint32_t converted = htonl(seed);
+    std::cerr << converted << " is our integer" << std::endl;
     std::unique_lock lock(outputMutex);
-    if (ssize_t rc = write(this->socketfd, converted, sizeof(uint32_t)) < 0) {
+    if (ssize_t rc = write(this->socketfd, &converted, sizeof(uint32_t)) < 0) {
         std::cerr << "Failed to send random seed with error " << rc << "(" << errno << ")" << std::endl;
     }
 }
