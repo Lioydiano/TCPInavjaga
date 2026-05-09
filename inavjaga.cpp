@@ -84,15 +84,20 @@ int main(int argc, char* argv[]) {
     std::cerr << "The seed is " << seed << std::endl;
     #endif
     for (std::shared_ptr<ServerInavjagaGSPIO> clientConnection : clientConnections) {
+        if (clientConnection == nullptr) continue;
         clientConnection->sendRandomSeed(seed);
     }
     #elif CLIENT
     int seed = connectionToServer->recvRandomSeed();
+    #if DEBUG
+    std::cerr << "Random seed is " << seed << std::endl;
+    #endif
     #endif
     rng.seed(seed);
 
     #if SERVER
     for (std::shared_ptr<ServerInavjagaGSPIO> clientConnection : clientConnections) {
+        if (clientConnection == nullptr) continue;
         if (clientConnection->sendConstants()) {
             sista::Coordinates spawn_client = negotiateCoordinates(field, clientConnection);
             Player::players.push_back(std::make_shared<Player>(spawn_client));
@@ -101,11 +106,13 @@ int main(int argc, char* argv[]) {
         }
     }
     for (size_t i = 0; i < clientConnections.size(); i++) {
+        if (clientConnections[i] == nullptr) continue;
         clientConnections[i]->sendPlayers(Player::players, i + 1);
     }
     std::this_thread::sleep_for(std::chrono::seconds(2)); // Give the time to send ready
     std::vector<player_id_t> nonReady;
     for (size_t i = 0; i < clientConnections.size(); i++) {
+        if (clientConnections[i] == nullptr) continue;
         if (!clientConnections[i]->recvReady()) {
             Player::players[i + 1]->connected = false;
             clientConnections[i] = nullptr;
