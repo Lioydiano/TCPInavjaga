@@ -911,7 +911,7 @@ void setConstantsToReceivedValues(const std::map<std::string, std::variant<int, 
  * @note by default the respawnCoordinates of said Player will be set to the spawn ones
  */
 void placeClientPlayer(std::shared_ptr<ClientInavjagaGSPIO> connectionToServer) {
-    sista::Coordinates spawn = connectionToServer->negotiateCoordinates();
+    sista::Coordinates spawn = negotiateCoordinates(field, connectionToServer);
     Player::localPlayer = std::make_shared<Player>(spawn);
     Player::localPlayer->respawnCoordinates = spawn;
     Player::localPlayer->mode = Player::Mode::BULLET;
@@ -935,6 +935,26 @@ sista::Coordinates negotiateCoordinates(std::weak_ptr<sista::SwappableField> fie
                     return candidate;
                 }
             }
+        }
+    }
+    return candidate;
+}
+
+/** @brief Negotiates the clien'ts own spawn coordinates with the server
+ * @param field_ The field on which to place the player of this client
+ * @param server The connection to the server to negotiate with
+ * @retval {SPAWN_COORDINATES_Y, SPAWN_COORDINATES_X} if no coordinates agreed upon
+ * @return The spawn coordinates agreed upon with the server
+ */
+sista::Coordinates negotiateCoordinates(std::weak_ptr<sista::SwappableField> field_, std::shared_ptr<ClientInavjagaGSPIO> server) {
+    sista::Coordinates candidate;
+    while (true) {
+        candidate = server->recvCoordinates();
+        if (candidate.y >= TUNNEL_UNIT * 2 || field_.lock()->isOutOfBounds(candidate)) {
+            server->sendNo();
+        } else {
+            server->sendYes();
+            break;
         }
     }
     return candidate;

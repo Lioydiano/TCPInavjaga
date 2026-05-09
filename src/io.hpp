@@ -38,12 +38,13 @@ protected:
     static const char constantsTermination[3];
     int socketfd;
 
-    void sendNo();
-    void sendYes();
     bool recvBool(int timeout = 1000) const;
     sista::Coordinates recvCoordinates();
     void sendCoordinates(const sista::Coordinates& coordinates) const;
 public:
+    void sendNo();
+    void sendYes();
+
     int recvRandomSeed();
     void sendRandomSeed(int);
 
@@ -75,7 +76,7 @@ public:
 class ClientInavjagaGSPIO: public InavjagaGSPIO {
 public:
     ClientInavjagaGSPIO(int, sockaddr*);
-    sista::Coordinates negotiateCoordinates() const;
+    sista::Coordinates recvCoordinates(int timeout=3000) const;
     std::vector<std::shared_ptr<Player>> recvPlayers();
     void sendReady();
 };
