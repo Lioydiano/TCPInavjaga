@@ -29,6 +29,7 @@ enum EndReason {STARVED, SHOT, EATEN, STABBED, TOUCHDOWN, QUIT};
 void setConstantsToReceivedValues(const std::map<std::string, std::variant<int, float>>&);
 void placeClientPlayer(std::shared_ptr<ClientInavjagaGSPIO>);
 sista::Coordinates negotiateCoordinates(std::weak_ptr<sista::SwappableField>, std::shared_ptr<ServerInavjagaGSPIO>);
+sista::Coordinates negotiateCoordinates(std::weak_ptr<sista::SwappableField>, std::shared_ptr<ClientInavjagaGSPIO>);
 
 void generateTunnels();
 void intro();
