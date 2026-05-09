@@ -415,7 +415,15 @@ bool ServerInavjagaGSPIO::offerCoordinates(const sista::Coordinates& coordinates
 }
 
 sista::Coordinates ClientInavjagaGSPIO::recvCoordinates(int timeout) const {
-
+    char buffer[10] = {0};
+    int rc = recv(socketfd, &buffer, 1, MSG_DONTWAIT);
+    if (rc < 0) {
+        std::cerr << "Failed to receive coordinates from the server" << std::endl;
+        throw new std::runtime_error("Failed to receive coordinates from the server");
+    }
+    sista::Coordinates coordinates;
+    sscanf(buffer, "{%hu,%hu}", &coordinates.y, &coordinates.x);
+    return coordinates;
 }
 
 InavjagaIO::InavjagaIO() {}
