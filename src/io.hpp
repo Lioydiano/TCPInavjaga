@@ -39,7 +39,6 @@ protected:
     int socketfd;
 
     bool recvBool(int timeout = 1000) const;
-    sista::Coordinates recvCoordinates();
     void sendCoordinates(const sista::Coordinates& coordinates) const;
 public:
     void sendNo();
