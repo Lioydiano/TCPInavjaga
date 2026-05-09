@@ -80,6 +80,9 @@ int main(int argc, char* argv[]) {
 
     #if SERVER
     int seed = randomDevice();
+    #if DEBUG
+    std::cerr << "The seed is " << seed << std::endl;
+    #endif
     for (std::shared_ptr<ServerInavjagaGSPIO> clientConnection : clientConnections) {
         clientConnection->sendRandomSeed(seed);
     }

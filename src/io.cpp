@@ -11,15 +11,23 @@
 
 int InavjagaGSPIO::recvRandomSeed() {
     // https://stackoverflow.com/a/64357776/15888601
-    int32_t seed;
-    recv(socketfd, &seed, sizeof(int32_t), 0);
+    uint32_t seed;
+    #if DEBUG
+    std::cerr << "Reading random seed" << std::endl;
+    #endif
+    read(socketfd, &seed, sizeof(int32_t));
     return ntohl(seed);
 }
 
 void InavjagaGSPIO::sendRandomSeed(int seed) {
     // https://stackoverflow.com/a/64357776/15888601
-    int32_t converted = htonl(seed);
-    send(socketfd, &converted, sizeof(converted), 0);
+    uint32_t* converted = new uint32_t;
+    *converted = htonl(seed);
+    std::cerr << *converted << " at " << converted << " is our integer" << std::endl;
+    std::unique_lock lock(outputMutex);
+    if (ssize_t rc = write(this->socketfd, converted, sizeof(uint32_t)) < 0) {
+        std::cerr << "Failed to send random seed with error " << rc << "(" << errno << ")" << std::endl;
+    }
 }
 
 std::shared_mutex InavjagaGSPIO::outputMutex = std::shared_mutex();

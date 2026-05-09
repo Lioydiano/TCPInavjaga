@@ -5,6 +5,10 @@
 #include <set>
 #include <unordered_map>
 #include <map>
+#if DEBUG
+#include <iostream>
+#include <ostream>
+#endif
 
 extern std::unordered_map<Direction, sista::Coordinates> directionMap;
 extern std::map<int, std::vector<int>> breaches; // Central breaches, "holes"

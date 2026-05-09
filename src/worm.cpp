@@ -7,6 +7,10 @@
 #include <unordered_map>
 #include <memory>
 #include <random>
+#if DEBUG
+#include <iostream>
+#include <ostream>
+#endif
 
 extern std::unordered_map<Direction, char> directionSymbol;
 extern std::unordered_map<Direction, sista::Coordinates> directionMap;
