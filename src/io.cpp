@@ -9,14 +9,25 @@
 #include <chrono>
 #include <poll.h>
 
-int InavjagaGSPIO::recvRandomSeed() {
+int InavjagaGSPIO::recvRandomSeed(int timeout) {
     // https://stackoverflow.com/a/64357776/15888601
     uint32_t seed;
     #if DEBUG
     std::cerr << "Reading random seed" << std::endl;
     #endif
-    read(socketfd, &seed, sizeof(uint32_t));
-    return ntohl(seed);
+    struct pollfd pollFds_[1] = {0};
+    pollFds_[0].fd = this->socketfd;
+    pollFds_[0].events = POLLIN;
+    if (int rc = poll(pollFds_, 1, timeout)) {
+        std::cerr << "Polling failed with error " << rc << " (" << errno << ")" << std::endl;
+        return -1;
+    }
+    if (pollFds_[0].revents & POLLIN) {
+        read(socketfd, &seed, sizeof(uint32_t));
+        return ntohl(seed);
+    }
+    std::cerr << "No message ready yet" << std::endl;
+    return -1;
 }
 
 void InavjagaGSPIO::sendRandomSeed(int seed) {

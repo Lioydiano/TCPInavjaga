@@ -44,7 +44,7 @@ public:
     void sendNo();
     void sendYes();
 
-    int recvRandomSeed();
+    int recvRandomSeed(int timeout=10000);
     void sendRandomSeed(int);
 
     std::map<std::string, std::variant<int, float>> recvConstants();
