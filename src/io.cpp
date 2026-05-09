@@ -382,9 +382,11 @@ void ClientInavjagaGSPIO::sendReady() {
 }
 
 void InavjagaGSPIO::sendCoordinates(const sista::Coordinates& coordinates) const {
-    std::string buffer = "{" + std::to_string(coordinates.y) + "," + std::to_string(coordinates.x) + "}";
+    std::string str = "{" + std::to_string(coordinates.y) + "," + std::to_string(coordinates.x) + "}";
+    char buffer[10] = {0};
+    std::copy(str.c_str(), str.c_str() + str.length(), buffer);
     std::unique_lock lock(outputMutex);
-    send(socketfd, buffer.c_str(), buffer.length(), 0);
+    send(socketfd, buffer, 10, 0);
 }
 
 bool InavjagaGSPIO::recvBool(int timeout) const {
@@ -424,7 +426,7 @@ bool ServerInavjagaGSPIO::offerCoordinates(const sista::Coordinates& coordinates
 
 sista::Coordinates ClientInavjagaGSPIO::recvCoordinates(int timeout) const {
     char buffer[10] = {0};
-    int rc = recv(socketfd, &buffer, 1, MSG_DONTWAIT);
+    int rc = recv(socketfd, &buffer, 10, MSG_DONTWAIT);
     if (rc < 0) {
         std::cerr << "Failed to receive coordinates from the server" << std::endl;
         throw new std::runtime_error("Failed to receive coordinates from the server");
