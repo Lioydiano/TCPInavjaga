@@ -438,10 +438,30 @@ sista::Coordinates ClientInavjagaGSPIO::recvCoordinates(int timeout) const {
 
 /** @brief Receives players from a server
  * @warning This operates with the constraint of at most 10 players
+ * @note At the moment the parameter current is ignored
+ * @param players The players to be transmitted
+ * @param current The identifier of the player of the client to whom we are transmitting
+ * @return A collection of all the received players
+ */
+void ServerInavjagaGSPIO::sendPlayers(std::vector<std::shared_ptr<Player>>& players, player_id_t current) {
+    char identifier = '0';
+    for (size_t i = 0; i < players.size(); i++) {
+        identifier++;
+        if (players[i] == nullptr) continue;
+        {
+            std::unique_lock lock(outputMutex);
+            send(socketfd, &identifier, 1, 0);
+        }
+        this->sendCoordinates(players[i]->getCoordinates());
+    }
+}
+
+/** @brief Receives players from a server
+ * @warning This operates with the constraint of at most 10 players
  * @return A collection of all the received players
  */
 std::vector<std::shared_ptr<Player>> ClientInavjagaGSPIO::recvPlayers() {
-    // ID:{y,x};ID:{y,x}; [...] ;ID:{y,x};-:
+    // ID{y,x};ID{y,x}; [...] ;ID:{y,x};-
     std::vector<std::shared_ptr<Player>> players(10, nullptr);
     sista::Coordinates coordinates;
     char identifier = 0;
@@ -454,7 +474,12 @@ std::vector<std::shared_ptr<Player>> ClientInavjagaGSPIO::recvPlayers() {
             break;
         }
         coordinates = this->recvCoordinates();
+        if (identifier - '0' == Player::localPlayerId) {
+            players[identifier - '0'] = Player::localPlayer;
+            continue;
+        }
         players[identifier - '0'] = std::make_shared<Player>(coordinates);
+        recv(socketfd, &identifier, 1, 0); // We could assert that it is a ';'
     }
     size_t playersCount = 0;
     for (size_t i = players.size(); i >= 0; i--) {
