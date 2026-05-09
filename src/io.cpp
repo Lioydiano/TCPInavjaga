@@ -436,6 +436,35 @@ sista::Coordinates ClientInavjagaGSPIO::recvCoordinates(int timeout) const {
     return coordinates;
 }
 
+/** @brief Receives players from a server
+ * @warning This operates with the constraint of at most 10 players
+ * @return A collection of all the received players
+ */
+std::vector<std::shared_ptr<Player>> ClientInavjagaGSPIO::recvPlayers() {
+    // ID:{y,x};ID:{y,x}; [...] ;ID:{y,x};-:
+    std::vector<std::shared_ptr<Player>> players(10, nullptr);
+    sista::Coordinates coordinates;
+    char identifier = 0;
+    while (true) {
+        #if DEBUG
+        std::cerr << "Waiting for player identifier..." << std::endl;
+        #endif
+        recv(socketfd, &identifier, 1, 0);
+        if (identifier == InavjagaGSPIO::constantsTermination[0]) {
+            break;
+        }
+        coordinates = this->recvCoordinates();
+        players[identifier - '0'] = std::make_shared<Player>(coordinates);
+    }
+    size_t playersCount = 0;
+    for (size_t i = players.size(); i >= 0; i--) {
+        if (players[i] != nullptr) {
+            playersCount = i;
+        }
+    }
+    return std::vector<std::shared_ptr<Player>>(players.begin(), players.begin() + playersCount);
+}
+
 InavjagaIO::InavjagaIO() {}
 InavjagaIO::~InavjagaIO() {}
 LocalInavjagaIO::LocalInavjagaIO(): InavjagaIO::InavjagaIO() {}
