@@ -21,7 +21,14 @@ std::unique_ptr<ClientInavjagaGSPIO> connectClientToServer(int sockfd, char* add
     // inet_aton(AF_INET, addr, &(serverAddress.sin_addr)); // man inet_pton (does it accept less than 3 digits?)
     serverAddress.sin_port = htons(atoi(portno));
     serverAddress.sin_family = AF_INET;
-    return std::make_unique<TCPClientInavjagaGSPIO>(sockfd, &serverAddress);
+    if (int rc = connect(sockfd, (struct sockaddr*)&serverAddress, sizeof(serverAddress)) < 0) {
+        std::cerr << "Could not connect to " << serverAddress.sin_addr.s_addr << ":" << serverAddress.sin_port << '\n';
+        std::cerr << "\tError was " << rc << " (" << errno << ")" << std::endl;
+    }
+    #if DEBUG
+    std::cerr << "Connected successfully to the port" << std::endl;
+    #endif
+    return std::make_unique<TCPClientInavjagaGSPIO>(sockfd);
 }
 
 void bindServerSocketToPort(int sockfd, char* addr, char* portno) {

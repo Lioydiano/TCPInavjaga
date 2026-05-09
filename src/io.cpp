@@ -186,13 +186,10 @@ void RemoteInavjagaIO::sendMove(MoveEvent moveEvent) {
     }
 }
 
-ClientInavjagaGSPIO::ClientInavjagaGSPIO(int sockfd, sockaddr* srvaddr) {
-    if (connect(sockfd, (struct sockaddr*)&srvaddr, sizeof(srvaddr)) < 0) {
-        std::cerr << "Could not connect to " << srvaddr->sa_data;
-    }
+ClientInavjagaGSPIO::ClientInavjagaGSPIO(int sockfd) {
     this->socketfd = sockfd;
 }
-TCPClientInavjagaGSPIO::TCPClientInavjagaGSPIO(int sockfd, sockaddr_in* srvaddr): ClientInavjagaGSPIO(sockfd, (sockaddr*)srvaddr) {}
+TCPClientInavjagaGSPIO::TCPClientInavjagaGSPIO(int sockfd): ClientInavjagaGSPIO(sockfd) {}
 
 ServerInavjagaGSPIO::ServerInavjagaGSPIO(int sockfd) {
     this->acceptConnection(sockfd);
