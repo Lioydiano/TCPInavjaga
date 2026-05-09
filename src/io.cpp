@@ -414,6 +414,10 @@ bool ServerInavjagaGSPIO::offerCoordinates(const sista::Coordinates& coordinates
     }
 }
 
+sista::Coordinates ClientInavjagaGSPIO::recvCoordinates(int timeout) const {
+
+}
+
 InavjagaIO::InavjagaIO() {}
 InavjagaIO::~InavjagaIO() {}
 LocalInavjagaIO::LocalInavjagaIO(): InavjagaIO::InavjagaIO() {}
