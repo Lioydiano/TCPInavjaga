@@ -404,6 +404,14 @@ bool InavjagaGSPIO::recvBool(int timeout) const {
     throw new std::runtime_error("Did not receive a boolean answer within the specified timeout");
 }
 
+void InavjagaGSPIO::sendYes() {
+    send(socketfd, InavjagaGSPIO::yesMessage, 2, 0);
+}
+
+void InavjagaGSPIO::sendNo() {
+    send(socketfd, InavjagaGSPIO::noMessage, 2, 0);
+}
+
 bool ServerInavjagaGSPIO::offerCoordinates(const sista::Coordinates& coordinates) const {
     this->sendCoordinates(coordinates);
     try {
