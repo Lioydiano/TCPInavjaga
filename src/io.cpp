@@ -12,14 +12,14 @@
 int InavjagaGSPIO::recvRandomSeed() {
     // https://stackoverflow.com/a/64357776/15888601
     int32_t seed;
-    read(socketfd, &seed, sizeof(int32_t));
+    recv(socketfd, &seed, sizeof(int32_t), 0);
     return ntohl(seed);
 }
 
 void InavjagaGSPIO::sendRandomSeed(int seed) {
     // https://stackoverflow.com/a/64357776/15888601
     int32_t converted = htonl(seed);
-    write(socketfd, &converted, sizeof(converted));
+    send(socketfd, &converted, sizeof(converted), 0);
 }
 
 std::shared_mutex InavjagaGSPIO::outputMutex = std::shared_mutex();

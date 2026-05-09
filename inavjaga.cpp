@@ -70,7 +70,9 @@ int main(int argc, char* argv[]) {
     int clientSocket = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
     std::shared_ptr<ClientInavjagaGSPIO> connectionToServer = connectClientToServer(clientSocket, argv[1], argv[2]);
     #elif SERVER
+    std::cerr << "Before creating the socket" << std::endl;
     int serverSocket = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
+    std::cerr << "After creating the socket" << std::endl;
     bindServerSocketToPort(serverSocket, argv[1], argv[2]);
     std::vector<std::shared_ptr<ServerInavjagaGSPIO>> clientConnections = waitForConnections(serverSocket);
     #endif
