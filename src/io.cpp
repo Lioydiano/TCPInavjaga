@@ -371,8 +371,14 @@ std::map<std::string, std::variant<int, float>> InavjagaGSPIO::recvConstants() {
         errno = 0;
         intValue = strtol(valueBuffer, nullptr, 10);
         if (errno != 0) {
+            #if DEBUG
+            std::cerr << valueBuffer << " is supposed to be a char[]" << std::endl;
+            #endif
             errno = 0;
             floatValue = strtof(valueBuffer, nullptr);
+            #if DEBUG
+            std::cerr << floatValue << " is supposed to have some floating point precision" << std::endl;
+            #endif
             if (errno != 0) {
                 std::cerr << "The constant " << buffer << " has a non supported value of " << valueBuffer << std::endl;
                 continue;
