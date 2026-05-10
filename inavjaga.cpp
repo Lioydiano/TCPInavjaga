@@ -864,55 +864,184 @@ void printEndInformation(EndReason endReason) {
  */
 void setConstantsToReceivedValues(const std::map<std::string, std::variant<int, float>>& constants) {
     WIDTH = std::get<int>(constants.at("WIDTH"));
+    #if DEBUG
+    std::cerr << "Gotten WIDTH" << std::endl;
+    #endif
     HEIGHT = std::get<int>(constants.at("HEIGHT"));
+    #if DEBUG
+    std::cerr << "Gotten HEIGHT" << std::endl;
+    #endif
     TUNNEL_UNIT = std::get<int>(constants.at("TUNNEL_UNIT"));
+    #if DEBUG
+    std::cerr << "Gotten TUNNEL_UNIT" << std::endl;
+    #endif
     PORTALS_PER_LINE = std::get<int>(constants.at("PORTALS_PER_LINE"));
+    #if DEBUG
+    std::cerr << "Gotten PORTALS_PER_LINE" << std::endl;
+    #endif
     FRAME_DURATION = std::get<int>(constants.at("FRAME_DURATION"));
+    #if DEBUG
+    std::cerr << "Gotten FRAME_DURATION" << std::endl;
+    #endif
     BULLET_SPEED = std::get<int>(constants.at("BULLET_SPEED"));
+    #if DEBUG
+    std::cerr << "Gotten BULLET_SPEED" << std::endl;
+    #endif
     DROP_INVENTORY_ON_DEATH = std::get<int>(constants.at("DROP_INVENTORY_ON_DEATH"));
+    #if DEBUG
+    std::cerr << "Gotten DROP_INVENTORY_ON_DEATH" << std::endl;
+    #endif
     INITIAL_CLAY = std::get<int>(constants.at("INITIAL_CLAY"));
+    #if DEBUG
+    std::cerr << "Gotten INITIAL_CLAY" << std::endl;
+    #endif
     INITIAL_BULLETS = std::get<int>(constants.at("INITIAL_BULLETS"));
+    #if DEBUG
+    std::cerr << "Gotten INITIAL_BULLETS" << std::endl;
+    #endif
     INITIAL_MEAT = std::get<int>(constants.at("INITIAL_MEAT"));
+    #if DEBUG
+    std::cerr << "Gotten INITIAL_MEAT" << std::endl;
+    #endif
     LOOT_ARCHER_CLAY = std::get<int>(constants.at("LOOT_ARCHER_CLAY"));
+    #if DEBUG
+    std::cerr << "Gotten LOOT_ARCHER_CLAY" << std::endl;
+    #endif
     LOOT_ARCHER_BULLETS = std::get<int>(constants.at("LOOT_ARCHER_BULLETS"));
+    #if DEBUG
+    std::cerr << "Gotten LOOT_ARCHER_BULLETS" << std::endl;
+    #endif
     LOOT_ARCHER_MEAT = std::get<int>(constants.at("LOOT_ARCHER_MEAT"));
+    #if DEBUG
+    std::cerr << "Gotten LOOT_ARCHER_MEAT" << std::endl;
+    #endif
     LOOT_WORM_HEAD_CLAY = std::get<int>(constants.at("LOOT_WORM_HEAD_CLAY"));
+    #if DEBUG
+    std::cerr << "Gotten LOOT_WORM_HEAD_CLAY" << std::endl;
+    #endif
     LOOT_WORM_HEAD_BULLETS = std::get<int>(constants.at("LOOT_WORM_HEAD_BULLETS"));
+    #if DEBUG
+    std::cerr << "Gotten LOOT_WORM_HEAD_BULLETS" << std::endl;
+    #endif
     LOOT_WORM_HEAD_MEAT = std::get<int>(constants.at("LOOT_WORM_HEAD_MEAT"));
+    #if DEBUG
+    std::cerr << "Gotten LOOT_WORM_HEAD_MEAT" << std::endl;
+    #endif
     COST_OF_MINE_CLAY = (short)std::get<int>(constants.at("COST_OF_MINE_CLAY"));
+    #if DEBUG
+    std::cerr << "Gotten COST_OF_MINE_CLAY" << std::endl;
+    #endif
     COST_OF_MINE_BULLETS = (short)std::get<int>(constants.at("COST_OF_MINE_BULLETS"));
+    #if DEBUG
+    std::cerr << "Gotten COST_OF_MINE_BULLETS" << std::endl;
+    #endif
     COST_OF_MINE_MEAT = (short)std::get<int>(constants.at("COST_OF_MINE_MEAT"));
+    #if DEBUG
+    std::cerr << "Gotten COST_OF_MINE_MEAT" << std::endl;
+    #endif
     MEAT_DURATION_PERIOD = std::get<int>(constants.at("MEAT_DURATION_PERIOD"));
+    #if DEBUG
+    std::cerr << "Gotten MEAT_DURATION_PERIOD" << std::endl;
+    #endif
     SPAWN_COORDINATES_Y = (unsigned short)std::get<int>(constants.at("SPAWN_COORDINATES_Y"));
+    #if DEBUG
+    std::cerr << "Gotten SPAWN_COORDINATES_Y" << std::endl;
+    #endif
     SPAWN_COORDINATES_X = (unsigned short)std::get<int>(constants.at("SPAWN_COORDINATES_X"));
+    #if DEBUG
+    std::cerr << "Gotten SPAWN_COORDINATES_X" << std::endl;
+    #endif
     RESPAWN_COORDINATES_Y = (unsigned short)std::get<int>(constants.at("RESPAWN_COORDINATES_Y"));
+    #if DEBUG
+    std::cerr << "Gotten RESPAWN_COORDINATES_Y" << std::endl;
+    #endif
     RESPAWN_COORDINATES_X = (unsigned short)std::get<int>(constants.at("RESPAWN_COORDINATES_X"));
+    #if DEBUG
+    std::cerr << "Gotten RESPAWN_COORDINATES_X" << std::endl;
+    #endif
     MINE_MINIMUM_DAMAGE = std::get<int>(constants.at("MINE_MINIMUM_DAMAGE"));
+    #if DEBUG
+    std::cerr << "Gotten MINE_MINIMUM_DAMAGE" << std::endl;
+    #endif
     MINE_MAXIMUM_DAMAGE = std::get<int>(constants.at("MINE_MAXIMUM_DAMAGE"));
+    #if DEBUG
+    std::cerr << "Gotten MINE_MAXIMUM_DAMAGE" << std::endl;
+    #endif
     MINE_SENSITIVITY_RADIUS = std::get<int>(constants.at("MINE_SENSITIVITY_RADIUS"));
+    #if DEBUG
+    std::cerr << "Gotten MINE_SENSITIVITY_RADIUS" << std::endl;
+    #endif
     MINE_DAMAGE_RADIUS = std::get<int>(constants.at("MINE_DAMAGE_RADIUS"));
+    #if DEBUG
+    std::cerr << "Gotten MINE_DAMAGE_RADIUS" << std::endl;
+    #endif
     Mine::explosion = std::bernoulli_distribution(MINE_EXPLOSION_IN_FRAME_PROBABILITY);
     Mine::mineDamage = std::uniform_int_distribution<int>(MINE_MINIMUM_DAMAGE, MINE_MAXIMUM_DAMAGE);
     INITIAL_WALL_STRENGTH = std::get<int>(constants.at("INITIAL_WALL_STRENGTH"));
+    #if DEBUG
+    std::cerr << "Gotten INITIAL_WALL_STRENGTH" << std::endl;
+    #endif
     WORM_HEALTH_POINTS = std::get<int>(constants.at("WORM_HEALTH_POINTS"));
+    #if DEBUG
+    std::cerr << "Gotten WORM_HEALTH_POINTS" << std::endl;
+    #endif
     WALL_WEARING_PROBABILITY = std::get<float>(constants.at("WALL_WEARING_PROBABILITY"));
+    #if DEBUG
+    std::cerr << "Gotten WALL_WEARING_PROBABILITY" << std::endl;
+    #endif
     Wall::wearing = std::bernoulli_distribution(WALL_WEARING_PROBABILITY);
     DAMAGED_WALLS_COUNT = std::get<int>(constants.at("DAMAGED_WALLS_COUNT"));
+    #if DEBUG
+    std::cerr << "Gotten DAMAGED_WALLS_COUNT" << std::endl;
+    #endif
     MINE_EXPLOSION_IN_FRAME_PROBABILITY = std::get<float>(constants.at("MINE_EXPLOSION_IN_FRAME_PROBABILITY"));
+    #if DEBUG
+    std::cerr << "Gotten MINE_EXPLOSION_IN_FRAME_PROBABILITY" << std::endl;
+    #endif
     DUMB_MOVE_PROBABILITY = std::get<float>(constants.at("DUMB_MOVE_PROBABILITY"));
+    #if DEBUG
+    std::cerr << "Gotten DUMB_MOVE_PROBABILITY" << std::endl;
+    #endif
     dumbMoveDistribution = std::bernoulli_distribution(DUMB_MOVE_PROBABILITY);
     ARCHER_SPAWNING_PROBABILITY = std::get<float>(constants.at("ARCHER_SPAWNING_PROBABILITY"));
+    #if DEBUG
+    std::cerr << "Gotten ARCHER_SPAWNING_PROBABILITY" << std::endl;
+    #endif
     ARCHER_MOVING_PROBABILITY = std::get<float>(constants.at("ARCHER_MOVING_PROBABILITY"));
+    #if DEBUG
+    std::cerr << "Gotten ARCHER_MOVING_PROBABILITY" << std::endl;
+    #endif
     ARCHER_SHOOTING_PROBABILITY = std::get<float>(constants.at("ARCHER_SHOOTING_PROBABILITY"));
+    #if DEBUG
+    std::cerr << "Gotten ARCHER_SHOOTING_PROBABILITY" << std::endl;
+    #endif
     Archer::moving = std::bernoulli_distribution(ARCHER_MOVING_PROBABILITY);
     Archer::shooting = std::bernoulli_distribution(ARCHER_SHOOTING_PROBABILITY);
     Archer::spawning = std::bernoulli_distribution(ARCHER_SPAWNING_PROBABILITY);
     WORM_TURNING_PROBABILITY = std::get<float>(constants.at("WORM_TURNING_PROBABILITY"));
+    #if DEBUG
+    std::cerr << "Gotten WORM_TURNING_PROBABILITY" << std::endl;
+    #endif
     WORM_SPAWNING_PROBABILITY = std::get<float>(constants.at("WORM_SPAWNING_PROBABILITY"));
+    #if DEBUG
+    std::cerr << "Gotten WORM_SPAWNING_PROBABILITY" << std::endl;
+    #endif
     WORM_EATING_ARCHER_PROBABILITY = std::get<float>(constants.at("WORM_EATING_ARCHER_PROBABILITY"));
+    #if DEBUG
+    std::cerr << "Gotten WORM_EATING_ARCHER_PROBABILITY" << std::endl;
+    #endif
     WORM_EATING_TAIL_PROBABILITY = std::get<float>(constants.at("WORM_EATING_TAIL_PROBABILITY"));
+    #if DEBUG
+    std::cerr << "Gotten WORM_EATING_TAIL_PROBABILITY" << std::endl;
+    #endif
     WORM_MOVING_PROBABILITY = std::get<float>(constants.at("WORM_MOVING_PROBABILITY"));
+    #if DEBUG
+    std::cerr << "Gotten WORM_MOVING_PROBABILITY" << std::endl;
+    #endif
     CLAY_RELEASE_PROBABILITY = std::get<float>(constants.at("CLAY_RELEASE_PROBABILITY"));
+    #if DEBUG
+    std::cerr << "Gotten CLAY_RELEASE_PROBABILITY" << std::endl;
+    #endif
     Worm::turning = std::bernoulli_distribution(WORM_TURNING_PROBABILITY);
     Worm::moving = std::bernoulli_distribution(WORM_MOVING_PROBABILITY);
     Worm::spawning = std::bernoulli_distribution(WORM_SPAWNING_PROBABILITY);
@@ -920,8 +1049,17 @@ void setConstantsToReceivedValues(const std::map<std::string, std::variant<int, 
     Worm::eatingArcher = std::bernoulli_distribution(WORM_EATING_ARCHER_PROBABILITY);
     Worm::clayRelease = std::bernoulli_distribution(CLAY_RELEASE_PROBABILITY);
     INITIAL_ARCHERS = std::get<int>(constants.at("INITIAL_ARCHERS"));
+    #if DEBUG
+    std::cerr << "Gotten INITIAL_ARCHERS" << std::endl;
+    #endif
     INITIAL_WORMS = std::get<int>(constants.at("INITIAL_WORMS"));
+    #if DEBUG
+    std::cerr << "Gotten INITIAL_WORMS" << std::endl;
+    #endif
     WORM_LENGTH = std::get<int>(constants.at("WORM_LENGTH"));
+    #if DEBUG
+    std::cerr << "Gotten WORM_LENGTH" << std::endl;
+    #endif
 }
 #endif
 

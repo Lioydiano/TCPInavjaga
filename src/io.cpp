@@ -350,10 +350,22 @@ std::map<std::string, std::variant<int, float>> InavjagaGSPIO::recvConstants() {
     char* valueBuffer = nullptr;
     size_t length = 0;
 
+    #if DEBUG
+    std::cerr << "Opening the file" << std::endl;
+    #endif
     FILE* fd = fdopen(this->socketfd, "r");
+    #if DEBUG
+    std::cerr << "Opened the file" << std::endl;
+    #endif
 
     while (true) {
+        #if DEBUG
+        std::cerr << "Reading constant name" << std::endl;
+        #endif
         getdelim(&buffer, &length, ':', fd);
+        #if DEBUG
+        std::cerr << buffer[0] << std::endl;
+        #endif
         if (buffer[0] == InavjagaGSPIO::constantsTermination[0]) break;
         getdelim(&valueBuffer, &length, ';', fd);
         errno = 0;
@@ -371,6 +383,15 @@ std::map<std::string, std::variant<int, float>> InavjagaGSPIO::recvConstants() {
         }
         constants[std::string(buffer)] = value;
     }
+    #if DEBUG
+    for (auto const& [constant, value] : constants) {
+        if (std::holds_alternative<int>(value)) {
+            std::cerr << "{" << constant << ": " << std::get<int>(value) << "}" << std::endl;
+        } else if (std::holds_alternative<float>(value)) {
+            std::cerr << "{" << constant << ": " << std::get<float>(value) << "}" << std::endl;
+        }
+    }
+    #endif
     fclose(fd);
     return constants;
 }
