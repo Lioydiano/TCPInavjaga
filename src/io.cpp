@@ -363,27 +363,35 @@ std::map<std::string, std::variant<int, float>> InavjagaGSPIO::recvConstants() {
         std::cerr << "Reading constant name" << std::endl;
         #endif
         getdelim(&buffer, &length, ':', fd);
+        /// @warning The buffers are getting allocated but we are not freeing them
         #if DEBUG
-        std::cerr << buffer[0] << std::endl;
+        std::cerr << buffer << std::endl;
         #endif
         if (buffer[0] == InavjagaGSPIO::constantsTermination[0]) break;
         getdelim(&valueBuffer, &length, ';', fd);
-        valueBuffer[length - 2] = '\0';
         #if DEBUG
         std::cerr << valueBuffer << " is DEFINITELY supposed to be a char[]" << std::endl;
         #endif
         errno = 0;
-        floatValue = strtof(valueBuffer, nullptr);
-        if (errno != 0) {
+        char* controlPointer = valueBuffer;
+        floatValue = strtof(valueBuffer, &controlPointer);
+        if (errno != 0 || controlPointer - valueBuffer < (long int)(length - 1)) {
             #if DEBUG
+            std::cerr << &controlPointer << " from " << &valueBuffer << " " << valueBuffer
+                 << " while the length is " << length << std::endl;
             std::cerr << valueBuffer << " is supposed to be a char[]" << std::endl;
             #endif
             errno = 0;
-            intValue = strtol(valueBuffer, nullptr, 10);
+            controlPointer = valueBuffer;
+            intValue = strtol(valueBuffer, &controlPointer, 10);
             #if DEBUG
             std::cerr << intValue << " is supposed to be an integer" << std::endl;
             #endif
-            if (errno != 0) {
+            if (errno != 0 || controlPointer - valueBuffer < (long int)(length - 1)) {
+                #if DEBUG
+                std::cerr << &controlPointer << " from " << &valueBuffer << " " << valueBuffer
+                 << " while the length is " << length << std::endl;
+                #endif
                 std::cerr << "The constant " << buffer << " has a non supported value of " << valueBuffer << std::endl;
                 continue;
             }

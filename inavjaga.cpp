@@ -863,6 +863,14 @@ void printEndInformation(EndReason endReason) {
  * @todo Add error handling around std::get<T> or maybe just go for std::holds_alternative<T>
  */
 void setConstantsToReceivedValues(const std::map<std::string, std::variant<int, float>>& constants) {
+    #if DEBUG
+    std::variant<int, float> widthVariant = constants.at("WIDTH");
+    if (std::holds_alternative<int>(widthVariant)) {
+        std::cerr << "The " << std::get<int>(widthVariant) << " value is definitely an integer" << std::endl;
+    } else if (std::holds_alternative<float>(widthVariant)) {
+        std::cerr << "The " << std::get<float>(widthVariant) << " value is definitely a float" << std::endl;
+    }
+    #endif
     WIDTH = std::get<int>(constants.at("WIDTH"));
     #if DEBUG
     std::cerr << "Gotten WIDTH" << std::endl;
