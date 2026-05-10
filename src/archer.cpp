@@ -13,6 +13,9 @@
 #include <set>
 #include <memory>
 #include <random>
+#if DEBUG
+#include <iostream>
+#endif
 
 extern std::unordered_map<Direction, char> directionSymbol;
 extern std::unordered_map<Direction, sista::Coordinates> directionMap;

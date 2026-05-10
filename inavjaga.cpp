@@ -70,24 +70,41 @@ int main(int argc, char* argv[]) {
     int clientSocket = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
     std::shared_ptr<ClientInavjagaGSPIO> connectionToServer = connectClientToServer(clientSocket, argv[1], argv[2]);
     #elif SERVER
+    std::cerr << "Before creating the socket" << std::endl;
     int serverSocket = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
+    std::cerr << "After creating the socket" << std::endl;
     bindServerSocketToPort(serverSocket, argv[1], argv[2]);
     std::vector<std::shared_ptr<ServerInavjagaGSPIO>> clientConnections = waitForConnections(serverSocket);
     #endif
     // This is just the stage in which we have established connections, but the handshake still misses
 
     #if SERVER
-    int seed = randomDevice();
+    uint32_t seed = randomDevice();
+    #if DEBUG
+    std::cerr << "The seed is " << seed << std::endl;
+    #endif
     for (std::shared_ptr<ServerInavjagaGSPIO> clientConnection : clientConnections) {
+        if (clientConnection == nullptr) continue;
         clientConnection->sendRandomSeed(seed);
     }
+    for (std::shared_ptr<ServerInavjagaGSPIO> clientConnection : clientConnections) {
+        if (clientConnection == nullptr) continue;
+        if (!clientConnection->waitYes()) {
+            std::cerr << "No acknowledgment received from client " << clientConnection.get();
+        }
+    }
     #elif CLIENT
-    int seed = connectionToServer->recvRandomSeed();
+    uint32_t seed = connectionToServer->recvRandomSeed();
+    connectionToServer->sendYes();
+    #if DEBUG
+    std::cerr << "Random seed is " << seed << std::endl;
+    #endif
     #endif
     rng.seed(seed);
 
     #if SERVER
     for (std::shared_ptr<ServerInavjagaGSPIO> clientConnection : clientConnections) {
+        if (clientConnection == nullptr) continue;
         if (clientConnection->sendConstants()) {
             sista::Coordinates spawn_client = negotiateCoordinates(field, clientConnection);
             Player::players.push_back(std::make_shared<Player>(spawn_client));
@@ -96,11 +113,13 @@ int main(int argc, char* argv[]) {
         }
     }
     for (size_t i = 0; i < clientConnections.size(); i++) {
+        if (clientConnections[i] == nullptr) continue;
         clientConnections[i]->sendPlayers(Player::players, i + 1);
     }
     std::this_thread::sleep_for(std::chrono::seconds(2)); // Give the time to send ready
     std::vector<player_id_t> nonReady;
     for (size_t i = 0; i < clientConnections.size(); i++) {
+        if (clientConnections[i] == nullptr) continue;
         if (!clientConnections[i]->recvReady()) {
             Player::players[i + 1]->connected = false;
             clientConnections[i] = nullptr;

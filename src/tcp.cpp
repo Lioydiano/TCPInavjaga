@@ -21,7 +21,14 @@ std::unique_ptr<ClientInavjagaGSPIO> connectClientToServer(int sockfd, char* add
     // inet_aton(AF_INET, addr, &(serverAddress.sin_addr)); // man inet_pton (does it accept less than 3 digits?)
     serverAddress.sin_port = htons(atoi(portno));
     serverAddress.sin_family = AF_INET;
-    return std::make_unique<TCPClientInavjagaGSPIO>(sockfd, &serverAddress);
+    if (int rc = connect(sockfd, (struct sockaddr*)&serverAddress, sizeof(serverAddress)) < 0) {
+        std::cerr << "Could not connect to " << serverAddress.sin_addr.s_addr << ":" << serverAddress.sin_port << '\n';
+        std::cerr << "\tError was " << rc << " (" << errno << ")" << std::endl;
+    }
+    #if DEBUG
+    std::cerr << "Connected successfully to the port" << std::endl;
+    #endif
+    return std::make_unique<ClientInavjagaGSPIO>(sockfd);
 }
 
 void bindServerSocketToPort(int sockfd, char* addr, char* portno) {
@@ -31,9 +38,19 @@ void bindServerSocketToPort(int sockfd, char* addr, char* portno) {
     // serverAddress.sin_addr.s_addr = INADDR_ANY; // Accept any incoming address
     inet_pton(AF_INET, addr, &(serverAddress.sin_addr)); // https://stackoverflow.com/a/5328184/15888601
     serverAddress.sin_port = htons(atoi(portno));
-    if (bind(sockfd, (struct sockaddr*)&serverAddress, sizeof(serverAddress)) < 0) {
-        std::cerr << "Could not bind address " << addr << ":" << portno << std::endl;
+    std::cerr << "Preparing to listen on " << serverAddress.sin_addr.s_addr << ":" << serverAddress.sin_port << std::endl;
+    if (int rc = bind(sockfd, (struct sockaddr*)&serverAddress, sizeof(serverAddress)) < 0) {
+        std::cerr << "Could not bind address " << addr << ":" << portno << ", error code " << rc << "(" << errno << ")" << std::endl;
     }
+    #if DEBUG
+    std::cerr << "Bound the socket to the port successfully" << std::endl;
+    #endif
+    if (int rc = listen(sockfd, 10) < 0) {
+        std::cerr << "Could not listen on the specified port" << std::endl;
+    }
+    #if DEBUG
+    std::cerr << "Listening to the port successfully" << std::endl;
+    #endif
 }
 
 std::vector<std::shared_ptr<ServerInavjagaGSPIO>> waitForConnections(int sockfd) {
@@ -41,7 +58,7 @@ std::vector<std::shared_ptr<ServerInavjagaGSPIO>> waitForConnections(int sockfd)
     std::future stopLobbySignal = std::async(std::launch::async, getch);
     std::chrono::duration zeroTime = std::chrono::microseconds(0);
     while (true) {
-        if (stopLobbySignal.wait_for(zeroTime) != std::future_status::ready) {
+        if (stopLobbySignal.wait_for(zeroTime) == std::future_status::ready) {
             char input_ = stopLobbySignal.get();
             if (input_ == 'n' || input_ == 'N') {
                 break;

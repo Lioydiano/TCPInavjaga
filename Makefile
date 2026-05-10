@@ -6,6 +6,11 @@ else
 DEFINEFLAGS = -DSERVER=0 -DCLIENT=1
 endif
 
+DEBUG ?= 0
+ifeq ($(DEBUG),1)
+DEFINEFLAGS:=$(DEFINEFLAGS) -DDEBUG=1
+endif
+
 CXX = g++
 CXXFLAGS = -std=c++17 -Wpedantic -Wall -Wno-narrowing -g
 DEPFLAGS = -MMD -MP
