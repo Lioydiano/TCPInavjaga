@@ -369,38 +369,12 @@ std::map<std::string, std::variant<int, float>> InavjagaGSPIO::recvConstants() {
         #endif
         if (buffer[0] == InavjagaGSPIO::constantsTermination[0]) break;
         getdelim(&valueBuffer, &length, ';', fd);
-        #if DEBUG
-        std::cerr << valueBuffer << " is DEFINITELY supposed to be a char[]" << std::endl;
-        #endif
-        errno = 0;
-        char* controlPointer = valueBuffer;
-        floatValue = strtof(valueBuffer, &controlPointer);
-        if (errno != 0 || controlPointer - valueBuffer < (long int)(length - 1)) {
-            #if DEBUG
-            std::cerr << &controlPointer << " from " << &valueBuffer << " " << valueBuffer
-                 << " while the length is " << length << std::endl;
-            std::cerr << valueBuffer << " is supposed to be a char[]" << std::endl;
-            #endif
-            errno = 0;
-            controlPointer = valueBuffer;
-            intValue = strtol(valueBuffer, &controlPointer, 10);
-            #if DEBUG
-            std::cerr << intValue << " is supposed to be an integer" << std::endl;
-            #endif
-            if (errno != 0 || controlPointer - valueBuffer < (long int)(length - 1)) {
-                #if DEBUG
-                std::cerr << &controlPointer << " from " << &valueBuffer << " " << valueBuffer
-                 << " while the length is " << length << std::endl;
-                #endif
-                std::cerr << "The constant " << buffer << " has a non supported value of " << valueBuffer << std::endl;
-                continue;
-            }
-            value = intValue;
-        } else {
-            #if DEBUG
-            std::cerr << floatValue << " is supposed to have some floating point precision" << std::endl;
-            #endif
+
+        // https://stackoverflow.com/a/33621700/15888601
+        if (sscanf(valueBuffer, "%f;", &floatValue) == 1) {
             value = floatValue;
+        } else if (sscanf(valueBuffer, "%d;", &intValue) == 1) {
+            value = intValue;
         }
         std::string constantName(buffer);
         constants[constantName.substr(0, constantName.size() - 1)] = value;
@@ -408,9 +382,9 @@ std::map<std::string, std::variant<int, float>> InavjagaGSPIO::recvConstants() {
     #if DEBUG
     for (auto const& [constant, value] : constants) {
         if (std::holds_alternative<int>(value)) {
-            std::cerr << "{" << constant << ": " << std::get<int>(value) << "}" << std::endl;
+            std::cerr << "{" << constant << ": Int(" << std::get<int>(value) << ")}" << std::endl;
         } else if (std::holds_alternative<float>(value)) {
-            std::cerr << "{" << constant << ": " << std::get<float>(value) << "}" << std::endl;
+            std::cerr << "{" << constant << ": Float(" << std::get<float>(value) << ")}" << std::endl;
         }
     }
     #endif
