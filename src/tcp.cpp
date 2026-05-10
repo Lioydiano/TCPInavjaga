@@ -58,7 +58,7 @@ std::vector<std::shared_ptr<ServerInavjagaGSPIO>> waitForConnections(int sockfd)
     std::future stopLobbySignal = std::async(std::launch::async, getch);
     std::chrono::duration zeroTime = std::chrono::microseconds(0);
     while (true) {
-        if (stopLobbySignal.wait_for(zeroTime) != std::future_status::ready) {
+        if (stopLobbySignal.wait_for(zeroTime) == std::future_status::ready) {
             char input_ = stopLobbySignal.get();
             if (input_ == 'n' || input_ == 'N') {
                 break;
