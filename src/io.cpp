@@ -381,7 +381,8 @@ std::map<std::string, std::variant<int, float>> InavjagaGSPIO::recvConstants() {
         } else {
             value = intValue;
         }
-        constants[std::string(buffer)] = value;
+        std::string constantName(buffer);
+        constants[constantName.substr(0, constantName.size() - 1)] = value;
     }
     #if DEBUG
     for (auto const& [constant, value] : constants) {
