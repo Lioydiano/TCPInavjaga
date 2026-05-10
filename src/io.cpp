@@ -231,6 +231,8 @@ const char InavjagaGSPIO::constantsTermination[3] = "-:";
 /** @brief Sends the constants needed for the game from the server to the client
  * @warning This is only returning true, it does not have error handling yet
  * @todo Add error handling from the return codes of send
+ * @todo Divide the creation of one big buffer from the sending of the same one
+ *       so we can reuse the same buffer for multiple clients and also not waste segments
  * @return Whether the sending was successful
  */
 bool InavjagaGSPIO::sendConstants() {
