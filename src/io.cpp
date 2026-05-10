@@ -233,6 +233,8 @@ const char InavjagaGSPIO::constantsTermination[3] = "-:";
  * @todo Add error handling from the return codes of send
  * @todo Divide the creation of one big buffer from the sending of the same one
  *       so we can reuse the same buffer for multiple clients and also not waste segments
+ * @note From Wireshark captures it turns out that the constants
+ *       are all sent in the same segment
  * @return Whether the sending was successful
  */
 bool InavjagaGSPIO::sendConstants() {
@@ -350,23 +352,11 @@ std::map<std::string, std::variant<int, float>> InavjagaGSPIO::recvConstants() {
     char* valueBuffer = nullptr;
     size_t lengthAllocated = 0;
 
-    #if DEBUG
-    std::cerr << "Opening the file" << std::endl;
-    #endif
     FILE* fd = fdopen(this->socketfd, "r");
-    #if DEBUG
-    std::cerr << "Opened the file" << std::endl;
-    #endif
 
     while (true) {
-        #if DEBUG
-        std::cerr << "Reading constant name" << std::endl;
-        #endif
         getdelim(&buffer, &lengthAllocated, ':', fd);
         /// @warning The buffers are getting allocated but we are not freeing them
-        #if DEBUG
-        std::cerr << buffer << std::endl;
-        #endif
         if (buffer[0] == InavjagaGSPIO::constantsTermination[0]) break;
         getdelim(&valueBuffer, &lengthAllocated, ';', fd);
 
@@ -379,7 +369,7 @@ std::map<std::string, std::variant<int, float>> InavjagaGSPIO::recvConstants() {
             indexRead = 0;
             floatValue = std::stof(stringValue, &indexRead);
             if (indexRead < length - 1) {
-                std::cerr << "Likely " << stringValue << " was neither integer nor float" << std::endl;
+                std::cerr << "Received " << stringValue << " was neither integer nor float" << std::endl;
                 continue;
             } else {
                 value = floatValue;
