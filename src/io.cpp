@@ -348,7 +348,7 @@ std::map<std::string, std::variant<int, float>> InavjagaGSPIO::recvConstants() {
 
     char* buffer = nullptr;
     char* valueBuffer = nullptr;
-    size_t length = 0;
+    size_t lengthAllocated = 0;
 
     #if DEBUG
     std::cerr << "Opening the file" << std::endl;
@@ -362,18 +362,29 @@ std::map<std::string, std::variant<int, float>> InavjagaGSPIO::recvConstants() {
         #if DEBUG
         std::cerr << "Reading constant name" << std::endl;
         #endif
-        getdelim(&buffer, &length, ':', fd);
+        getdelim(&buffer, &lengthAllocated, ':', fd);
         /// @warning The buffers are getting allocated but we are not freeing them
         #if DEBUG
         std::cerr << buffer << std::endl;
         #endif
         if (buffer[0] == InavjagaGSPIO::constantsTermination[0]) break;
-        getdelim(&valueBuffer, &length, ';', fd);
+        getdelim(&valueBuffer, &lengthAllocated, ';', fd);
 
-        // https://stackoverflow.com/a/33621700/15888601
-        if (sscanf(valueBuffer, "%f;", &floatValue) == 1) {
-            value = floatValue;
-        } else if (sscanf(valueBuffer, "%d;", &intValue) == 1) {
+        size_t length = strlen(valueBuffer); // Subtract one to remove ';'
+        size_t indexRead = 0;
+        std::string stringValue(valueBuffer, valueBuffer + length - 1);
+        // https://stackoverflow.com/a/45941428/15888601
+        intValue = std::stoi(stringValue, &indexRead);
+        if (indexRead < length - 1) { // It was likely a float then
+            indexRead = 0;
+            floatValue = std::stof(stringValue, &indexRead);
+            if (indexRead < length - 1) {
+                std::cerr << "Likely " << stringValue << " was neither integer nor float" << std::endl;
+                continue;
+            } else {
+                value = floatValue;
+            }
+        } else {
             value = intValue;
         }
         std::string constantName(buffer);
