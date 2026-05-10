@@ -79,7 +79,7 @@ int main(int argc, char* argv[]) {
     // This is just the stage in which we have established connections, but the handshake still misses
 
     #if SERVER
-    int seed = randomDevice();
+    int32_t seed = randomDevice();
     #if DEBUG
     std::cerr << "The seed is " << seed << std::endl;
     #endif
@@ -88,7 +88,7 @@ int main(int argc, char* argv[]) {
         clientConnection->sendRandomSeed(seed);
     }
     #elif CLIENT
-    int seed = connectionToServer->recvRandomSeed();
+    int32_t seed = connectionToServer->recvRandomSeed();
     #if DEBUG
     std::cerr << "Random seed is " << seed << std::endl;
     #endif

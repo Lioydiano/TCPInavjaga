@@ -9,33 +9,33 @@
 #include <chrono>
 #include <poll.h>
 
-int InavjagaGSPIO::recvRandomSeed(int timeout) {
+int32_t InavjagaGSPIO::recvRandomSeed(int timeout) {
     // https://stackoverflow.com/a/64357776/15888601
-    uint32_t seed;
+    int32_t seed;
     #if DEBUG
     std::cerr << "Reading random seed" << std::endl;
     #endif
     struct pollfd pollFds_[1] = {0};
     pollFds_[0].fd = this->socketfd;
     pollFds_[0].events = POLLIN;
-    if (int rc = poll(pollFds_, 1, timeout)) {
+    if (int rc = poll(pollFds_, 1, timeout) < 0) {
         std::cerr << "Polling failed with error " << rc << " (" << errno << ")" << std::endl;
         return -1;
     }
     if (pollFds_[0].revents & POLLIN) {
-        read(socketfd, &seed, sizeof(uint32_t));
+        read(socketfd, &seed, sizeof(int32_t));
         return ntohl(seed);
     }
     std::cerr << "No message ready yet" << std::endl;
     return -1;
 }
 
-void InavjagaGSPIO::sendRandomSeed(int seed) {
+void InavjagaGSPIO::sendRandomSeed(int32_t seed) {
     // https://stackoverflow.com/a/64357776/15888601
-    uint32_t converted = htonl(seed);
-    std::cerr << converted << " is our integer" << std::endl;
+    int32_t converted = htonl(seed);
+    std::cerr << converted << " is our integer and its size is " << sizeof(int32_t) << std::endl;
     std::unique_lock lock(outputMutex);
-    if (ssize_t rc = write(this->socketfd, &converted, sizeof(uint32_t)) < 0) {
+    if (ssize_t rc = write(this->socketfd, &converted, sizeof(int32_t)) < 0) {
         std::cerr << "Failed to send random seed with error " << rc << "(" << errno << ")" << std::endl;
     }
 }

@@ -28,7 +28,7 @@ std::unique_ptr<ClientInavjagaGSPIO> connectClientToServer(int sockfd, char* add
     #if DEBUG
     std::cerr << "Connected successfully to the port" << std::endl;
     #endif
-    return std::make_unique<TCPClientInavjagaGSPIO>(sockfd);
+    return std::make_unique<ClientInavjagaGSPIO>(sockfd);
 }
 
 void bindServerSocketToPort(int sockfd, char* addr, char* portno) {
