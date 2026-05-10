@@ -368,24 +368,31 @@ std::map<std::string, std::variant<int, float>> InavjagaGSPIO::recvConstants() {
         #endif
         if (buffer[0] == InavjagaGSPIO::constantsTermination[0]) break;
         getdelim(&valueBuffer, &length, ';', fd);
+        valueBuffer[length - 2] = '\0';
+        #if DEBUG
+        std::cerr << valueBuffer << " is DEFINITELY supposed to be a char[]" << std::endl;
+        #endif
         errno = 0;
-        intValue = strtol(valueBuffer, nullptr, 10);
+        floatValue = strtof(valueBuffer, nullptr);
         if (errno != 0) {
             #if DEBUG
             std::cerr << valueBuffer << " is supposed to be a char[]" << std::endl;
             #endif
             errno = 0;
-            floatValue = strtof(valueBuffer, nullptr);
+            intValue = strtol(valueBuffer, nullptr, 10);
             #if DEBUG
-            std::cerr << floatValue << " is supposed to have some floating point precision" << std::endl;
+            std::cerr << intValue << " is supposed to be an integer" << std::endl;
             #endif
             if (errno != 0) {
                 std::cerr << "The constant " << buffer << " has a non supported value of " << valueBuffer << std::endl;
                 continue;
             }
-            value = floatValue;
-        } else {
             value = intValue;
+        } else {
+            #if DEBUG
+            std::cerr << floatValue << " is supposed to have some floating point precision" << std::endl;
+            #endif
+            value = floatValue;
         }
         std::string constantName(buffer);
         constants[constantName.substr(0, constantName.size() - 1)] = value;
