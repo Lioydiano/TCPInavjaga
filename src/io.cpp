@@ -59,7 +59,7 @@ MoveEvent InavjagaGSPIO::recvMove() {
     MoveEvent moveEvent = {INAVJAGA_PLAYER_ID_IGNORE, INAVJAGA_CHAR_MOVE_IGNORE};
     if (rc < 0) {
         std::string errorBuffer = "Scanning a socket that was expected to be empty gave error code " + std::to_string(rc);
-        throw new std::runtime_error(errorBuffer);
+        throw std::runtime_error(errorBuffer);
     }
     sscanf(buffer, "%hu;%c", &moveEvent.playerId, &moveEvent.move);
     return moveEvent;
@@ -438,7 +438,7 @@ bool InavjagaGSPIO::recvBool(int timeout) const {
             return true;
         }
     }
-    throw new std::runtime_error("Did not receive a boolean answer within the specified timeout");
+    throw std::runtime_error("Did not receive a boolean answer within the specified timeout");
 }
 
 void InavjagaGSPIO::sendYes() {
@@ -480,7 +480,7 @@ sista::Coordinates ClientInavjagaGSPIO::recvCoordinates(int timeout) const {
     int rc = recv(socketfd, &buffer, 10, MSG_DONTWAIT);
     if (rc < 0) {
         std::cerr << "Failed to receive coordinates from the server" << std::endl;
-        throw new std::runtime_error("Failed to receive coordinates from the server");
+        throw std::runtime_error("Failed to receive coordinates from the server");
     }
     sista::Coordinates coordinates;
     sscanf(buffer, "{%hu,%hu}", &coordinates.y, &coordinates.x);
