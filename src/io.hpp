@@ -43,9 +43,10 @@ protected:
 public:
     void sendNo();
     void sendYes();
+    bool waitYes(int timeout=1000);
 
-    int32_t recvRandomSeed(int timeout=10000);
-    void sendRandomSeed(int32_t);
+    uint32_t recvRandomSeed(int timeout=10000);
+    void sendRandomSeed(uint32_t);
 
     std::map<std::string, std::variant<int, float>> recvConstants();
     bool sendConstants();

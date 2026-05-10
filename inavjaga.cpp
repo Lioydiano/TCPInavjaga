@@ -79,7 +79,7 @@ int main(int argc, char* argv[]) {
     // This is just the stage in which we have established connections, but the handshake still misses
 
     #if SERVER
-    int32_t seed = randomDevice();
+    uint32_t seed = randomDevice();
     #if DEBUG
     std::cerr << "The seed is " << seed << std::endl;
     #endif
@@ -87,8 +87,15 @@ int main(int argc, char* argv[]) {
         if (clientConnection == nullptr) continue;
         clientConnection->sendRandomSeed(seed);
     }
+    for (std::shared_ptr<ServerInavjagaGSPIO> clientConnection : clientConnections) {
+        if (clientConnection == nullptr) continue;
+        if (!clientConnection->waitYes()) {
+            std::cerr << "No acknowledgment received from client " << clientConnection.get();
+        }
+    }
     #elif CLIENT
-    int32_t seed = connectionToServer->recvRandomSeed();
+    uint32_t seed = connectionToServer->recvRandomSeed();
+    connectionToServer->sendYes();
     #if DEBUG
     std::cerr << "Random seed is " << seed << std::endl;
     #endif

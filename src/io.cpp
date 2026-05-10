@@ -9,9 +9,9 @@
 #include <chrono>
 #include <poll.h>
 
-int32_t InavjagaGSPIO::recvRandomSeed(int timeout) {
+uint32_t InavjagaGSPIO::recvRandomSeed(int timeout) {
     // https://stackoverflow.com/a/64357776/15888601
-    int32_t seed;
+    uint32_t seed;
     #if DEBUG
     std::cerr << "Reading random seed" << std::endl;
     #endif
@@ -23,19 +23,19 @@ int32_t InavjagaGSPIO::recvRandomSeed(int timeout) {
         return -1;
     }
     if (pollFds_[0].revents & POLLIN) {
-        read(socketfd, &seed, sizeof(int32_t));
+        read(socketfd, &seed, sizeof(uint32_t));
         return ntohl(seed);
     }
     std::cerr << "No message ready yet" << std::endl;
     return -1;
 }
 
-void InavjagaGSPIO::sendRandomSeed(int32_t seed) {
+void InavjagaGSPIO::sendRandomSeed(uint32_t seed) {
     // https://stackoverflow.com/a/64357776/15888601
-    int32_t converted = htonl(seed);
-    std::cerr << converted << " is our integer and its size is " << sizeof(int32_t) << std::endl;
+    uint32_t converted = htonl(seed);
+    std::cerr << converted << " is our integer and its size is " << sizeof(uint32_t) << std::endl;
     std::unique_lock lock(outputMutex);
-    if (ssize_t rc = write(this->socketfd, &converted, sizeof(int32_t)) < 0) {
+    if (ssize_t rc = write(this->socketfd, &converted, sizeof(uint32_t)) < 0) {
         std::cerr << "Failed to send random seed with error " << rc << "(" << errno << ")" << std::endl;
     }
 }
@@ -427,6 +427,22 @@ void InavjagaGSPIO::sendYes() {
 
 void InavjagaGSPIO::sendNo() {
     send(socketfd, InavjagaGSPIO::noMessage, 2, 0);
+}
+
+bool InavjagaGSPIO::waitYes(int timeout) {
+    char inputBuffer[2] = {0};
+    /// @warning we are not locking the mutex, but where should we do that?
+    std::future<ssize_t> input_ = std::async(recv, socketfd, inputBuffer, (size_t)2, 0);
+    std::future_status status = input_.wait_for(std::chrono::milliseconds(timeout));
+    if (status == std::future_status::ready) {
+        int rc = input_.get();
+        if (rc < 0) return false;
+        /// @todo fix, this is dangerous asf
+        if (strcmp(InavjagaGSPIO::yesMessage, inputBuffer) == 0) {
+            return true;
+        }
+    }
+    return false;
 }
 
 bool ServerInavjagaGSPIO::offerCoordinates(const sista::Coordinates& coordinates) const {
