@@ -542,6 +542,11 @@ void ServerInavjagaGSPIO::sendPlayers(std::vector<std::shared_ptr<Player>>& play
         }
         this->sendCoordinates(players[i]->getCoordinates());
     }
+    {
+        identifier = InavjagaGSPIO::constantsTermination[0];
+        std::unique_lock lock(outputMutex);
+        send(socketfd, &identifier, 1, 0);
+    }
 }
 
 /** @brief Receives players from a server
