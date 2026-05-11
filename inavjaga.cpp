@@ -145,6 +145,7 @@ int main(int argc, char* argv[]) {
     // This will also place the Player::localPlayer in the right position and assign the Id to it
     Player::players = connectionToServer->recvPlayers();
     for (size_t i = 0; i < Player::players.size(); i++) {
+        if (Player::players[i] == nullptr) continue;
         if (i != Player::localPlayerId) // That one was added already
             field->addPawn(Player::players[i]);
     }

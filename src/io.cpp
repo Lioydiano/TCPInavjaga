@@ -544,13 +544,13 @@ sista::Coordinates ClientInavjagaGSPIO::recvCoordinates(int timeout) const {
 void ServerInavjagaGSPIO::sendPlayers(std::vector<std::shared_ptr<Player>>& players, player_id_t current) {
     char identifier = '0';
     for (size_t i = 0; i < players.size(); i++) {
-        identifier++;
         if (players[i] == nullptr) continue;
         {
             std::unique_lock lock(outputMutex);
             send(socketfd, &identifier, 1, 0);
         }
         this->sendCoordinates(players[i]->getCoordinates());
+        identifier++;
     }
     {
         identifier = InavjagaGSPIO::constantsTermination[0];
