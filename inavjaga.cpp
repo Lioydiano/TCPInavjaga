@@ -116,10 +116,15 @@ int main(int argc, char* argv[]) {
         if (clientConnections[i] == nullptr) continue;
         clientConnections[i]->sendPlayers(Player::players, i);
     }
-    std::this_thread::sleep_for(std::chrono::seconds(2)); // Give the time to send ready
     std::vector<player_id_t> nonReady;
     for (size_t i = 0; i < clientConnections.size(); i++) {
+        #if DEBUG
+        std::cerr << "Connection number " << i << " is " << clientConnections[i].get() << std::endl;
+        #endif
         if (clientConnections[i] == nullptr) continue;
+        #if DEBUG
+        std::cerr << "Player number " << i << " is " << Player::players[i]->getCoordinates().x << std::endl;
+        #endif
         if (!clientConnections[i]->recvReady()) {
             Player::players[i]->connected = false;
             clientConnections[i] = nullptr;

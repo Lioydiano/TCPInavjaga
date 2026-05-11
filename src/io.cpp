@@ -89,12 +89,12 @@ std::vector<struct pollfd> InavjagaGSPIO::pollFds = {};
 std::pair<size_t, MoveEvent> InavjagaGSPIO::pollMany(
     const std::vector<std::shared_ptr<InavjagaGSPIO>>& ios, int timeout = 1000) {
         const size_t iosLen = ios.size();
-        pollFds.resize(iosLen);
-        for (size_t i = 0; i < iosLen; i++) {
+        pollFds.resize(iosLen, {0});
+        for (size_t i = 1; i < iosLen; i++) {
             pollFds[i].fd = ios[i]->socketfd;
             pollFds[i].events = POLLIN;
         }
-        int rc = poll(pollFds.data(), iosLen, timeout);
+        int rc = poll(pollFds.data() + sizeof(pollFds[0]), iosLen - 1, timeout);
         if (rc <= 0) {
             if (rc < 0) {
                 std::cerr << "poll() failed with code " << rc << std::endl;
@@ -111,7 +111,7 @@ std::pair<size_t, MoveEvent> InavjagaGSPIO::pollMany(
                 }
             );
         }
-        for (size_t i = 0; i < iosLen; i++) {
+        for (size_t i = 1; i < iosLen; i++) {
             if (pollFds[i].revents & POLLHUP) { // If the client disconnected...
                 return std::make_pair(i, MoveEvent{(player_id_t)i, 'Q'});
             } else if (pollFds[i].revents & POLLIN) { // If the client sent something...
