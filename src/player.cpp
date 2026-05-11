@@ -6,7 +6,7 @@
 #include "mine.hpp"
 #include <memory>
 
-const Inventory INITIAL_INVENTORY {
+Inventory INITIAL_INVENTORY {
     INITIAL_CLAY,
     INITIAL_BULLETS,
     INITIAL_MEAT

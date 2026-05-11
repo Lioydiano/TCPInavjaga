@@ -890,6 +890,11 @@ void setConstantsToReceivedValues(const std::map<std::string, std::variant<int, 
     INITIAL_CLAY = std::get<int>(constants.at("INITIAL_CLAY"));
     INITIAL_BULLETS = std::get<int>(constants.at("INITIAL_BULLETS"));
     INITIAL_MEAT = std::get<int>(constants.at("INITIAL_MEAT"));
+    INITIAL_INVENTORY = {
+        INITIAL_CLAY,
+        INITIAL_BULLETS,
+        INITIAL_MEAT
+    };
     LOOT_ARCHER_CLAY = std::get<int>(constants.at("LOOT_ARCHER_CLAY"));
     LOOT_ARCHER_BULLETS = std::get<int>(constants.at("LOOT_ARCHER_BULLETS"));
     LOOT_ARCHER_MEAT = std::get<int>(constants.at("LOOT_ARCHER_MEAT"));

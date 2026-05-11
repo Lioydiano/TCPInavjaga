@@ -5,7 +5,7 @@
 #include <unordered_map>
 #pragma once
 
-extern const Inventory INITIAL_INVENTORY;
+extern Inventory INITIAL_INVENTORY;
 extern std::unordered_map<Direction, sista::Coordinates> directionMap;
 extern std::shared_ptr<sista::SwappableField> field;
 
