@@ -564,7 +564,6 @@ void ServerInavjagaGSPIO::sendPlayers(std::vector<std::shared_ptr<Player>>& play
  * @return A collection of all the received players
  */
 std::vector<std::shared_ptr<Player>> ClientInavjagaGSPIO::recvPlayers() {
-    // ID{y,x};ID{y,x}; [...] ;ID:{y,x};-
     std::vector<std::shared_ptr<Player>> players(10, nullptr);
     sista::Coordinates coordinates;
     char identifier = 0;
@@ -585,6 +584,7 @@ std::vector<std::shared_ptr<Player>> ClientInavjagaGSPIO::recvPlayers() {
             continue;
         }
         players[identifier - '0'] = std::make_shared<Player>(coordinates);
+        players[identifier - '0']->id = identifier - '0';
     }
     size_t playersCount = 0;
     for (size_t i = players.size(); i >= 0; i--) {

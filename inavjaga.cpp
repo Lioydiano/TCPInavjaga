@@ -146,6 +146,9 @@ int main(int argc, char* argv[]) {
     Player::players = connectionToServer->recvPlayers();
     for (size_t i = 0; i < Player::players.size(); i++) {
         if (Player::players[i] == nullptr) continue;
+        #if DEBUG
+        std::cerr << "Processing player " << i << " with identifier " << Player::players[i]->id << std::endl;
+        #endif
         if (i != Player::localPlayerId) // That one was added already
             field->addPawn(Player::players[i]);
     }
