@@ -132,6 +132,7 @@ int main(int argc, char* argv[]) {
                 if (clientConnections[j] == nullptr) continue;
                 clientConnections[j]->sendMove(MoveEvent{(player_id_t)i, 'Q'});
             }
+            break;
         }
         field->addPawn(Player::players[i]);
     }
