@@ -121,9 +121,9 @@ int main(int argc, char* argv[]) {
     for (size_t i = 0; i < clientConnections.size(); i++) {
         if (clientConnections[i] == nullptr) continue;
         if (!clientConnections[i]->recvReady()) {
-            Player::players[i + 1]->connected = false;
+            Player::players[i]->connected = false;
             clientConnections[i] = nullptr;
-            nonReady.push_back(i + 1);
+            nonReady.push_back(i);
         }
     }
     for (size_t i = 1; i < Player::players.size(); i++) {
