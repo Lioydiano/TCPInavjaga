@@ -167,6 +167,7 @@ int main(int argc, char* argv[]) {
     #endif
 
     spawnInitialEnemies();
+    sista::clearScreen(false);
     field->print(border);
 
     LocalInavjagaIO* localIO;
