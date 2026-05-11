@@ -136,9 +136,9 @@ int main(int argc, char* argv[]) {
         field->addPawn(Player::players[i]);
     }
     #elif CLIENT
-    // std::map<std::string, std::variant<int, float>> constants = connectionToServer->recvConstants();
+    std::map<std::string, std::variant<int, float>> constants = connectionToServer->recvConstants();
     connectionToServer->sendYes();
-    // setConstantsToReceivedValues(constants);
+    setConstantsToReceivedValues(constants);
     field = std::make_shared<sista::SwappableField>(WIDTH, HEIGHT);
     generateTunnels();
     placeClientPlayer(connectionToServer);

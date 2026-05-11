@@ -348,17 +348,40 @@ std::map<std::string, std::variant<int, float>> InavjagaGSPIO::recvConstants() {
     float floatValue;
     int intValue;
 
-    char* buffer = nullptr;
-    char* valueBuffer = nullptr;
-    size_t lengthAllocated = 0;
-
-    FILE* fd = fdopen(this->socketfd, "r");
+    char buffer[100] = {0};
+    char valueBuffer[100] = {0};
+    char current = 0;
+    size_t insertionIndex = 0;
 
     while (true) {
-        getdelim(&buffer, &lengthAllocated, ':', fd);
-        /// @warning The buffers are getting allocated but we are not freeing them
+        insertionIndex = 0;
+        do {
+            errno = 0;
+            if (int rc = recv(this->socketfd, &current, 1, 0) < 0) {
+                std::cerr << "Receiving failed with error " << rc << " (" << errno << ")" << std::endl;
+                throw std::runtime_error("Error receiving constants from the server");
+            }
+            #if DEBUG
+            std::cerr << current << std::flush;
+            #endif
+            buffer[insertionIndex++] = current;
+        } while(current != ':');
+        buffer[insertionIndex] = '\0';
         if (buffer[0] == InavjagaGSPIO::constantsTermination[0]) break;
-        getdelim(&valueBuffer, &lengthAllocated, ';', fd);
+
+        insertionIndex = 0;
+        do {
+            errno = 0;
+            if (int rc = recv(this->socketfd, &current, 1, 0) < 0) {
+                std::cerr << "Receiving failed with error " << rc << " (" << errno << ")" << std::endl;
+                throw std::runtime_error("Error receiving constants from the server");
+            }
+            #if DEBUG
+            std::cerr << current << std::flush;
+            #endif
+            valueBuffer[insertionIndex++] = current;
+        } while(current != ';');
+        valueBuffer[insertionIndex] = '\0';
 
         size_t length = strlen(valueBuffer); // Subtract one to remove ';'
         size_t indexRead = 0;
@@ -389,7 +412,6 @@ std::map<std::string, std::variant<int, float>> InavjagaGSPIO::recvConstants() {
         }
     }
     #endif
-    fclose(fd);
     return constants;
 }
 
@@ -438,7 +460,7 @@ bool InavjagaGSPIO::recvBool(int timeout) const {
     if (pollFd.revents & POLLIN) {
         errno = 0;
         if (int rc = recv(socketfd, inputBuffer, (size_t)2, 0) < 0) {
-            std::cerr << "Polling failed with error " << rc << " (" << errno << ")" << std::endl;
+            std::cerr << "Receiving failed with error " << rc << " (" << errno << ")" << std::endl;
         }
         #if DEBUG
         std::cerr << "We received " << inputBuffer << std::endl;
