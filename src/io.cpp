@@ -367,7 +367,10 @@ std::map<std::string, std::variant<int, float>> InavjagaGSPIO::recvConstants() {
             buffer[insertionIndex++] = current;
         } while(current != ':');
         buffer[insertionIndex] = '\0';
-        if (buffer[0] == InavjagaGSPIO::constantsTermination[0]) break;
+        if (buffer[0] == InavjagaGSPIO::constantsTermination[0]) {
+            recv(this->socketfd, &current, 1, 0); // We throw away a '\0' terminator
+            break;
+        }
 
         insertionIndex = 0;
         do {
