@@ -332,7 +332,7 @@ bool InavjagaGSPIO::sendConstants() {
     send(socketfd, buffer.c_str(), buffer.length(), 0);
 
     send(socketfd, InavjagaGSPIO::constantsTermination, sizeof(InavjagaGSPIO::constantsTermination), 0);
-    return true;
+    return this->recvBool(3000);
 }
 
 /**
@@ -426,16 +426,28 @@ void InavjagaGSPIO::sendCoordinates(const sista::Coordinates& coordinates) const
 
 bool InavjagaGSPIO::recvBool(int timeout) const {
     char inputBuffer[2] = {0};
-    std::future<ssize_t> input_ = std::async(recv, socketfd, inputBuffer, (size_t)2, 0);
-    std::future_status status = input_.wait_for(std::chrono::milliseconds(timeout));
-    if (status == std::future_status::ready) {
-        int rc = input_.get();
-        if (rc < 0) return false;
+    struct pollfd pollFd = {0};
+    pollFd.fd = this->socketfd;
+    pollFd.events = POLLIN;
+    pollFd.revents = 0;
+    errno = 0;
+    if (int rc = poll(&pollFd, 1, timeout) < 0) {
+        std::cerr << "Polling failed with error " << rc << " (" << errno << ")" << std::endl;
+        throw std::runtime_error("Did not receive a boolean answer within the specified timeout");
+    }
+    if (pollFd.revents & POLLIN) {
+        errno = 0;
+        if (int rc = recv(socketfd, inputBuffer, (size_t)2, 0) < 0) {
+            std::cerr << "Polling failed with error " << rc << " (" << errno << ")" << std::endl;
+        }
+        #if DEBUG
+        std::cerr << "We received " << inputBuffer << std::endl;
+        #endif
         /// @todo fix, this is dangerous asf
         if (strcmp(InavjagaGSPIO::yesMessage, inputBuffer) == 0) {
             return true;
         } else if (strcmp(InavjagaGSPIO::noMessage, inputBuffer) == 0) {
-            return true;
+            return false;
         }
     }
     throw std::runtime_error("Did not receive a boolean answer within the specified timeout");
