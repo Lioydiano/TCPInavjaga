@@ -420,13 +420,23 @@ std::map<std::string, std::variant<int, float>> InavjagaGSPIO::recvConstants() {
 
 bool ServerInavjagaGSPIO::recvReady(int timeout) {
     char inputBuffer[2] = {0};
-    std::future<ssize_t> input_ = std::async(recv, socketfd, inputBuffer, (size_t)2, 0);
-    std::future_status status = input_.wait_for(std::chrono::milliseconds(timeout));
-    if (status == std::future_status::ready) {
-        int rc = input_.get();
-        if (rc < 0) return false;
+    struct pollfd pollFd = {0};
+    pollFd.fd = this->socketfd;
+    pollFd.events = POLLIN;
+    pollFd.revents = 0;
+    errno = 0;
+    if (int rc = poll(&pollFd, 1, timeout) < 0) {
+        std::cerr << "Polling failed with error " << rc << " (" << errno << ")" << std::endl;
+        return false;
+    }
+    if (pollFd.revents & POLLIN) {
+        errno = 0;
+        if (int rc = recv(socketfd, inputBuffer, (size_t)2, 0) < 0) {
+            std::cerr << "Receiving failed with error " << rc << " (" << errno << ")" << std::endl;
+            return false;
+        }
         /// @todo fix, this is dangerous asf
-        if (strcmp(InavjagaGSPIO::acceptMessage, inputBuffer) == 0) {
+        if (strcmp(InavjagaGSPIO::yesMessage, inputBuffer) == 0) {
             return true;
         }
     }
@@ -532,15 +542,25 @@ sista::Coordinates ClientInavjagaGSPIO::recvCoordinates(int timeout) const {
  * @return A collection of all the received players
  */
 void ServerInavjagaGSPIO::sendPlayers(std::vector<std::shared_ptr<Player>>& players, player_id_t current) {
+    char playerIdConverted = '0' + current;
+    {
+        std::unique_lock lock(outputMutex);
+        send(socketfd, &playerIdConverted, 1, 0);
+    }
     char identifier = '0';
     for (size_t i = 0; i < players.size(); i++) {
-        identifier++;
         if (players[i] == nullptr) continue;
         {
             std::unique_lock lock(outputMutex);
             send(socketfd, &identifier, 1, 0);
         }
         this->sendCoordinates(players[i]->getCoordinates());
+        identifier++;
+    }
+    {
+        identifier = InavjagaGSPIO::constantsTermination[0];
+        std::unique_lock lock(outputMutex);
+        send(socketfd, &identifier, 1, 0);
     }
 }
 
@@ -549,30 +569,36 @@ void ServerInavjagaGSPIO::sendPlayers(std::vector<std::shared_ptr<Player>>& play
  * @return A collection of all the received players
  */
 std::vector<std::shared_ptr<Player>> ClientInavjagaGSPIO::recvPlayers() {
-    // ID{y,x};ID{y,x}; [...] ;ID:{y,x};-
     std::vector<std::shared_ptr<Player>> players(10, nullptr);
     sista::Coordinates coordinates;
     char identifier = 0;
+    recv(socketfd, &identifier, 1, 0);
+    Player::localPlayerId = identifier - '0';
     while (true) {
         #if DEBUG
         std::cerr << "Waiting for player identifier..." << std::endl;
         #endif
         recv(socketfd, &identifier, 1, 0);
+        #if DEBUG
+        std::cerr << "Received:" << identifier << ";" << std::endl;
+        #endif
         if (identifier == InavjagaGSPIO::constantsTermination[0]) {
             break;
         }
         coordinates = this->recvCoordinates();
+        players[identifier - '0'] = std::make_shared<Player>(coordinates);
+        players[identifier - '0']->id = identifier - '0';
+        players[identifier - '0']->respawnCoordinates = coordinates;
+        players[identifier - '0']->mode = Player::Mode::BULLET;
         if (identifier - '0' == Player::localPlayerId) {
             players[identifier - '0'] = Player::localPlayer;
-            continue;
         }
-        players[identifier - '0'] = std::make_shared<Player>(coordinates);
-        recv(socketfd, &identifier, 1, 0); // We could assert that it is a ';'
     }
     size_t playersCount = 0;
     for (size_t i = players.size(); i >= 0; i--) {
         if (players[i] != nullptr) {
-            playersCount = i;
+            playersCount = ++i;
+            break;
         }
     }
     return std::vector<std::shared_ptr<Player>>(players.begin(), players.begin() + playersCount);

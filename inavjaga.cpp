@@ -114,7 +114,7 @@ int main(int argc, char* argv[]) {
     }
     for (size_t i = 0; i < clientConnections.size(); i++) {
         if (clientConnections[i] == nullptr) continue;
-        clientConnections[i]->sendPlayers(Player::players, i + 1);
+        clientConnections[i]->sendPlayers(Player::players, i);
     }
     std::this_thread::sleep_for(std::chrono::seconds(2)); // Give the time to send ready
     std::vector<player_id_t> nonReady;
@@ -145,9 +145,19 @@ int main(int argc, char* argv[]) {
     // This will also place the Player::localPlayer in the right position and assign the Id to it
     Player::players = connectionToServer->recvPlayers();
     for (size_t i = 0; i < Player::players.size(); i++) {
-        if (i != Player::localPlayerId) // That one was added already
+        if (Player::players[i] == nullptr) continue;
+        #if DEBUG
+        std::cerr << "Processing player " << i << " with identifier " << Player::players[i]->id << std::endl;
+        #endif
+        if (i != Player::localPlayerId) {
+            #if DEBUG
+            std::cerr << "Consider that the local player ID is " << Player::localPlayerId << std::endl;
+            std::cerr << "Added to players, will try to insert at {y," << Player::players[i]->getCoordinates().x << std::endl;
+            #endif
             field->addPawn(Player::players[i]);
+        }
     }
+    connectionToServer->sendReady();
     #endif
 
     spawnInitialEnemies();
