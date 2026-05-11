@@ -587,7 +587,8 @@ std::vector<std::shared_ptr<Player>> ClientInavjagaGSPIO::recvPlayers() {
     size_t playersCount = 0;
     for (size_t i = players.size(); i >= 0; i--) {
         if (players[i] != nullptr) {
-            playersCount = i;
+            playersCount = ++i;
+            break;
         }
     }
     return std::vector<std::shared_ptr<Player>>(players.begin(), players.begin() + playersCount);
