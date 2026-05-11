@@ -436,7 +436,7 @@ bool ServerInavjagaGSPIO::recvReady(int timeout) {
             return false;
         }
         /// @todo fix, this is dangerous asf
-        if (strcmp(InavjagaGSPIO::yesMessage, inputBuffer) == 0) {
+        if (strcmp(InavjagaGSPIO::acceptMessage, inputBuffer) == 0) {
             return true;
         }
     }
