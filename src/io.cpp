@@ -542,6 +542,11 @@ sista::Coordinates ClientInavjagaGSPIO::recvCoordinates(int timeout) const {
  * @return A collection of all the received players
  */
 void ServerInavjagaGSPIO::sendPlayers(std::vector<std::shared_ptr<Player>>& players, player_id_t current) {
+    char playerIdConverted = '0' + current;
+    {
+        std::unique_lock lock(outputMutex);
+        send(socketfd, &playerIdConverted, 1, 0);
+    }
     char identifier = '0';
     for (size_t i = 0; i < players.size(); i++) {
         if (players[i] == nullptr) continue;
@@ -567,6 +572,8 @@ std::vector<std::shared_ptr<Player>> ClientInavjagaGSPIO::recvPlayers() {
     std::vector<std::shared_ptr<Player>> players(10, nullptr);
     sista::Coordinates coordinates;
     char identifier = 0;
+    recv(socketfd, &identifier, 1, 0);
+    Player::localPlayerId = identifier - '0';
     while (true) {
         #if DEBUG
         std::cerr << "Waiting for player identifier..." << std::endl;
@@ -579,12 +586,13 @@ std::vector<std::shared_ptr<Player>> ClientInavjagaGSPIO::recvPlayers() {
             break;
         }
         coordinates = this->recvCoordinates();
-        if (identifier - '0' == Player::localPlayerId) {
-            players[identifier - '0'] = Player::localPlayer;
-            continue;
-        }
         players[identifier - '0'] = std::make_shared<Player>(coordinates);
         players[identifier - '0']->id = identifier - '0';
+        players[identifier - '0']->respawnCoordinates = coordinates;
+        players[identifier - '0']->mode = Player::Mode::BULLET;
+        if (identifier - '0' == Player::localPlayerId) {
+            players[identifier - '0'] = Player::localPlayer;
+        }
     }
     size_t playersCount = 0;
     for (size_t i = players.size(); i >= 0; i--) {
