@@ -573,6 +573,9 @@ std::vector<std::shared_ptr<Player>> ClientInavjagaGSPIO::recvPlayers() {
         std::cerr << "Waiting for player identifier..." << std::endl;
         #endif
         recv(socketfd, &identifier, 1, 0);
+        #if DEBUG
+        std::cerr << "Received:" << identifier << ";" << std::endl;
+        #endif
         if (identifier == InavjagaGSPIO::constantsTermination[0]) {
             break;
         }
@@ -582,7 +585,6 @@ std::vector<std::shared_ptr<Player>> ClientInavjagaGSPIO::recvPlayers() {
             continue;
         }
         players[identifier - '0'] = std::make_shared<Player>(coordinates);
-        recv(socketfd, &identifier, 1, 0); // We could assert that it is a ';'
     }
     size_t playersCount = 0;
     for (size_t i = players.size(); i >= 0; i--) {
