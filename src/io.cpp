@@ -332,7 +332,7 @@ bool InavjagaGSPIO::sendConstants() {
     send(socketfd, buffer.c_str(), buffer.length(), 0);
 
     send(socketfd, InavjagaGSPIO::constantsTermination, sizeof(InavjagaGSPIO::constantsTermination), 0);
-    return true;
+    return this->recvBool(3000);
 }
 
 /**
@@ -348,17 +348,43 @@ std::map<std::string, std::variant<int, float>> InavjagaGSPIO::recvConstants() {
     float floatValue;
     int intValue;
 
-    char* buffer = nullptr;
-    char* valueBuffer = nullptr;
-    size_t lengthAllocated = 0;
-
-    FILE* fd = fdopen(this->socketfd, "r");
+    char buffer[100] = {0};
+    char valueBuffer[100] = {0};
+    char current = 0;
+    size_t insertionIndex = 0;
 
     while (true) {
-        getdelim(&buffer, &lengthAllocated, ':', fd);
-        /// @warning The buffers are getting allocated but we are not freeing them
-        if (buffer[0] == InavjagaGSPIO::constantsTermination[0]) break;
-        getdelim(&valueBuffer, &lengthAllocated, ';', fd);
+        insertionIndex = 0;
+        do {
+            errno = 0;
+            if (int rc = recv(this->socketfd, &current, 1, 0) < 0) {
+                std::cerr << "Receiving failed with error " << rc << " (" << errno << ")" << std::endl;
+                throw std::runtime_error("Error receiving constants from the server");
+            }
+            #if DEBUG
+            std::cerr << current << std::flush;
+            #endif
+            buffer[insertionIndex++] = current;
+        } while(current != ':');
+        buffer[insertionIndex] = '\0';
+        if (buffer[0] == InavjagaGSPIO::constantsTermination[0]) {
+            recv(this->socketfd, &current, 1, 0); // We throw away a '\0' terminator
+            break;
+        }
+
+        insertionIndex = 0;
+        do {
+            errno = 0;
+            if (int rc = recv(this->socketfd, &current, 1, 0) < 0) {
+                std::cerr << "Receiving failed with error " << rc << " (" << errno << ")" << std::endl;
+                throw std::runtime_error("Error receiving constants from the server");
+            }
+            #if DEBUG
+            std::cerr << current << std::flush;
+            #endif
+            valueBuffer[insertionIndex++] = current;
+        } while(current != ';');
+        valueBuffer[insertionIndex] = '\0';
 
         size_t length = strlen(valueBuffer); // Subtract one to remove ';'
         size_t indexRead = 0;
@@ -389,7 +415,6 @@ std::map<std::string, std::variant<int, float>> InavjagaGSPIO::recvConstants() {
         }
     }
     #endif
-    fclose(fd);
     return constants;
 }
 
@@ -426,16 +451,28 @@ void InavjagaGSPIO::sendCoordinates(const sista::Coordinates& coordinates) const
 
 bool InavjagaGSPIO::recvBool(int timeout) const {
     char inputBuffer[2] = {0};
-    std::future<ssize_t> input_ = std::async(recv, socketfd, inputBuffer, (size_t)2, 0);
-    std::future_status status = input_.wait_for(std::chrono::milliseconds(timeout));
-    if (status == std::future_status::ready) {
-        int rc = input_.get();
-        if (rc < 0) return false;
+    struct pollfd pollFd = {0};
+    pollFd.fd = this->socketfd;
+    pollFd.events = POLLIN;
+    pollFd.revents = 0;
+    errno = 0;
+    if (int rc = poll(&pollFd, 1, timeout) < 0) {
+        std::cerr << "Polling failed with error " << rc << " (" << errno << ")" << std::endl;
+        throw std::runtime_error("Did not receive a boolean answer within the specified timeout");
+    }
+    if (pollFd.revents & POLLIN) {
+        errno = 0;
+        if (int rc = recv(socketfd, inputBuffer, (size_t)2, 0) < 0) {
+            std::cerr << "Receiving failed with error " << rc << " (" << errno << ")" << std::endl;
+        }
+        #if DEBUG
+        std::cerr << "We received " << inputBuffer << std::endl;
+        #endif
         /// @todo fix, this is dangerous asf
         if (strcmp(InavjagaGSPIO::yesMessage, inputBuffer) == 0) {
             return true;
         } else if (strcmp(InavjagaGSPIO::noMessage, inputBuffer) == 0) {
-            return true;
+            return false;
         }
     }
     throw std::runtime_error("Did not receive a boolean answer within the specified timeout");
@@ -477,7 +514,7 @@ bool ServerInavjagaGSPIO::offerCoordinates(const sista::Coordinates& coordinates
 
 sista::Coordinates ClientInavjagaGSPIO::recvCoordinates(int timeout) const {
     char buffer[10] = {0};
-    int rc = recv(socketfd, &buffer, 10, MSG_DONTWAIT);
+    int rc = recv(socketfd, &buffer, 10, 0);
     if (rc < 0) {
         std::cerr << "Failed to receive coordinates from the server" << std::endl;
         throw std::runtime_error("Failed to receive coordinates from the server");

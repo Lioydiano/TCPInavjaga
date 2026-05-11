@@ -137,6 +137,7 @@ int main(int argc, char* argv[]) {
     }
     #elif CLIENT
     std::map<std::string, std::variant<int, float>> constants = connectionToServer->recvConstants();
+    connectionToServer->sendYes();
     setConstantsToReceivedValues(constants);
     field = std::make_shared<sista::SwappableField>(WIDTH, HEIGHT);
     generateTunnels();
@@ -950,6 +951,9 @@ sista::Coordinates negotiateCoordinates(std::weak_ptr<sista::SwappableField> fie
         for (unsigned short x = WIDTH - 1; x < WIDTH; x--) {
             candidate = {y, x};
             if (field_.lock()->isFree(candidate)) {
+                #if DEBUG
+                std::cerr << "Offering {" << y << ", " << x << "}" << std::endl;
+                #endif
                 if (client->offerCoordinates(candidate)) {
                     return candidate;
                 }
