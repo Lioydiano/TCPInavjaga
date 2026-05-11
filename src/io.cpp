@@ -420,13 +420,23 @@ std::map<std::string, std::variant<int, float>> InavjagaGSPIO::recvConstants() {
 
 bool ServerInavjagaGSPIO::recvReady(int timeout) {
     char inputBuffer[2] = {0};
-    std::future<ssize_t> input_ = std::async(recv, socketfd, inputBuffer, (size_t)2, 0);
-    std::future_status status = input_.wait_for(std::chrono::milliseconds(timeout));
-    if (status == std::future_status::ready) {
-        int rc = input_.get();
-        if (rc < 0) return false;
+    struct pollfd pollFd = {0};
+    pollFd.fd = this->socketfd;
+    pollFd.events = POLLIN;
+    pollFd.revents = 0;
+    errno = 0;
+    if (int rc = poll(&pollFd, 1, timeout) < 0) {
+        std::cerr << "Polling failed with error " << rc << " (" << errno << ")" << std::endl;
+        return false;
+    }
+    if (pollFd.revents & POLLIN) {
+        errno = 0;
+        if (int rc = recv(socketfd, inputBuffer, (size_t)2, 0) < 0) {
+            std::cerr << "Receiving failed with error " << rc << " (" << errno << ")" << std::endl;
+            return false;
+        }
         /// @todo fix, this is dangerous asf
-        if (strcmp(InavjagaGSPIO::acceptMessage, inputBuffer) == 0) {
+        if (strcmp(InavjagaGSPIO::yesMessage, inputBuffer) == 0) {
             return true;
         }
     }
