@@ -16,8 +16,8 @@
     #include <termios.h>
     #include <unistd.h>
 
-    struct termios orig_termios;
-    void term_echooff() {
+    inline struct termios orig_termios;
+    inline void term_echooff() {
         struct termios noecho;
 
         tcgetattr(0, &orig_termios);
