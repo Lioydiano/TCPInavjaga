@@ -96,17 +96,26 @@ std::pair<size_t, MoveEvent> InavjagaGSPIO::pollMany(
         for (size_t i = 1; i < iosLen; i++) {
             pollFds[i].fd = ios[i]->socketfd;
             pollFds[i].events = POLLIN;
+            pollFds[i].revents = 0;
         }
         errno = 0;
         int rc = poll(pollFds.data() + sizeof(pollFds[0]), iosLen - 1, timeout);
+        #if DEBUG
+        std::cerr << pollFds.data() << " + " << sizeof(pollFds[0]) << " = "
+                  << pollFds.data() + sizeof(pollFds[0]) << " while sizeof(pollFds[1])="
+                  << sizeof(pollFds[1]) << std::endl;
+        #endif
         if (rc <= 0) {
             if (rc < 0) {
-                std::cerr << "poll() failed with code " << rc << std::endl;
+                std::cerr << "poll() failed with code " << rc << " (" << errno << ")" << std::endl;
                 /** @note We should definitely log this,
                  * but it can fail without throwing for now,
                  * we just don't need it outside debugging
                  */
             } // else it just timed out (https://en.ittrip.xyz/c-language/c-timeout-handling)
+            #if DEBUG
+            std::cerr << "→Apparently poll() just timed out" << std::endl;
+            #endif
             return std::make_pair(
                 INAVJAGA_PLAYER_ID_IGNORE,
                 MoveEvent{
@@ -115,13 +124,21 @@ std::pair<size_t, MoveEvent> InavjagaGSPIO::pollMany(
                 }
             );
         }
+        #if DEBUG
+        std::cerr << "Eventually we got something returned by poll()" << std::endl;
+        #endif
         for (size_t i = 1; i < iosLen; i++) {
             if (pollFds[i].revents & POLLHUP) { // If the client disconnected...
                 return std::make_pair(i, MoveEvent{(player_id_t)i, 'Q'});
             } else if (pollFds[i].revents & POLLIN) { // If the client sent something...
                 try {
-                    
+                    #if DEBUG
+                    std::cerr << "So, at least we did receive a message by " << i << std::endl;
+                    #endif
                     MoveEvent moveEvent = ios[i]->recvMove();
+                    #if DEBUG
+                    std::cerr << "\trecvMove() returned, but" << std::endl;
+                    #endif
                     return std::make_pair(i, moveEvent);
                 } catch (std::exception& e) {
                     std::cerr << e.what() << std::endl;
@@ -132,6 +149,9 @@ std::pair<size_t, MoveEvent> InavjagaGSPIO::pollMany(
                 }
             }
         }
+        #if DEBUG
+        std::cerr << "\tIt doesn't really make sense for this point to be reached" << std::endl;
+        #endif
         return std::make_pair(
             INAVJAGA_PLAYER_ID_IGNORE,
             MoveEvent{
