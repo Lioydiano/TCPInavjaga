@@ -78,7 +78,7 @@ void InavjagaGSPIO::sendMove(MoveEvent moveEvent) {
     send(socketfd, buffer, 4, 0);
 }
 
-std::vector<struct pollfd> InavjagaGSPIO::pollFds = {};
+struct pollfd InavjagaGSPIO::pollFds[10] = {0};
 
 /** @brief Polls the InavjagaGSP connections and returns the first one to return
  * @note For the moment we accept at most 9 ios, our cap to the number of clients
@@ -92,18 +92,15 @@ std::vector<struct pollfd> InavjagaGSPIO::pollFds = {};
 std::pair<size_t, MoveEvent> InavjagaGSPIO::pollMany(
     const std::vector<std::shared_ptr<InavjagaGSPIO>>& ios, int timeout = 1000) {
         const size_t iosLen = ios.size();
-        pollFds.resize(iosLen, {0});
         for (size_t i = 1; i < iosLen; i++) {
             pollFds[i].fd = ios[i]->socketfd;
             pollFds[i].events = POLLIN;
             pollFds[i].revents = 0;
         }
         errno = 0;
-        int rc = poll(pollFds.data() + sizeof(pollFds[0]), iosLen - 1, timeout);
+        int rc = poll(&(pollFds[1]), iosLen - 1, timeout);
         #if DEBUG
-        std::cerr << pollFds.data() << " + " << sizeof(pollFds[0]) << " = "
-                  << pollFds.data() + sizeof(pollFds[0]) << " while sizeof(pollFds[1])="
-                  << sizeof(pollFds[1]) << std::endl;
+        std::cerr << &(pollFds[1]) << " for a __nfds=" << iosLen - 1 << std::endl;
         #endif
         if (rc <= 0) {
             if (rc < 0) {
