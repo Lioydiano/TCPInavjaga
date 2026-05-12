@@ -116,13 +116,13 @@ std::pair<size_t, MoveEvent> InavjagaGSPIO::pollMany(
             #if DEBUG
             std::cerr << "→Apparently poll() just timed out" << std::endl;
             #endif
-            return std::make_pair(
-                INAVJAGA_PLAYER_ID_IGNORE,
-                MoveEvent{
-                    INAVJAGA_PLAYER_ID_IGNORE,
-                    INAVJAGA_CHAR_MOVE_IGNORE
-                }
-            );
+            // return std::make_pair(
+            //     INAVJAGA_PLAYER_ID_IGNORE,
+            //     MoveEvent{
+            //         INAVJAGA_PLAYER_ID_IGNORE,
+            //         INAVJAGA_CHAR_MOVE_IGNORE
+            //     }
+            // );
         }
         #if DEBUG
         std::cerr << "Eventually we got something returned by poll()" << std::endl;
