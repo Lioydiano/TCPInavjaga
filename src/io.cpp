@@ -55,13 +55,16 @@ MoveEvent InavjagaGSPIO::recvMove() {
      * @note every move is made of one character
      */
     // https://stackoverflow.com/questions/71744538/why-would-one-need-to-use-msg-waitall-flag-instead-of-0-flag-why-to-use-it
-    int rc = recv(this->socketfd, &buffer, 1+1+1, MSG_WAITALL);
+    int rc = recv(this->socketfd, &buffer, 1+1+1+1, MSG_WAITALL); // Wait for the null terminator too
     MoveEvent moveEvent = {INAVJAGA_PLAYER_ID_IGNORE, INAVJAGA_CHAR_MOVE_IGNORE};
     if (rc < 0) {
         std::string errorBuffer = "Scanning a socket that was expected to be empty gave error code " + std::to_string(rc);
         throw std::runtime_error(errorBuffer);
     }
     sscanf(buffer, "%hu;%c", &moveEvent.playerId, &moveEvent.move);
+    #if CLIENT
+    std::cerr << "Literally just gotten " << moveEvent.playerId << ", " << moveEvent.move << std::endl;
+    #endif
     return moveEvent;
 }
 

@@ -742,6 +742,9 @@ void input(IO* io) {
     while (moveEvent.move != 'Q') {
         if (end) return;
         moveEvent = io->getMove();
+        #if 1
+        std::cerr << "Gotten a move with " << moveEvent.playerId << ", " << moveEvent.move << std::endl;
+        #endif
         if (moveEvent.playerId == INAVJAGA_PLAYER_ID_IGNORE) {
             moveEvent.playerId = Player::localPlayerId;
         }
