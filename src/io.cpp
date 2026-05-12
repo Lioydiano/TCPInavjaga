@@ -113,13 +113,13 @@ std::pair<size_t, MoveEvent> InavjagaGSPIO::pollMany(
             #if DEBUG
             std::cerr << "→Apparently poll() just timed out" << std::endl;
             #endif
-            // return std::make_pair(
-            //     INAVJAGA_PLAYER_ID_IGNORE,
-            //     MoveEvent{
-            //         INAVJAGA_PLAYER_ID_IGNORE,
-            //         INAVJAGA_CHAR_MOVE_IGNORE
-            //     }
-            // );
+            return std::make_pair(
+                INAVJAGA_PLAYER_ID_IGNORE,
+                MoveEvent{
+                    INAVJAGA_PLAYER_ID_IGNORE,
+                    INAVJAGA_CHAR_MOVE_IGNORE
+                }
+            );
         }
         #if DEBUG
         std::cerr << "Eventually we got something returned by poll()" << std::endl;
@@ -156,6 +156,35 @@ std::pair<size_t, MoveEvent> InavjagaGSPIO::pollMany(
                 INAVJAGA_CHAR_MOVE_IGNORE
             }
         );
+}
+
+/** @brief Polls the InavjagaGSP connection and returns the first received move
+ * @param io The input source to poll for move events
+ * @param timeout The time expressed in milliseconds for which to poll for moves
+ *                after which the method just returns an empty move
+ * @retval {INAVJAGA_PLAYER_ID_IGNORE,INAVJAGA_CHAR_MOVE_IGNORE} when no input
+ * @returns The move event received from the source
+ */
+MoveEvent ClientInavjagaGSPIO::pollMove(int timeout) {
+    pollFd.revents = 0;
+    errno = 0;
+    int rc = poll(&pollFd, 1, timeout);
+    if (rc < 0) {
+        std::cerr << "poll() failed with code " << rc << " (" << errno << ")" << std::endl;
+    }
+    if (rc > 0) {
+        if (pollFd.revents & POLLHUP) { // If the server disconnected...
+            /// @todo Definitely more handling needed here
+            std::cerr << "Game over" << std::endl;
+        } else if (pollFd.revents & POLLIN) {
+            try {
+                return this->recvMove();
+            } catch (std::exception& e) {
+                std::cerr << e.what() << std::endl;
+            }
+        }
+    }
+    return {INAVJAGA_PLAYER_ID_IGNORE,INAVJAGA_CHAR_MOVE_IGNORE};
 }
 
 /** Returns a move event by the local player
@@ -205,7 +234,12 @@ MoveEvent RemoteInavjagaIO::getMove(int timeout) {
         /// @warning This doesn't return the flow for... potentially forever
         try {
             // Now a question is what will happen to the nullptr neighbors
-            moveEvent = InavjagaGSPIO::pollMany(this->neighbors).second;
+            if (this->neighbors.size() > 1) {
+                moveEvent = InavjagaGSPIO::pollMany(this->neighbors).second;
+            } else {
+                // This is guaranteed to be a client
+                moveEvent = ((ClientInavjagaGSPIO*)(&(neighbors[0])))->pollMove();
+            }
         } catch (std::exception& e) {
             // It technically doesn't throw at the current stage
         }
@@ -228,6 +262,10 @@ void RemoteInavjagaIO::sendMove(MoveEvent moveEvent) {
 
 ClientInavjagaGSPIO::ClientInavjagaGSPIO(int sockfd) {
     this->socketfd = sockfd;
+    this->pollFd = {0};
+    this->pollFd.fd = sockfd;
+    this->pollFd.events = POLLIN | POLLHUP;
+    this->pollFd.revents = 0;
 }
 TCPClientInavjagaGSPIO::TCPClientInavjagaGSPIO(int sockfd): ClientInavjagaGSPIO(sockfd) {}
 

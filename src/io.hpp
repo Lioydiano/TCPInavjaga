@@ -6,6 +6,7 @@
 #include <string>
 #include <memory>
 #include <vector>
+#include <poll.h>
 #include <sista/coordinates.hpp>
 #include <sys/types.h>
 #include <netinet/ip.h>
@@ -29,9 +30,10 @@ private:
      * Confirms the coordinates and sends the Player ID to the client
      */
     void leaseCoordinates(sista::Coordinates, int);
-    static struct pollfd pollFds[10];
 protected:
+    static struct pollfd pollFds[10];
     static std::shared_mutex outputMutex;
+
     static const char acceptMessage[2];
     static const char yesMessage[2];
     static const char noMessage[2];
@@ -74,11 +76,14 @@ public:
  * @note receives ACT, sends OWN_ACT
  */
 class ClientInavjagaGSPIO: public InavjagaGSPIO {
+private:
+    struct pollfd pollFd;
 public:
     ClientInavjagaGSPIO(int);
     sista::Coordinates recvCoordinates(int timeout=3000) const;
     std::vector<std::shared_ptr<Player>> recvPlayers();
     void sendReady();
+    MoveEvent pollMove(int timeout=1000);
 };
 
 /**
