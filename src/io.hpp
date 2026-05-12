@@ -29,7 +29,7 @@ private:
      * Confirms the coordinates and sends the Player ID to the client
      */
     void leaseCoordinates(sista::Coordinates, int);
-    static std::vector<struct pollfd> pollFds;
+    static struct pollfd pollFds[10];
 protected:
     static std::shared_mutex outputMutex;
     static const char acceptMessage[2];
