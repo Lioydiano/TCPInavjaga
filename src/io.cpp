@@ -62,7 +62,7 @@ MoveEvent InavjagaGSPIO::recvMove() {
         throw std::runtime_error(errorBuffer);
     }
     sscanf(buffer, "%hu;%c", &moveEvent.playerId, &moveEvent.move);
-    #if CLIENT
+    #if 1
     std::cerr << "Literally just gotten " << moveEvent.playerId << ", " << moveEvent.move << std::endl;
     #endif
     return moveEvent;
@@ -97,6 +97,7 @@ std::pair<size_t, MoveEvent> InavjagaGSPIO::pollMany(
             pollFds[i].fd = ios[i]->socketfd;
             pollFds[i].events = POLLIN;
         }
+        errno = 0;
         int rc = poll(pollFds.data() + sizeof(pollFds[0]), iosLen - 1, timeout);
         if (rc <= 0) {
             if (rc < 0) {
@@ -119,6 +120,7 @@ std::pair<size_t, MoveEvent> InavjagaGSPIO::pollMany(
                 return std::make_pair(i, MoveEvent{(player_id_t)i, 'Q'});
             } else if (pollFds[i].revents & POLLIN) { // If the client sent something...
                 try {
+                    
                     MoveEvent moveEvent = ios[i]->recvMove();
                     return std::make_pair(i, moveEvent);
                 } catch (std::exception& e) {
@@ -364,9 +366,6 @@ std::map<std::string, std::variant<int, float>> InavjagaGSPIO::recvConstants() {
                 std::cerr << "Receiving failed with error " << rc << " (" << errno << ")" << std::endl;
                 throw std::runtime_error("Error receiving constants from the server");
             }
-            #if DEBUG
-            std::cerr << current << std::flush;
-            #endif
             buffer[insertionIndex++] = current;
         } while(current != ':');
         buffer[insertionIndex] = '\0';
@@ -382,9 +381,6 @@ std::map<std::string, std::variant<int, float>> InavjagaGSPIO::recvConstants() {
                 std::cerr << "Receiving failed with error " << rc << " (" << errno << ")" << std::endl;
                 throw std::runtime_error("Error receiving constants from the server");
             }
-            #if DEBUG
-            std::cerr << current << std::flush;
-            #endif
             valueBuffer[insertionIndex++] = current;
         } while(current != ';');
         valueBuffer[insertionIndex] = '\0';
@@ -578,13 +574,7 @@ std::vector<std::shared_ptr<Player>> ClientInavjagaGSPIO::recvPlayers() {
     recv(socketfd, &identifier, 1, 0);
     Player::localPlayerId = identifier - '0';
     while (true) {
-        #if DEBUG
-        std::cerr << "Waiting for player identifier..." << std::endl;
-        #endif
         recv(socketfd, &identifier, 1, 0);
-        #if DEBUG
-        std::cerr << "Received:" << identifier << ";" << std::endl;
-        #endif
         if (identifier == InavjagaGSPIO::constantsTermination[0]) {
             break;
         }
