@@ -166,7 +166,13 @@ std::pair<size_t, MoveEvent> InavjagaGSPIO::pollMany(
  * @returns The move event received from the source
  */
 MoveEvent ClientInavjagaGSPIO::pollMove(int timeout) {
+    pollFd.fd = this->socketfd;
+    pollFd.events = POLLIN | POLLHUP;
     pollFd.revents = 0;
+    #if DEBUG
+    std::cerr << "{ .fd=" << pollFd.fd << ", .events=" << pollFd.events << ", .revents=" << pollFd.revents << " }" << std::endl;
+    std::cerr << "\t" << this->socketfd << std::endl;
+    #endif
     errno = 0;
     int rc = poll(&pollFd, 1, timeout);
     if (rc < 0) {

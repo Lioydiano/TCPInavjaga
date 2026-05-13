@@ -167,7 +167,7 @@ int main(int argc, char* argv[]) {
     #endif
 
     spawnInitialEnemies();
-    sista::clearScreen(false);
+    sista::clearScreen(true);
     field->print(border);
 
     LocalInavjagaIO* localIO;
@@ -185,7 +185,7 @@ int main(int argc, char* argv[]) {
         while (pause_) {
             std::this_thread::sleep_for(std::chrono::milliseconds(100));
             if (!pause_) {
-                std::lock_guard<std::mutex> lock(streamMutex); // Lock stays until scope ends
+                std::unique_lock<std::mutex> lock(streamMutex); // Lock stays until scope ends
                 reprint();
             } // Reprint after unpausing, just as a tool for allowing resizing
             if (end) break;
@@ -205,7 +205,7 @@ int main(int argc, char* argv[]) {
         }
         if (lastDeathFrame && i - lastDeathFrame == 20) {
             // After 20 frames it deletes the death reason
-            std::lock_guard<std::mutex> lock(streamMutex); // Lock stays until scope ends
+            std::unique_lock<std::mutex> lock(streamMutex); // Lock stays until scope ends
             reprint();
         }
         std::this_thread::sleep_for(std::chrono::milliseconds(
@@ -214,7 +214,7 @@ int main(int argc, char* argv[]) {
         #if DEBUG
         auto start = std::chrono::high_resolution_clock::now();
         #endif
-        std::lock_guard<std::mutex> lock(streamMutex); // Lock stays until scope ends
+        std::unique_lock<std::mutex> lock(streamMutex); // Lock stays until scope ends
         for (int k = 0; k < BULLET_SPEED; k++) {
             // move player bullets
             for (unsigned j = 0; j < Bullet::bullets.size(); j++) {
@@ -766,43 +766,43 @@ bool act(MoveEvent event) {
     std::shared_ptr<Player> player = Player::players[event.playerId];
     switch (event.move) {
         case 'w': case 'W': {
-            std::scoped_lock<std::mutex> lock(streamMutex);
+            std::unique_lock<std::mutex> lock(streamMutex);
             player->move(Direction::UP);
             break;
         }
         case 'a': case 'A': {
-            std::scoped_lock<std::mutex> lock(streamMutex);
+            std::unique_lock<std::mutex> lock(streamMutex);
             player->move(Direction::LEFT);
             break;
         }
         case 's': case 'S': {
-            std::scoped_lock<std::mutex> lock(streamMutex);
+            std::unique_lock<std::mutex> lock(streamMutex);
             player->move(Direction::DOWN);
             break;
         }
         case 'd': case 'D': {
-            std::scoped_lock<std::mutex> lock(streamMutex);
+            std::unique_lock<std::mutex> lock(streamMutex);
             player->move(Direction::RIGHT);
             break;
         }
 
         case 'j': case 'J': {
-            std::scoped_lock<std::mutex> lock(streamMutex);
+            std::unique_lock<std::mutex> lock(streamMutex);
             player->shoot(Direction::LEFT);
             break;
         }
         case 'k': case 'K': {
-            std::scoped_lock<std::mutex> lock(streamMutex);
+            std::unique_lock<std::mutex> lock(streamMutex);
             player->shoot(Direction::DOWN);
             break;
         }
         case 'l': case 'L': {
-            std::scoped_lock<std::mutex> lock(streamMutex);
+            std::unique_lock<std::mutex> lock(streamMutex);
             player->shoot(Direction::RIGHT);
             break;
         }
         case 'i': case 'I': {
-            std::scoped_lock<std::mutex> lock(streamMutex);
+            std::unique_lock<std::mutex> lock(streamMutex);
             player->shoot(Direction::UP);
             break;
         }
