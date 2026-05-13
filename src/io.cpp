@@ -174,7 +174,7 @@ std::pair<size_t, MoveEvent> InavjagaGSPIO::pollMany(
  */
 MoveEvent ClientInavjagaGSPIO::pollMove(int timeout) {
     pollFd.fd = this->socketfd;
-    pollFd.events = POLLIN | POLLHUP;
+    pollFd.events = POLLIN;
     pollFd.revents = 0;
     errno = 0;
     int rc = poll(&pollFd, 1, timeout);
