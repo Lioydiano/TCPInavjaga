@@ -56,6 +56,9 @@ MoveEvent InavjagaGSPIO::recvMove() {
      */
     // https://stackoverflow.com/questions/71744538/why-would-one-need-to-use-msg-waitall-flag-instead-of-0-flag-why-to-use-it
     int rc = recv(this->socketfd, &buffer, (size_t)(1+1+1+1), 0); // Wait for the null terminator too
+    #if DEBUG
+    std::cerr << "Just received " << buffer << std::endl;
+    #endif
     MoveEvent moveEvent = {INAVJAGA_PLAYER_ID_IGNORE, INAVJAGA_CHAR_MOVE_IGNORE};
     if (rc < 0) {
         std::string errorBuffer = "Scanning a socket that was expected to be empty gave error code " + std::to_string(rc);
@@ -174,7 +177,13 @@ MoveEvent ClientInavjagaGSPIO::pollMove(int timeout) {
     if (rc < 0) {
         std::cerr << "poll() failed with code " << rc << " (" << errno << ")" << std::endl;
     }
+    #if DEBUG
+    std::cerr << "At least it is passing through here" << std::endl;
+    #endif
     if (rc > 0) {
+        #if DEBUG
+        std::cerr << "\tMaybe is passing through here" << std::endl;
+        #endif
         if (pollFd.revents & POLLHUP) { // If the server disconnected...
             /// @todo Definitely more handling needed here
             std::cerr << "Game over" << std::endl;
