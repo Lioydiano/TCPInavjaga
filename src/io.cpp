@@ -117,9 +117,6 @@ std::pair<size_t, MoveEvent> InavjagaGSPIO::pollMany(
                  * we just don't need it outside debugging
                  */
             } // else it just timed out (https://en.ittrip.xyz/c-language/c-timeout-handling)
-            #if DEBUG
-            std::cerr << "→Apparently poll() just timed out" << std::endl;
-            #endif
             return std::make_pair(
                 INAVJAGA_PLAYER_ID_IGNORE,
                 MoveEvent{
@@ -128,21 +125,12 @@ std::pair<size_t, MoveEvent> InavjagaGSPIO::pollMany(
                 }
             );
         }
-        #if DEBUG
-        std::cerr << "Eventually we got something returned by poll()" << std::endl;
-        #endif
         for (size_t i = 1; i < iosLen; i++) {
             if (pollFds[i].revents & POLLHUP) { // If the client disconnected...
                 return std::make_pair(i, MoveEvent{(player_id_t)i, 'Q'});
             } else if (pollFds[i].revents & POLLIN) { // If the client sent something...
                 try {
-                    #if DEBUG
-                    std::cerr << "So, at least we did receive a message by " << i << std::endl;
-                    #endif
                     MoveEvent moveEvent = ios[i]->recvMove();
-                    #if DEBUG
-                    std::cerr << "\trecvMove() returned, but" << std::endl;
-                    #endif
                     return std::make_pair(i, moveEvent);
                 } catch (std::exception& e) {
                     std::cerr << e.what() << std::endl;
@@ -153,9 +141,6 @@ std::pair<size_t, MoveEvent> InavjagaGSPIO::pollMany(
                 }
             }
         }
-        #if DEBUG
-        std::cerr << "\tIt doesn't really make sense for this point to be reached" << std::endl;
-        #endif
         return std::make_pair(
             INAVJAGA_PLAYER_ID_IGNORE,
             MoveEvent{
@@ -174,6 +159,13 @@ std::pair<size_t, MoveEvent> InavjagaGSPIO::pollMany(
  */
 MoveEvent ClientInavjagaGSPIO::pollMove(int timeout) {
     pollFd.fd = this->socketfd;
+    #if DEBUG
+    char buffer[4] = "1;F";
+    errno = 0;
+    if (int rc = send(this->socketfd, &buffer, 4, 0) < 0) {
+        std::cerr << "send failed with " << errno << std::endl;
+    }
+    #endif
     pollFd.events = POLLIN;
     pollFd.revents = 0;
     errno = 0;
@@ -289,9 +281,11 @@ TCPServerInavjagaGSPIO::TCPServerInavjagaGSPIO(int sockfd): ServerInavjagaGSPIO(
 void ServerInavjagaGSPIO::acceptConnection(int sockfd) {
     sockaddr clientAddress;
     socklen_t length = sizeof(clientAddress);
+    errno = 0;
     this->socketfd = accept(sockfd, &clientAddress, &length);
     if (this->socketfd < 0) {
-        std::cerr << "Something went wrong with accepting the connection from " << clientAddress.sa_data << std::endl;
+        std::cerr << "Something went wrong with accepting the connection from " << clientAddress.sa_data
+                  << " with code " << errno << std::endl;
     }
 }
 
@@ -310,7 +304,9 @@ const char InavjagaGSPIO::constantsTermination[3] = "-:";
  * @return Whether the sending was successful
  */
 bool InavjagaGSPIO::sendConstants() {
-    std::string buffer = "WIDTH:" + std::to_string(WIDTH) + ";";
+    std::unique_lock lock(outputMutex);
+    std::string buffer;
+    buffer = "WIDTH:" + std::to_string(WIDTH) + ";";
     send(socketfd, buffer.c_str(), buffer.length(), 0);
     buffer = "HEIGHT:" + std::to_string(HEIGHT) + ";";
     send(socketfd, buffer.c_str(), buffer.length(), 0);
@@ -514,6 +510,7 @@ bool ServerInavjagaGSPIO::recvReady(int timeout) {
  *       which explains why the mutex is not used for the lock here
  */
 void ClientInavjagaGSPIO::sendReady() {
+    std::unique_lock lock(outputMutex);
     send(socketfd, acceptMessage, 2, 0);
 }
 
@@ -541,9 +538,6 @@ bool InavjagaGSPIO::recvBool(int timeout) const {
         if (int rc = recv(socketfd, inputBuffer, (size_t)2, 0) < 0) {
             std::cerr << "Receiving failed with error " << rc << " (" << errno << ")" << std::endl;
         }
-        #if DEBUG
-        std::cerr << "We received " << inputBuffer << std::endl;
-        #endif
         /// @todo fix, this is dangerous asf
         if (strcmp(InavjagaGSPIO::yesMessage, inputBuffer) == 0) {
             return true;
@@ -555,27 +549,17 @@ bool InavjagaGSPIO::recvBool(int timeout) const {
 }
 
 void InavjagaGSPIO::sendYes() {
+    std::unique_lock lock(outputMutex);
     send(socketfd, InavjagaGSPIO::yesMessage, 2, 0);
 }
 
 void InavjagaGSPIO::sendNo() {
+    std::unique_lock lock(outputMutex);
     send(socketfd, InavjagaGSPIO::noMessage, 2, 0);
 }
 
 bool InavjagaGSPIO::waitYes(int timeout) {
-    char inputBuffer[2] = {0};
-    /// @warning we are not locking the mutex, but where should we do that?
-    std::future<ssize_t> input_ = std::async(recv, socketfd, inputBuffer, (size_t)2, 0);
-    std::future_status status = input_.wait_for(std::chrono::milliseconds(timeout));
-    if (status == std::future_status::ready) {
-        int rc = input_.get();
-        if (rc < 0) return false;
-        /// @todo fix, this is dangerous asf
-        if (strcmp(InavjagaGSPIO::yesMessage, inputBuffer) == 0) {
-            return true;
-        }
-    }
-    return false;
+    return InavjagaGSPIO::recvBool();
 }
 
 bool ServerInavjagaGSPIO::offerCoordinates(const sista::Coordinates& coordinates) const {
