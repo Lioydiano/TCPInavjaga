@@ -83,7 +83,7 @@ public:
     sista::Coordinates recvCoordinates(int timeout=3000) const;
     std::vector<std::shared_ptr<Player>> recvPlayers();
     void sendReady();
-    MoveEvent pollMove(int timeout=1000);
+    MoveEvent pollMove(int timeout=3000);
 };
 
 /**

@@ -55,18 +55,22 @@ MoveEvent InavjagaGSPIO::recvMove() {
      * @note every move is made of one character
      */
     // https://stackoverflow.com/questions/71744538/why-would-one-need-to-use-msg-waitall-flag-instead-of-0-flag-why-to-use-it
+    errno = 0;
+    #if DEBUG
+    std::cerr << "\tTime to receive " << buffer << std::endl;
+    #endif
     int rc = recv(this->socketfd, &buffer, (size_t)(1+1+1+1), 0); // Wait for the null terminator too
     #if DEBUG
-    std::cerr << "Just received " << buffer << std::endl;
+    std::cerr << "\tJust received " << buffer << std::endl;
     #endif
     MoveEvent moveEvent = {INAVJAGA_PLAYER_ID_IGNORE, INAVJAGA_CHAR_MOVE_IGNORE};
     if (rc < 0) {
-        std::string errorBuffer = "Scanning a socket that was expected to be empty gave error code " + std::to_string(rc);
+        std::string errorBuffer = "Scanning a socket that was expected to be empty gave error code " + std::to_string(errno);
         throw std::runtime_error(errorBuffer);
     }
     sscanf(buffer, "%hu;%c", &moveEvent.playerId, &moveEvent.move);
     #if 1
-    std::cerr << "Literally just gotten " << moveEvent.playerId << ", " << moveEvent.move << std::endl;
+    std::cerr << "\tLiterally just gotten " << moveEvent.playerId << ", " << moveEvent.move << std::endl;
     #endif
     return moveEvent;
 }
@@ -177,23 +181,23 @@ MoveEvent ClientInavjagaGSPIO::pollMove(int timeout) {
     if (rc < 0) {
         std::cerr << "poll() failed with code " << rc << " (" << errno << ")" << std::endl;
     }
-    #if DEBUG
-    std::cerr << "At least it is passing through here" << std::endl;
-    #endif
     if (rc > 0) {
-        #if DEBUG
-        std::cerr << "\tMaybe is passing through here" << std::endl;
-        #endif
         if (pollFd.revents & POLLHUP) { // If the server disconnected...
             /// @todo Definitely more handling needed here
             std::cerr << "Game over" << std::endl;
         } else if (pollFd.revents & POLLIN) {
             try {
+                #if DEBUG
+                std::cerr << "Time to receive a move" << std::endl;
+                #endif
                 return this->recvMove();
             } catch (std::exception& e) {
                 std::cerr << e.what() << std::endl;
             }
         }
+        #if DEBUG
+        std::cerr << "\tThe revents are " << pollFd.revents << std::endl;
+        #endif
     }
     return {INAVJAGA_PLAYER_ID_IGNORE,INAVJAGA_CHAR_MOVE_IGNORE};
 }
