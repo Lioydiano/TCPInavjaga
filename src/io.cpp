@@ -79,6 +79,7 @@ MoveEvent InavjagaGSPIO::recvMove() {
  * @param moveEvent The move event to transmit
  */
 void InavjagaGSPIO::sendMove(MoveEvent moveEvent) {
+    std::cerr << "InavjagaGSPIO::sendMove" << std::endl;
     static char buffer[4] = {0};
     snprintf(buffer, 4, "%hu;%c", moveEvent.playerId, moveEvent.move);
     std::unique_lock lock(outputMutex);
@@ -206,6 +207,7 @@ MoveEvent LocalInavjagaIO::getMove(int timeout) {
  * @param moveEvent The move event to send
  */
 void ClientLocalInavjagaIO::sendMove(MoveEvent moveEvent) {
+    std::cerr << "ClientLocalInavjagaGSPIO::sendMove" << std::endl;
     this->server->sendMove(moveEvent);
 }
 
@@ -213,6 +215,7 @@ void ClientLocalInavjagaIO::sendMove(MoveEvent moveEvent) {
  * @param moveEvent The move event to send
  */
 void ServerLocalInavjagaIO::sendMove(MoveEvent moveEvent) {
+    std::cerr << "ServerLocalInavjagaGSPIO::sendMove" << std::endl;
     for (std::shared_ptr<InavjagaGSPIO> gspio : this->neighbors) {
         if (!gspio) continue;
         gspio->sendMove(moveEvent);
@@ -254,8 +257,10 @@ MoveEvent RemoteInavjagaIO::getMove(int timeout) {
  * @param moveEvent The move event to be sent
  */
 void RemoteInavjagaIO::sendMove(MoveEvent moveEvent) {
+    std::cerr << "RemoteInavjagaGSPIO::sendMove" << std::endl;
     for (std::shared_ptr<InavjagaGSPIO> gspio : this->neighbors) {
         if (!gspio) continue;
+        std::cerr << "\tOne " << gspio.get() << std::endl;
         gspio->sendMove(moveEvent);
     }
 }
