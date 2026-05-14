@@ -739,10 +739,14 @@ void spawnEnemies() {
 template<typename IO>
 void input(IO* io) {
     MoveEvent moveEvent = {INAVJAGA_PLAYER_ID_IGNORE, INAVJAGA_CHAR_MOVE_IGNORE};
+    #if DEBUG
+    std::cerr << "Now we ball" << std::endl;
+    ((LocalInavjagaIO*)(io))->sendMove(moveEvent);
+    #endif
     while (moveEvent.move != 'Q') {
         if (end) return;
         moveEvent = io->getMove();
-        #if 1
+        #if DEBUG
         std::cerr << "Gotten a move with " << moveEvent.playerId << ", " << moveEvent.move << std::endl;
         #endif
         if (moveEvent.playerId == INAVJAGA_PLAYER_ID_IGNORE) {

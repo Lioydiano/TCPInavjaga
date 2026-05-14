@@ -82,7 +82,10 @@ void InavjagaGSPIO::sendMove(MoveEvent moveEvent) {
     static char buffer[4] = {0};
     snprintf(buffer, 4, "%hu;%c", moveEvent.playerId, moveEvent.move);
     std::unique_lock lock(outputMutex);
-    send(socketfd, buffer, 4, 0);
+    errno = 0;
+    if (send(socketfd, buffer, 4, 0) < 0 || errno != 0) {
+        std::cerr << "Sending failed with " << errno << std::endl;
+    }
 }
 
 struct pollfd InavjagaGSPIO::pollFds[10] = {0};
@@ -159,13 +162,6 @@ std::pair<size_t, MoveEvent> InavjagaGSPIO::pollMany(
  */
 MoveEvent ClientInavjagaGSPIO::pollMove(int timeout) {
     pollFd.fd = this->socketfd;
-    #if DEBUG
-    char buffer[4] = "1;F";
-    errno = 0;
-    if (int rc = send(this->socketfd, &buffer, 4, 0) < 0) {
-        std::cerr << "send failed with " << errno << std::endl;
-    }
-    #endif
     pollFd.events = POLLIN;
     pollFd.revents = 0;
     errno = 0;
@@ -187,9 +183,6 @@ MoveEvent ClientInavjagaGSPIO::pollMove(int timeout) {
                 std::cerr << e.what() << std::endl;
             }
         }
-        #if DEBUG
-        std::cerr << "\tThe revents are " << pollFd.revents << std::endl;
-        #endif
     }
     return {INAVJAGA_PLAYER_ID_IGNORE,INAVJAGA_CHAR_MOVE_IGNORE};
 }
