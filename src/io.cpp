@@ -12,6 +12,39 @@
 std::mutex InavjagaGSPIO::outputMutex = std::mutex();
 extern std::mutex stderrMutex;
 
+inline bool isSocketAlive(int descriptor) {
+    // Source - https://stackoverflow.com/a/4142038
+    // Posted by Simone, modified by community. See post 'Timeline' for change history
+    // Retrieved 2026-05-15, License - CC BY-SA 3.0
+
+    int error = 0;
+    socklen_t len = sizeof (error);
+    int retval = getsockopt(descriptor, SOL_SOCKET, SO_ERROR, &error, &len);
+
+    if (retval != 0) {
+        /* there was a problem getting the error code */
+        std::unique_lock lock(stderrMutex);
+        fprintf(stderr, "error getting socket error code: %s\n", strerror(retval));
+        return false;
+    }
+    if (error != 0) {
+        /* socket has a non zero error status */
+        std::unique_lock lock(stderrMutex);
+        std::cerr << "isSocketAlive - socket error: " << strerror(error);
+        fprintf(stderr, "\tsocket error: %s\n", strerror(error));
+        return false;
+    }
+    return true;
+}
+
+bool InavjagaGSPIO::isConnectionAlive() {
+    return isSocketAlive(this->socketfd);
+}
+
+bool ClientRemoteInavjagaIO::isChannelAlive() {
+    return this->neighbors[1]->isConnectionAlive();
+}
+
 uint32_t InavjagaGSPIO::recvRandomSeed(int timeout) {
     // https://stackoverflow.com/a/64357776/15888601
     uint32_t seed;
