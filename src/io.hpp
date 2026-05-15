@@ -120,7 +120,7 @@ protected:
     LocalInavjagaIO();
 public:
     MoveEvent getMove(int timeout=3000) override;
-    inline bool isChannelAlive() { return true; }
+    inline bool isChannelAlive() override { return true; }
 };
 
 /** @brief Reads the local moves and communicates them to all clients
@@ -164,7 +164,7 @@ public:
     RemoteInavjagaIO(std::initializer_list<std::shared_ptr<ClientInavjagaGSPIO>>);
     MoveEvent getMove(int timeout = 3000) override; // https://stackoverflow.com/a/9260274/15888601
     void sendMove(MoveEvent) override;
-    bool isChannelAlive() { return true; }
+    bool isChannelAlive() override { return true; }
 };
 
 class ServerRemoteInavjagaIO: public RemoteInavjagaIO {
