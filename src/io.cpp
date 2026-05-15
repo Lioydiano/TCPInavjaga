@@ -711,4 +711,4 @@ ServerRemoteInavjagaIO::ServerRemoteInavjagaIO(
 ClientRemoteInavjagaIO::ClientRemoteInavjagaIO() {}
 ClientRemoteInavjagaIO::ClientRemoteInavjagaIO(
     std::shared_ptr<ClientInavjagaGSPIO> connectionToServer
-): RemoteInavjagaIO({connectionToServer}) {}
+): RemoteInavjagaIO({nullptr, connectionToServer}) {}
