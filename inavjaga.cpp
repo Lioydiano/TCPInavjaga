@@ -195,7 +195,7 @@ int main(int argc, char* argv[]) {
     #endif
 
     spawnInitialEnemies();
-    sista::clearScreen(false);
+    sista::clearScreen(true);
     field->print(border);
 
     LocalInavjagaIO* localIO;
