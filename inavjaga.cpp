@@ -782,6 +782,9 @@ void input(IO* io) {
             continue;
         }
         if (act(moveEvent)) {
+            #if CLIENT
+            if (std::is_same<IO, RemoteInavjagaIO>::value) continue;
+            #endif
             io->sendMove(moveEvent);
         }
     }
