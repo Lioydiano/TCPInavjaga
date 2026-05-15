@@ -9,7 +9,6 @@
 #include <sista/coordinates.hpp>
 #include <sys/types.h>
 #include <netinet/ip.h>
-#include <shared_mutex>
 
 #define INAVJAGA_PLAYER_ID_IGNORE 65535
 #define INAVJAGA_CHAR_MOVE_IGNORE '_'
@@ -29,9 +28,9 @@ private:
      * Confirms the coordinates and sends the Player ID to the client
      */
     void leaseCoordinates(sista::Coordinates, int);
-    static std::vector<struct pollfd> pollFds;
+    static struct pollfd pollFds[10];
 protected:
-    static std::shared_mutex outputMutex;
+    static std::mutex outputMutex;
     static const char acceptMessage[2];
     static const char yesMessage[2];
     static const char noMessage[2];
@@ -53,6 +52,8 @@ public:
 
     MoveEvent recvMove();
     void sendMove(MoveEvent);
+
+    bool isConnectionAlive();
 
     static std::pair<size_t, MoveEvent> pollMany(const std::vector<std::shared_ptr<InavjagaGSPIO>>&, int);
 };
@@ -107,6 +108,7 @@ public:
     virtual ~InavjagaIO();
     virtual MoveEvent getMove(int timeout=3000) = 0; // https://stackoverflow.com/a/9260274/15888601
     virtual void sendMove(MoveEvent) = 0;
+    virtual bool isChannelAlive() = 0;
 };
 
 /** @brief Reads the local moves and communicates them
@@ -118,6 +120,7 @@ protected:
     LocalInavjagaIO();
 public:
     MoveEvent getMove(int timeout=3000) override;
+    inline bool isChannelAlive() { return true; }
 };
 
 /** @brief Reads the local moves and communicates them to all clients
@@ -161,6 +164,7 @@ public:
     RemoteInavjagaIO(std::initializer_list<std::shared_ptr<ClientInavjagaGSPIO>>);
     MoveEvent getMove(int timeout = 3000) override; // https://stackoverflow.com/a/9260274/15888601
     void sendMove(MoveEvent) override;
+    bool isChannelAlive() { return true; }
 };
 
 class ServerRemoteInavjagaIO: public RemoteInavjagaIO {
@@ -174,4 +178,5 @@ protected:
     ClientRemoteInavjagaIO();
 public:
     ClientRemoteInavjagaIO(std::shared_ptr<ClientInavjagaGSPIO>);
+    bool isChannelAlive() override;
 };
