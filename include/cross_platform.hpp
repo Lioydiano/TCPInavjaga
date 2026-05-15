@@ -40,7 +40,7 @@
 
     inline char getch(void) {
         char buf = 0;
-        struct termios old = {0};
+        struct termios old;
         fflush(stdout);
         if(tcgetattr(0, &old) < 0)
             perror("tcsetattr()");
