@@ -77,7 +77,7 @@ public:
 class ClientInavjagaGSPIO: public InavjagaGSPIO {
 public:
     ClientInavjagaGSPIO(int);
-    sista::Coordinates recvCoordinates(int timeout=3000) const;
+    sista::Coordinates recvCoordinates() const;
     std::vector<std::shared_ptr<Player>> recvPlayers();
     void sendReady();
 };

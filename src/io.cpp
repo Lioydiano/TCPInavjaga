@@ -579,7 +579,7 @@ bool ServerInavjagaGSPIO::offerCoordinates(const sista::Coordinates& coordinates
     }
 }
 
-sista::Coordinates ClientInavjagaGSPIO::recvCoordinates(int timeout) const {
+sista::Coordinates ClientInavjagaGSPIO::recvCoordinates() const {
     char buffer[10] = {0};
     int rc = recv(socketfd, &buffer, 10, 0);
     if (rc < 0) {
