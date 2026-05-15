@@ -57,9 +57,10 @@ void bindServerSocketToPort(int sockfd, char* addr, char* portno) {
         std::cerr << "Bound the socket to the port successfully" << std::endl;
     }
     #endif
-    if (int rc = listen(sockfd, 10) < 0) {
+    errno = 0;
+    if (listen(sockfd, 10) < 0) {
         std::unique_lock lock(stderrMutex);
-        std::cerr << "Could not listen on the specified port" << std::endl;
+        std::cerr << "Could not listen on the specified port, failed with " << errno << "=>" << strerror(errno) << std::endl;
     }
     #if DEBUG
     {
