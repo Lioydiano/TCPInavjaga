@@ -54,15 +54,15 @@ uint32_t InavjagaGSPIO::recvRandomSeed(int timeout) {
         std::cerr << "Reading random seed" << std::endl;
     }
     #endif
-    struct pollfd pollFds_[1] = {0};
-    pollFds_[0].fd = this->socketfd;
-    pollFds_[0].events = POLLIN;
-    if (int rc = poll(pollFds_, 1, timeout) < 0) {
+    struct pollfd pollFd_ = {0};
+    pollFd_.fd = this->socketfd;
+    pollFd_.events = POLLIN;
+    if (int rc = poll(&pollFd_, 1, timeout) < 0) {
         std::unique_lock lock(stderrMutex);
         std::cerr << "Polling failed with error " << rc << " (" << errno << ")" << std::endl;
         return -1;
     }
-    if (pollFds_[0].revents & POLLIN) {
+    if (pollFd_.revents & POLLIN) {
         read(socketfd, &seed, sizeof(uint32_t));
         return ntohl(seed);
     }
@@ -120,7 +120,7 @@ void InavjagaGSPIO::sendMove(MoveEvent moveEvent) {
     send(socketfd, buffer, 4, 0);
 }
 
-struct pollfd InavjagaGSPIO::pollFds[10] = {0};
+struct pollfd InavjagaGSPIO::pollFds[10] = {{0}};
 
 /** @brief Polls the InavjagaGSP connections and returns the first one to return
  * @note For the moment we accept at most 9 ios, our cap to the number of clients
