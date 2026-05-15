@@ -31,7 +31,7 @@ private:
     void leaseCoordinates(sista::Coordinates, int);
     static struct pollfd pollFds[10];
 protected:
-    static std::shared_mutex outputMutex;
+    static std::mutex outputMutex;
     static const char acceptMessage[2];
     static const char yesMessage[2];
     static const char noMessage[2];

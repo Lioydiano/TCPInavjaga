@@ -40,7 +40,7 @@ void InavjagaGSPIO::sendRandomSeed(uint32_t seed) {
     }
 }
 
-std::shared_mutex InavjagaGSPIO::outputMutex = std::shared_mutex();
+std::mutex InavjagaGSPIO::outputMutex = std::mutex();
 
 /** @brief Waits for a message from the other end of the channel
  * @throws std::runtime_error when the recv call on the file descriptor fails
@@ -241,7 +241,9 @@ const char InavjagaGSPIO::constantsTermination[3] = "-:";
  * @return Whether the sending was successful
  */
 bool InavjagaGSPIO::sendConstants() {
-    std::string buffer = "WIDTH:" + std::to_string(WIDTH) + ";";
+    std::string buffer;
+    std::unique_lock lock(outputMutex);
+    buffer = "WIDTH:" + std::to_string(WIDTH) + ";";
     send(socketfd, buffer.c_str(), buffer.length(), 0);
     buffer = "HEIGHT:" + std::to_string(HEIGHT) + ";";
     send(socketfd, buffer.c_str(), buffer.length(), 0);
@@ -451,6 +453,7 @@ bool ServerInavjagaGSPIO::recvReady(int timeout) {
  *       which explains why the mutex is not used for the lock here
  */
 void ClientInavjagaGSPIO::sendReady() {
+    std::unique_lock lock(outputMutex);
     send(socketfd, acceptMessage, 2, 0);
 }
 
@@ -492,10 +495,12 @@ bool InavjagaGSPIO::recvBool(int timeout) const {
 }
 
 void InavjagaGSPIO::sendYes() {
+    std::unique_lock lock(outputMutex);
     send(socketfd, InavjagaGSPIO::yesMessage, 2, 0);
 }
 
 void InavjagaGSPIO::sendNo() {
+    std::unique_lock lock(outputMutex);
     send(socketfd, InavjagaGSPIO::noMessage, 2, 0);
 }
 
