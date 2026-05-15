@@ -54,7 +54,7 @@ uint32_t InavjagaGSPIO::recvRandomSeed(int timeout) {
         std::cerr << "Reading random seed" << std::endl;
     }
     #endif
-    struct pollfd pollFd_ = {0};
+    struct pollfd pollFd_ = {0,0,0};
     pollFd_.fd = this->socketfd;
     pollFd_.events = POLLIN;
     if (int rc = poll(&pollFd_, 1, timeout) < 0) {
@@ -120,7 +120,7 @@ void InavjagaGSPIO::sendMove(MoveEvent moveEvent) {
     send(socketfd, buffer, 4, 0);
 }
 
-struct pollfd InavjagaGSPIO::pollFds[10] = {{0}};
+struct pollfd InavjagaGSPIO::pollFds[10] = {{0,0,0}};
 
 /** @brief Polls the InavjagaGSP connections and returns the first one to return
  * @note For the moment we accept at most 9 ios, our cap to the number of clients
@@ -474,7 +474,7 @@ std::map<std::string, std::variant<int, float>> InavjagaGSPIO::recvConstants() {
 
 bool ServerInavjagaGSPIO::recvReady(int timeout) {
     char inputBuffer[2] = {0};
-    struct pollfd pollFd = {0};
+    struct pollfd pollFd = {0,0,0};
     pollFd.fd = this->socketfd;
     pollFd.events = POLLIN;
     pollFd.revents = 0;
@@ -516,7 +516,7 @@ void InavjagaGSPIO::sendCoordinates(const sista::Coordinates& coordinates) const
 
 bool InavjagaGSPIO::recvBool(int timeout) const {
     char inputBuffer[2] = {0};
-    struct pollfd pollFd = {0};
+    struct pollfd pollFd = {0,0,0};
     pollFd.fd = this->socketfd;
     pollFd.events = POLLIN;
     pollFd.revents = 0;

@@ -12,7 +12,7 @@ DEFINEFLAGS:=$(DEFINEFLAGS) -DDEBUG=1
 endif
 
 CXX = g++
-CXXFLAGS = -std=c++17 -Wpedantic -Wall -Wno-narrowing -g
+CXXFLAGS = -std=c++17 -Wpedantic -Wall -Wextra -Wno-narrowing -g
 DEPFLAGS = -MMD -MP
 
 # Set USE_LOCAL_SISTA=1 to compile Sista from vendored sources in include/sista.
