@@ -51,6 +51,11 @@ int main(int argc, char* argv[]) {
     std::ios_base::sync_with_stdio(true);
     sista::resetAnsi(); // Reset the settings
 
+    if (argc < 2) {
+        std::cerr << "The correct format is: ./inavjaga[Server] <ip-address> <tcp-port>" << std::endl;
+        return 1;
+    }
+
     #if SERVER
     field = std::make_shared<sista::SwappableField>(WIDTH, HEIGHT);
     sista::Coordinates spawn = sista::Coordinates(SPAWN_COORDINATES_Y, SPAWN_COORDINATES_X);
