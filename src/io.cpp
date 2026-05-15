@@ -9,35 +9,86 @@
 #include <chrono>
 #include <poll.h>
 
+extern std::mutex stderrMutex;
+
 uint32_t InavjagaGSPIO::recvRandomSeed(int timeout) {
     // https://stackoverflow.com/a/64357776/15888601
     uint32_t seed;
     #if DEBUG
-    std::cerr << "Reading random seed" << std::endl;
+    {
+        std::unique_lock<std::mutex> lock(stderrMutex);
+        std::cerr << "Reading random seed" << std::endl;
+    }
     #endif
     struct pollfd pollFds_[1] = {0};
     pollFds_[0].fd = this->socketfd;
     pollFds_[0].events = POLLIN;
     if (int rc = poll(pollFds_, 1, timeout) < 0) {
-        std::cerr << "Polling failed with error " << rc << " (" << errno << ")" << std::endl;
+        {
+            std::unique_lock<std::mutex> lock(stderrMutex);
+            std::cerr << "Polling failed with error " << rc << " (" << errno << ")" << std::endl;
+        }
         return -1;
     }
     if (pollFds_[0].revents & POLLIN) {
         read(socketfd, &seed, sizeof(uint32_t));
         return ntohl(seed);
     }
-    std::cerr << "No message ready yet" << std::endl;
+    {
+        std::unique_lock<std::mutex> lock(stderrMutex);
+        std::cerr << "No message ready yet" << std::endl;
+    }
     return -1;
 }
 
 void InavjagaGSPIO::sendRandomSeed(uint32_t seed) {
     // https://stackoverflow.com/a/64357776/15888601
     uint32_t converted = htonl(seed);
-    std::cerr << converted << " is our integer and its size is " << sizeof(uint32_t) << std::endl;
-    std::unique_lock lock(outputMutex);
+    {
+        std::unique_lock<std::mutex> lock(stderrMutex);
+        std::cerr << converted << " is our integer and its size is " << sizeof(uint32_t) << std::endl;
+    }
+    std::unique_lock<std::shared_mutex> lock(outputMutex);
     if (ssize_t rc = write(this->socketfd, &converted, sizeof(uint32_t)) < 0) {
+        std::unique_lock<std::mutex> lock(stderrMutex);
         std::cerr << "Failed to send random seed with error " << rc << "(" << errno << ")" << std::endl;
     }
+}
+
+bool InavjagaGSPIO::isSocketOpen() {
+    // https://stackoverflow.com/a/12411808/15888601
+    int errorCode = 0;
+    socklen_t errorCodeSize = sizeof(errorCode);
+    {
+        std::unique_lock<std::mutex> lock(stderrMutex);
+        std::cerr << "getsockopt(this->socketfd, SOL_SOCKET, SO_ERROR, &errorCode, &errorCodeSize)" << std::endl;
+    }
+    int rc = getsockopt(this->socketfd, SOL_SOCKET, SO_ERROR, &errorCode, &errorCodeSize);
+    {
+        std::unique_lock<std::mutex> lock(stderrMutex);
+        std::cerr << "\tgetsockopt is finished with " << errorCode << std::endl;
+    }
+    if (rc != 0) throw std::runtime_error("Could not get socket option");
+    return errorCode == 0;
+}
+
+bool ServerLocalInavjagaIO::isConnected() {
+    std::cerr << "Sussy ServerLocalInavjagaIO::isConnected" << std::endl;
+    return false;
+}
+
+bool RemoteInavjagaIO::isConnected() {
+    std::cerr << "Sussy RemoteInavjagaIO::isConnected" << std::endl;
+    return false;
+}
+
+bool LocalInavjagaIO::isConnected() {
+    std::cerr << "Sussy LocalInavjagaIO::isConnected" << std::endl;
+    return false;
+}
+
+bool ClientLocalInavjagaIO::isConnected() {
+    return this->server->isSocketOpen();
 }
 
 std::shared_mutex InavjagaGSPIO::outputMutex = std::shared_mutex();
@@ -69,7 +120,7 @@ MoveEvent InavjagaGSPIO::recvMove() {
         throw std::runtime_error(errorBuffer);
     }
     sscanf(buffer, "%hu;%c", &moveEvent.playerId, &moveEvent.move);
-    #if 1
+    #if DEBUG
     std::cerr << "\tLiterally just gotten " << moveEvent.playerId << ", " << moveEvent.move << std::endl;
     #endif
     return moveEvent;
@@ -82,9 +133,10 @@ void InavjagaGSPIO::sendMove(MoveEvent moveEvent) {
     std::cerr << "InavjagaGSPIO::sendMove" << std::endl;
     static char buffer[4] = {0};
     snprintf(buffer, 4, "%hu;%c", moveEvent.playerId, moveEvent.move);
-    std::unique_lock lock(outputMutex);
+    std::unique_lock<std::shared_mutex> lock(outputMutex);
     errno = 0;
     if (send(socketfd, buffer, 4, 0) < 0 || errno != 0) {
+        std::unique_lock<std::mutex> lock(stderrMutex);
         std::cerr << "Sending failed with " << errno << std::endl;
     }
 }
@@ -162,6 +214,7 @@ std::pair<size_t, MoveEvent> InavjagaGSPIO::pollMany(
  * @returns The move event received from the source
  */
 MoveEvent ClientInavjagaGSPIO::pollMove(int timeout) {
+    struct pollfd pollFd = {0};
     pollFd.fd = this->socketfd;
     pollFd.events = POLLIN;
     pollFd.revents = 0;
@@ -170,6 +223,8 @@ MoveEvent ClientInavjagaGSPIO::pollMove(int timeout) {
     if (rc < 0) {
         std::cerr << "poll() failed with code " << rc << " (" << errno << ")" << std::endl;
     }
+    bool b = this->isSocketOpen();
+    std::cerr << "this->isSocketOpen() = " << b << std::endl;
     if (rc > 0) {
         if (pollFd.revents & POLLHUP) { // If the server disconnected...
             /// @todo Definitely more handling needed here
@@ -267,7 +322,6 @@ void RemoteInavjagaIO::sendMove(MoveEvent moveEvent) {
 
 ClientInavjagaGSPIO::ClientInavjagaGSPIO(int sockfd) {
     this->socketfd = sockfd;
-    this->pollFd = {0};
 }
 TCPClientInavjagaGSPIO::TCPClientInavjagaGSPIO(int sockfd): ClientInavjagaGSPIO(sockfd) {}
 
@@ -302,7 +356,7 @@ const char InavjagaGSPIO::constantsTermination[3] = "-:";
  * @return Whether the sending was successful
  */
 bool InavjagaGSPIO::sendConstants() {
-    std::unique_lock lock(outputMutex);
+    std::unique_lock<std::shared_mutex> lock(outputMutex);
     std::string buffer;
     buffer = "WIDTH:" + std::to_string(WIDTH) + ";";
     send(socketfd, buffer.c_str(), buffer.length(), 0);
@@ -508,7 +562,7 @@ bool ServerInavjagaGSPIO::recvReady(int timeout) {
  *       which explains why the mutex is not used for the lock here
  */
 void ClientInavjagaGSPIO::sendReady() {
-    std::unique_lock lock(outputMutex);
+    std::unique_lock<std::shared_mutex> lock(outputMutex);
     send(socketfd, acceptMessage, 2, 0);
 }
 
@@ -516,7 +570,7 @@ void InavjagaGSPIO::sendCoordinates(const sista::Coordinates& coordinates) const
     std::string str = "{" + std::to_string(coordinates.y) + "," + std::to_string(coordinates.x) + "}";
     char buffer[10] = {0};
     std::copy(str.c_str(), str.c_str() + str.length(), buffer);
-    std::unique_lock lock(outputMutex);
+    std::unique_lock<std::shared_mutex> lock(outputMutex);
     send(socketfd, buffer, 10, 0);
 }
 
@@ -547,12 +601,12 @@ bool InavjagaGSPIO::recvBool(int timeout) const {
 }
 
 void InavjagaGSPIO::sendYes() {
-    std::unique_lock lock(outputMutex);
+    std::unique_lock<std::shared_mutex> lock(outputMutex);
     send(socketfd, InavjagaGSPIO::yesMessage, 2, 0);
 }
 
 void InavjagaGSPIO::sendNo() {
-    std::unique_lock lock(outputMutex);
+    std::unique_lock<std::shared_mutex> lock(outputMutex);
     send(socketfd, InavjagaGSPIO::noMessage, 2, 0);
 }
 
@@ -592,14 +646,14 @@ sista::Coordinates ClientInavjagaGSPIO::recvCoordinates(int timeout) const {
 void ServerInavjagaGSPIO::sendPlayers(std::vector<std::shared_ptr<Player>>& players, player_id_t current) {
     char playerIdConverted = '0' + current;
     {
-        std::unique_lock lock(outputMutex);
+        std::unique_lock<std::shared_mutex> lock(outputMutex);
         send(socketfd, &playerIdConverted, 1, 0);
     }
     char identifier = '0';
     for (size_t i = 0; i < players.size(); i++) {
         if (players[i] == nullptr) continue;
         {
-            std::unique_lock lock(outputMutex);
+            std::unique_lock<std::shared_mutex> lock(outputMutex);
             send(socketfd, &identifier, 1, 0);
         }
         this->sendCoordinates(players[i]->getCoordinates());
@@ -607,7 +661,7 @@ void ServerInavjagaGSPIO::sendPlayers(std::vector<std::shared_ptr<Player>>& play
     }
     {
         identifier = InavjagaGSPIO::constantsTermination[0];
-        std::unique_lock lock(outputMutex);
+        std::unique_lock<std::shared_mutex> lock(outputMutex);
         send(socketfd, &identifier, 1, 0);
     }
 }

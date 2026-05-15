@@ -46,6 +46,7 @@ public:
     void sendNo();
     void sendYes();
     bool waitYes(int timeout=1000);
+    bool isSocketOpen();
 
     uint32_t recvRandomSeed(int timeout=10000);
     void sendRandomSeed(uint32_t);
@@ -76,8 +77,6 @@ public:
  * @note receives ACT, sends OWN_ACT
  */
 class ClientInavjagaGSPIO: public InavjagaGSPIO {
-private:
-    struct pollfd pollFd;
 public:
     ClientInavjagaGSPIO(int);
     sista::Coordinates recvCoordinates(int timeout=3000) const;
@@ -110,6 +109,7 @@ protected:
     InavjagaIO();
 public:
     virtual ~InavjagaIO();
+    virtual bool isConnected() = 0;
     virtual MoveEvent getMove(int timeout=3000) = 0; // https://stackoverflow.com/a/9260274/15888601
     virtual void sendMove(MoveEvent) = 0;
 };
@@ -123,6 +123,7 @@ protected:
     LocalInavjagaIO();
 public:
     MoveEvent getMove(int timeout=3000) override;
+    bool isConnected();
 };
 
 /** @brief Reads the local moves and communicates them to all clients
@@ -138,6 +139,7 @@ protected:
 public:
     ServerLocalInavjagaIO(std::vector<std::shared_ptr<ServerInavjagaGSPIO>>&);
     void sendMove(MoveEvent) override;
+    bool isConnected();
 };
 
 /** @brief Reads the local moves and communicates them to the server
@@ -152,6 +154,7 @@ protected:
 public:
     ClientLocalInavjagaIO(std::shared_ptr<ClientInavjagaGSPIO>);
     void sendMove(MoveEvent) override;
+    bool isConnected();
 };
 
 /**
@@ -166,6 +169,7 @@ public:
     RemoteInavjagaIO(std::initializer_list<std::shared_ptr<ClientInavjagaGSPIO>>);
     MoveEvent getMove(int timeout = 3000) override; // https://stackoverflow.com/a/9260274/15888601
     void sendMove(MoveEvent) override;
+    bool isConnected();
 };
 
 class ServerRemoteInavjagaIO: public RemoteInavjagaIO {

@@ -35,6 +35,7 @@ sista::Border border(
     }
 );
 std::mutex streamMutex;
+std::mutex stderrMutex;
 bool speedup = false;
 bool pause_ = false;
 int lastDeathFrame = 0;
@@ -46,7 +47,8 @@ int main(int argc, char* argv[]) {
     #ifdef __APPLE__
         term_echooff();
     #endif
-    std::ios_base::sync_with_stdio(false);
+    /// @warning I changed this one
+    std::ios_base::sync_with_stdio(true);
     sista::resetAnsi(); // Reset the settings
 
     #if SERVER
@@ -101,6 +103,10 @@ int main(int argc, char* argv[]) {
     #endif
     #endif
     rng.seed(seed);
+
+    #if CLIENT
+    std::cerr << "connectionToServer->isSocketOpen() = " << connectionToServer->isSocketOpen() << std::endl;
+    #endif
 
     #if SERVER
     for (std::shared_ptr<ServerInavjagaGSPIO> clientConnection : clientConnections) {
@@ -165,6 +171,9 @@ int main(int argc, char* argv[]) {
     }
     connectionToServer->sendReady();
     #endif
+    #if CLIENT
+    std::cerr << "A connectionToServer->isSocketOpen() = " << connectionToServer->isSocketOpen() << std::endl;
+    #endif
 
     spawnInitialEnemies();
     sista::clearScreen(true);
@@ -179,8 +188,20 @@ int main(int argc, char* argv[]) {
     localIO = new ServerLocalInavjagaIO(clientConnections);
     remoteIO = new ServerRemoteInavjagaIO(clientConnections);
     #endif
+    #if CLIENT
+    std::cerr << "((ClientLocalInavjagaIO*)localIO)->isConnected() = " << ((ClientLocalInavjagaIO*)localIO)->isConnected() << std::endl;
+    #endif
+
     std::thread localInputThread(input<LocalInavjagaIO>, localIO);
     std::thread remoteInputThread(input<RemoteInavjagaIO>, remoteIO);
+
+    #if CLIENT
+    {
+        std::unique_lock<std::mutex> lock(stderrMutex);
+        std::cerr << "((ClientLocalInavjagaIO*)localIO)->isConnected() = "
+                  << ((ClientLocalInavjagaIO*)localIO)->isConnected() << std::endl;
+    }
+    #endif
     for (int i=0; !end; i++) {
         while (pause_) {
             std::this_thread::sleep_for(std::chrono::milliseconds(100));
@@ -329,6 +350,7 @@ int main(int argc, char* argv[]) {
         #if DEBUG
         auto stop = std::chrono::high_resolution_clock::now();
         std::chrono::duration<double> delta = stop - start;
+        std::unique_lock<std::mutex> lock(stderrMutex);
         std::cerr << "Frame number " << i << " took " << delta.count() * 1000 << "ms" << std::endl;
         #endif
     }
@@ -738,20 +760,18 @@ void spawnEnemies() {
  */
 template<typename IO>
 void input(IO* io) {
-    #if CLIENT
-    std::cerr << "Now we ball" << std::endl;
     MoveEvent moveEvent = {1, 'S'};
-    #elif SERVER
-    std::cerr << "Now we ball" << std::endl;
-    MoveEvent moveEvent = {0, 'F'};
-    #endif
-    #if DEBUG
-    io->sendMove(moveEvent);
+    #if CLIENT
+    if (std::is_same<IO, ClientLocalInavjagaIO>::value) {
+        std::unique_lock<std::mutex> lock(stderrMutex);
+        std::cerr << io->isConnected() << std::endl;
+    }
     #endif
     while (moveEvent.move != 'Q') {
         if (end) return;
         moveEvent = io->getMove();
         #if DEBUG
+        std::unique_lock<std::mutex> lock(stderrMutex);
         std::cerr << "Gotten a move with " << moveEvent.playerId << ", " << moveEvent.move << std::endl;
         #endif
         if (moveEvent.playerId == INAVJAGA_PLAYER_ID_IGNORE) {
@@ -761,7 +781,16 @@ void input(IO* io) {
         if (moveEvent.move == INAVJAGA_CHAR_MOVE_IGNORE) {
             continue;
         }
+        #if CLIENT
+        {
+            std::unique_lock<std::mutex> lock(stderrMutex);
+            std::cerr << "The client just got to act" << std::endl;
+        }
+        #endif
         if (act(moveEvent)) {
+            #if CLIENT // The client doesn't need to send the moves further
+            if (std::is_same<IO, RemoteInavjagaIO>::value) continue;
+            #endif
             io->sendMove(moveEvent);
         }
     }
@@ -848,6 +877,7 @@ bool act(char input_) {
 }
 
 void printEndInformation(EndReason endReason) {
+    std::unique_lock<std::mutex> lock(streamMutex);
     cursor.goTo(HEIGHT, WIDTH + 10);
     
     sista::resetAnsi();
@@ -986,7 +1016,10 @@ sista::Coordinates negotiateCoordinates(std::weak_ptr<sista::SwappableField> fie
             candidate = {y, x};
             if (field_.lock()->isFree(candidate)) {
                 #if DEBUG
-                std::cerr << "Offering {" << y << ", " << x << "}" << std::endl;
+                {
+                    std::unique_lock<std::mutex> lock(stderrMutex);
+                    std::cerr << "Offering {" << y << ", " << x << "}" << std::endl;
+                }
                 #endif
                 if (client->offerCoordinates(candidate)) {
                     return candidate;
