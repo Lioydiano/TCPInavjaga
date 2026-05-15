@@ -12,6 +12,7 @@ DEFINEFLAGS:=$(DEFINEFLAGS) -DDEBUG=1
 endif
 
 CXX = g++
+# -Weverything -Wno-c++98-compat -Wno-old-style-cast could be added
 CXXFLAGS = -std=c++17 -Wpedantic -Wall -Wextra -Wno-narrowing -g
 DEPFLAGS = -MMD -MP
 
