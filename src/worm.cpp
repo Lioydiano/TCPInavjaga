@@ -113,7 +113,7 @@ void Worm::move() {
         field->addPrintPawn(neck);
         body.push_back(neck);
         // Consider that we added a body piece, so we need to ensure it does not grow too much
-        if (body.size() > WORM_LENGTH) {
+        if (body.size() > (unsigned long)WORM_LENGTH) {
             auto tail_ptr = body.front();
             WormBody* tail = tail_ptr.get();
             sista::Coordinates drop = tail->getCoordinates();
