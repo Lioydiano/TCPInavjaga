@@ -145,6 +145,7 @@ void Worm::move() {
                     ((Worm*)entity)->collided = true;
                 }
                 ((Worm*)entity)->takeHit();
+                break;
             case Type::PORTAL:
                 this->turn(randomTurnDirection());
                 break;

@@ -163,6 +163,7 @@ bool Archer::move(Direction direction) {
         switch (entity->type) {
             case Type::MINE:
                 ((Mine*)entity)->trigger();
+                [[fallthrough]];
             default:
                 return false;
         }
