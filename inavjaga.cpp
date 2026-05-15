@@ -47,7 +47,8 @@ int main(int argc, char* argv[]) {
     #ifdef __APPLE__
         term_echooff();
     #endif
-    std::ios_base::sync_with_stdio(false);
+    /// @warning I changed this one
+    std::ios_base::sync_with_stdio(true);
     sista::resetAnsi(); // Reset the settings
 
     #if SERVER
