@@ -9,7 +9,6 @@
 #include <sista/coordinates.hpp>
 #include <sys/types.h>
 #include <netinet/ip.h>
-#include <shared_mutex>
 
 #define INAVJAGA_PLAYER_ID_IGNORE 65535
 #define INAVJAGA_CHAR_MOVE_IGNORE '_'

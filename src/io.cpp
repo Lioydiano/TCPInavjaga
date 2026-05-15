@@ -9,16 +9,23 @@
 #include <chrono>
 #include <poll.h>
 
+std::mutex InavjagaGSPIO::outputMutex = std::mutex();
+extern std::mutex stderrMutex;
+
 uint32_t InavjagaGSPIO::recvRandomSeed(int timeout) {
     // https://stackoverflow.com/a/64357776/15888601
     uint32_t seed;
     #if DEBUG
-    std::cerr << "Reading random seed" << std::endl;
+    {
+        std::unique_lock lock(stderrMutex);
+        std::cerr << "Reading random seed" << std::endl;
+    }
     #endif
     struct pollfd pollFds_[1] = {0};
     pollFds_[0].fd = this->socketfd;
     pollFds_[0].events = POLLIN;
     if (int rc = poll(pollFds_, 1, timeout) < 0) {
+        std::unique_lock lock(stderrMutex);
         std::cerr << "Polling failed with error " << rc << " (" << errno << ")" << std::endl;
         return -1;
     }
@@ -26,21 +33,26 @@ uint32_t InavjagaGSPIO::recvRandomSeed(int timeout) {
         read(socketfd, &seed, sizeof(uint32_t));
         return ntohl(seed);
     }
-    std::cerr << "No message ready yet" << std::endl;
+    {
+        std::unique_lock lock(stderrMutex);
+        std::cerr << "No message ready yet" << std::endl;
+    }
     return -1;
 }
 
 void InavjagaGSPIO::sendRandomSeed(uint32_t seed) {
     // https://stackoverflow.com/a/64357776/15888601
     uint32_t converted = htonl(seed);
-    std::cerr << converted << " is our integer and its size is " << sizeof(uint32_t) << std::endl;
+    {
+        std::unique_lock lock(stderrMutex);
+        std::cerr << converted << " is our integer and its size is " << sizeof(uint32_t) << std::endl;
+    }
     std::unique_lock lock(outputMutex);
     if (ssize_t rc = write(this->socketfd, &converted, sizeof(uint32_t)) < 0) {
+        std::unique_lock lock(stderrMutex);
         std::cerr << "Failed to send random seed with error " << rc << "(" << errno << ")" << std::endl;
     }
 }
-
-std::mutex InavjagaGSPIO::outputMutex = std::mutex();
 
 /** @brief Waits for a message from the other end of the channel
  * @throws std::runtime_error when the recv call on the file descriptor fails
@@ -96,10 +108,14 @@ std::pair<size_t, MoveEvent> InavjagaGSPIO::pollMany(
         errno = 0;
         int rc = poll(&(pollFds[1]), iosLen - 1, timeout);
         #if DEBUG
-        std::cerr << &(pollFds[1]) << " for a __nfds=" << iosLen - 1 << std::endl;
+        {
+            std::unique_lock lock(stderrMutex);
+            std::cerr << &(pollFds[1]) << " for a __nfds=" << iosLen - 1 << std::endl;
+        }
         #endif
         if (rc <= 0) {
             if (rc < 0) {
+                std::unique_lock lock(stderrMutex);
                 std::cerr << "poll() failed with code " << rc << std::endl;
                 /** @note We should definitely log this,
                  * but it can fail without throwing for now,
@@ -122,6 +138,7 @@ std::pair<size_t, MoveEvent> InavjagaGSPIO::pollMany(
                     MoveEvent moveEvent = ios[i]->recvMove();
                     return std::make_pair(i, moveEvent);
                 } catch (std::exception& e) {
+                    std::unique_lock lock(stderrMutex);
                     std::cerr << e.what() << std::endl;
                     /** @note We should definitely log this,
                      * but it can fail without throwing for now,

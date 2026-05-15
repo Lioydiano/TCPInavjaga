@@ -34,7 +34,8 @@ sista::Border border(
         sista::Attribute::BRIGHT
     }
 );
-std::mutex streamMutex;
+std::mutex streamMutex = std::mutex();
+std::mutex stderrMutex = std::mutex();
 bool speedup = false;
 bool pause_ = false;
 int lastDeathFrame = 0;
@@ -70,9 +71,15 @@ int main(int argc, char* argv[]) {
     int clientSocket = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
     std::shared_ptr<ClientInavjagaGSPIO> connectionToServer = connectClientToServer(clientSocket, argv[1], argv[2]);
     #elif SERVER
-    std::cerr << "Before creating the socket" << std::endl;
+    {
+        std::unique_lock lock(stderrMutex);
+        std::cerr << "Before creating the socket" << std::endl;
+    }
     int serverSocket = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
-    std::cerr << "After creating the socket" << std::endl;
+    {
+        std::unique_lock lock(stderrMutex);
+        std::cerr << "After creating the socket" << std::endl;
+    }
     bindServerSocketToPort(serverSocket, argv[1], argv[2]);
     std::vector<std::shared_ptr<ServerInavjagaGSPIO>> clientConnections = waitForConnections(serverSocket);
     #endif
@@ -81,7 +88,10 @@ int main(int argc, char* argv[]) {
     #if SERVER
     uint32_t seed = randomDevice();
     #if DEBUG
-    std::cerr << "The seed is " << seed << std::endl;
+    {
+        std::unique_lock lock(stderrMutex);
+        std::cerr << "The seed is " << seed << std::endl;
+    }
     #endif
     for (std::shared_ptr<ServerInavjagaGSPIO> clientConnection : clientConnections) {
         if (clientConnection == nullptr) continue;
@@ -90,14 +100,20 @@ int main(int argc, char* argv[]) {
     for (std::shared_ptr<ServerInavjagaGSPIO> clientConnection : clientConnections) {
         if (clientConnection == nullptr) continue;
         if (!clientConnection->waitYes()) {
-            std::cerr << "No acknowledgment received from client " << clientConnection.get();
+            {
+                std::unique_lock lock(stderrMutex);
+                std::cerr << "No acknowledgment received from client " << clientConnection.get();
+            }
         }
     }
     #elif CLIENT
     uint32_t seed = connectionToServer->recvRandomSeed();
     connectionToServer->sendYes();
     #if DEBUG
-    std::cerr << "Random seed is " << seed << std::endl;
+    {
+        std::unique_lock lock(stderrMutex);
+        std::cerr << "Random seed is " << seed << std::endl;
+    }
     #endif
     #endif
     rng.seed(seed);
@@ -119,11 +135,17 @@ int main(int argc, char* argv[]) {
     std::vector<player_id_t> nonReady;
     for (size_t i = 0; i < clientConnections.size(); i++) {
         #if DEBUG
-        std::cerr << "Connection number " << i << " is " << clientConnections[i].get() << std::endl;
+        {
+            std::unique_lock lock(stderrMutex);
+            std::cerr << "Connection number " << i << " is " << clientConnections[i].get() << std::endl;
+        }
         #endif
         if (clientConnections[i] == nullptr) continue;
         #if DEBUG
-        std::cerr << "Player number " << i << " is " << Player::players[i]->getCoordinates().x << std::endl;
+        {
+            std::unique_lock lock(stderrMutex);
+            std::cerr << "Player number " << i << " is " << Player::players[i]->getCoordinates().x << std::endl;
+        }
         #endif
         if (!clientConnections[i]->recvReady()) {
             Player::players[i]->connected = false;
@@ -153,12 +175,18 @@ int main(int argc, char* argv[]) {
     for (size_t i = 0; i < Player::players.size(); i++) {
         if (Player::players[i] == nullptr) continue;
         #if DEBUG
-        std::cerr << "Processing player " << i << " with identifier " << Player::players[i]->id << std::endl;
+        {
+            std::unique_lock lock(stderrMutex);
+            std::cerr << "Processing player " << i << " with identifier " << Player::players[i]->id << std::endl;
+        }
         #endif
         if (i != Player::localPlayerId) {
             #if DEBUG
-            std::cerr << "Consider that the local player ID is " << Player::localPlayerId << std::endl;
-            std::cerr << "Added to players, will try to insert at {y," << Player::players[i]->getCoordinates().x << std::endl;
+            {
+                std::unique_lock lock(stderrMutex);
+                std::cerr << "Consider that the local player ID is " << Player::localPlayerId << std::endl;
+                std::cerr << "Added to players, will try to insert at {y," << Player::players[i]->getCoordinates().x << std::endl;
+            }
             #endif
             field->addPawn(Player::players[i]);
         }
@@ -329,7 +357,10 @@ int main(int argc, char* argv[]) {
         #if DEBUG
         auto stop = std::chrono::high_resolution_clock::now();
         std::chrono::duration<double> delta = stop - start;
-        std::cerr << "Frame number " << i << " took " << delta.count() * 1000 << "ms" << std::endl;
+        {
+            std::unique_lock stderrLock(stderrMutex);
+            std::cerr << "Frame number " << i << " took " << delta.count() * 1000 << "ms" << std::endl;
+        }
         #endif
     }
 
@@ -974,7 +1005,10 @@ sista::Coordinates negotiateCoordinates(std::weak_ptr<sista::SwappableField> fie
             candidate = {y, x};
             if (field_.lock()->isFree(candidate)) {
                 #if DEBUG
-                std::cerr << "Offering {" << y << ", " << x << "}" << std::endl;
+                {
+                    std::unique_lock lock(stderrMutex);
+                    std::cerr << "Offering {" << y << ", " << x << "}" << std::endl;
+                }
                 #endif
                 if (client->offerCoordinates(candidate)) {
                     return candidate;

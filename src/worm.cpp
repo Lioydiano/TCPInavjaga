@@ -39,9 +39,6 @@ WormBody::WormBody(sista::Coordinates coordinates, Direction direction) : Entity
 }
 void WormBody::die() {
     sista::Coordinates drop = this->coordinates;
-    #if DEBUG
-    std::cerr << "WormBody::die() called for " << this << " at {" << drop.y << ", " << drop.x << "}" << std::endl;
-    #endif
     // Free the pawn's coordinates first so we can place a chest there
     [[maybe_unused]] auto keepAlive = Entity::keepAliveFrom(WormBody::wormBodies, this);
     field->erasePawn(this);
@@ -120,9 +117,6 @@ void Worm::move() {
             auto tail_ptr = body.front();
             WormBody* tail = tail_ptr.get();
             sista::Coordinates drop = tail->getCoordinates();
-            #if DEBUG
-            std::cerr << "In Worm::move() deleting the tail piece " << this << " at {" << drop.y << ", " << drop.x << "}" << std::endl;
-            #endif
             field->erasePawn(tail);
             if (clayRelease(rng)) {
                 auto c = std::make_shared<Chest>(drop, Inventory{1,0,0});
