@@ -251,9 +251,11 @@ MoveEvent RemoteInavjagaIO::getMove(int timeout) {
  * @param moveEvent The move event to be sent
  */
 void RemoteInavjagaIO::sendMove(MoveEvent moveEvent) {
-    for (std::shared_ptr<InavjagaGSPIO> gspio : this->neighbors) {
-        if (!gspio) continue;
-        gspio->sendMove(moveEvent);
+    for (size_t i = 1; i < this->neighbors.size(); i++) {
+        if (!this->neighbors[i]) continue;
+        if (i != moveEvent.playerId) {
+            this->neighbors[i]->sendMove(moveEvent);
+        }
     }
 }
 
