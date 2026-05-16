@@ -131,6 +131,7 @@ int main(int argc, char* argv[]) {
             Player::players.push_back(std::make_shared<Player>(spawn_client));
             Player::players.back()->id = Player::players.size() - 1;
             Player::players.back()->respawnCoordinates = spawn_client;
+            field->addPawn(Player::players.back());
         }
     }
     for (size_t i = 0; i < clientConnections.size(); i++) {
@@ -158,6 +159,9 @@ int main(int argc, char* argv[]) {
             nonReady.push_back(i);
         }
     }
+    for (size_t i = 0; i < nonReady.size(); i++) {
+        field->removePawn(Player::players[nonReady[i]].get());
+    }
     for (size_t i = 1; i < Player::players.size(); i++) {
         if (!Player::players[i]->connected) {
             for (size_t j = 0; j < clientConnections.size(); j++) {
@@ -166,7 +170,6 @@ int main(int argc, char* argv[]) {
             }
             break;
         }
-        field->addPawn(Player::players[i]);
     }
     #elif CLIENT
     std::map<std::string, std::variant<int, float>> constants = connectionToServer->recvConstants();
