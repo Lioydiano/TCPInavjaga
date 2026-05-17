@@ -105,7 +105,7 @@ int main(int argc, char* argv[]) {
     }
     for (std::shared_ptr<ServerInavjagaGSPIO> clientConnection : clientConnections) {
         if (clientConnection == nullptr) continue;
-        if (!clientConnection->waitYes()) {
+        if (!clientConnection->waitYes(2000)) {
             {
                 std::unique_lock lock(stderrMutex);
                 std::cerr << "No acknowledgment received from client " << clientConnection.get();
@@ -113,7 +113,15 @@ int main(int argc, char* argv[]) {
         }
     }
     #elif CLIENT
-    uint32_t seed = connectionToServer->recvRandomSeed();
+    uint32_t seed;
+    while (true) {
+        try {
+            seed = connectionToServer->recvRandomSeed(1000);
+            break;
+        } catch (std::runtime_error& e) {
+            std::cerr << e.what() << std::endl;
+        }
+    }
     connectionToServer->sendYes();
     #if DEBUG
     {

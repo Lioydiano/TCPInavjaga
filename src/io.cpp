@@ -45,6 +45,10 @@ bool ClientRemoteInavjagaIO::isChannelAlive() {
     return this->neighbors[1]->isConnectionAlive();
 }
 
+/** @brief Receives the random seed from the server
+ * @throws std::runtime_error When polling the socket failed
+ * @throws std::runtime_error When no message is ready yet
+ */
 uint32_t InavjagaGSPIO::recvRandomSeed(int timeout) {
     // https://stackoverflow.com/a/64357776/15888601
     uint32_t seed;
@@ -60,7 +64,7 @@ uint32_t InavjagaGSPIO::recvRandomSeed(int timeout) {
     if (int rc = poll(&pollFd_, 1, timeout) < 0) {
         std::unique_lock lock(stderrMutex);
         std::cerr << "Polling failed with error " << rc << " (" << errno << ")" << std::endl;
-        return -1;
+        throw std::runtime_error("Polling failed");
     }
     if (pollFd_.revents & POLLIN) {
         read(socketfd, &seed, sizeof(uint32_t));
@@ -70,7 +74,7 @@ uint32_t InavjagaGSPIO::recvRandomSeed(int timeout) {
         std::unique_lock lock(stderrMutex);
         std::cerr << "No message ready yet" << std::endl;
     }
-    return -1;
+    throw std::runtime_error("No message ready yet");
 }
 
 void InavjagaGSPIO::sendRandomSeed(uint32_t seed) {
