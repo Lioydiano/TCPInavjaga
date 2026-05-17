@@ -648,6 +648,7 @@ std::vector<std::shared_ptr<Player>> ClientInavjagaGSPIO::recvPlayers() {
         players[identifier - '0']->respawnCoordinates = coordinates;
         players[identifier - '0']->mode = Player::Mode::BULLET;
         if (identifier - '0' == Player::localPlayerId) {
+            Player::localPlayer->setSettings(Player::localPlayerStyle);
             players[identifier - '0'] = Player::localPlayer;
         }
     }
