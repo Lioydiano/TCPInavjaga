@@ -61,6 +61,7 @@ int main(int argc, char* argv[]) {
     sista::Coordinates spawn = sista::Coordinates(SPAWN_COORDINATES_Y, SPAWN_COORDINATES_X);
     Player::localPlayer = std::make_shared<Player>(spawn);
     Player::localPlayer->respawnCoordinates = {RESPAWN_COORDINATES_Y, RESPAWN_COORDINATES_X};
+    Player::localPlayer->setSettings(Player::localPlayerStyle);
     Player::localPlayer->mode = Player::Mode::BULLET;
     Player::players.push_back(Player::localPlayer);
     field->addPawn(Player::localPlayer);

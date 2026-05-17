@@ -120,6 +120,11 @@ void Player::shoot(Direction direction) {
     }
 }
 sista::ANSISettings Player::playerStyle = {
+    sista::ForegroundColor::YELLOW,
+    sista::BackgroundColor::BLACK,
+    sista::Attribute::BRIGHT
+};
+sista::ANSISettings Player::localPlayerStyle = {
     sista::ForegroundColor::RED,
     sista::BackgroundColor::BLACK,
     sista::Attribute::BRIGHT

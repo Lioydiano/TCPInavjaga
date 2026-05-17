@@ -14,6 +14,7 @@ typedef unsigned short player_id_t;
 class Player : public Entity {
 public:
     static sista::ANSISettings playerStyle;
+    static sista::ANSISettings localPlayerStyle;
     static player_id_t localPlayerId;
     static std::shared_ptr<Player> localPlayer;
     static std::vector<std::shared_ptr<Player>> players;
