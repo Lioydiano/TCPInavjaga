@@ -554,6 +554,7 @@ void InavjagaGSPIO::sendNo() {
 }
 
 bool InavjagaGSPIO::waitYes(int timeout) {
+    /// @todo this one absolutely needs rewriting with poll()
     char inputBuffer[2] = {0};
     /// @warning we are not locking the mutex, but where should we do that?
     std::future<ssize_t> input_ = std::async(recv, socketfd, inputBuffer, (size_t)2, 0);
