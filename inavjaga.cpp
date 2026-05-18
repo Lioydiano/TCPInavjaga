@@ -51,8 +51,8 @@ int main(int argc, char* argv[]) {
     std::ios_base::sync_with_stdio(true);
     sista::resetAnsi(); // Reset the settings
 
-    if (argc < 2) {
-        std::cerr << "The correct format is: ./inavjaga[Server] <ip-address> <tcp-port>" << std::endl;
+    if (argc < 3) {
+        std::cerr << "The correct format is: ./inavjaga[Server] <ip-address> <moves-tcp-port> <sync-tcp-port>" << std::endl;
         return 1;
     }
 
@@ -74,20 +74,17 @@ int main(int argc, char* argv[]) {
     #endif // The client instead will get its ID from the server
 
     #if CLIENT
-    int clientSocket = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
-    std::shared_ptr<ClientInavjagaGSPIO> connectionToServer = connectClientToServer(clientSocket, argv[1], argv[2]);
+    std::shared_ptr<ClientInavjagaGSPIO> connectionToServer = connectClientToServer(
+        socket(AF_INET, SOCK_STREAM, IPPROTO_TCP),
+        socket(AF_INET, SOCK_STREAM, IPPROTO_TCP),
+        argv[1], argv[2], argv[3]
+    );
     #elif SERVER
-    {
-        std::unique_lock lock(stderrMutex);
-        std::cerr << "Before creating the socket" << std::endl;
-    }
     int serverSocket = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
-    {
-        std::unique_lock lock(stderrMutex);
-        std::cerr << "After creating the socket" << std::endl;
-    }
+    int serverSyncSocket = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
     bindServerSocketToPort(serverSocket, argv[1], argv[2]);
-    std::vector<std::shared_ptr<ServerInavjagaGSPIO>> clientConnections = waitForConnections(serverSocket);
+    bindServerSocketToPort(serverSyncSocket, argv[1], argv[3]);
+    std::vector<std::shared_ptr<ServerInavjagaGSPIO>> clientConnections = waitForConnections(serverSocket, serverSyncSocket);
     #endif
     // This is just the stage in which we have established connections, but the handshake still misses
 

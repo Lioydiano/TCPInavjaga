@@ -36,6 +36,7 @@ protected:
     static const char noMessage[2];
     static const char constantsTermination[3];
     int socketfd;
+    int syncsocketfd;
 
     bool recvBool(int timeout = 1000) const;
     void sendCoordinates(const sista::Coordinates& coordinates) const;
@@ -63,23 +64,29 @@ public:
  */
 class ServerInavjagaGSPIO: public InavjagaGSPIO {
 protected:
-    void acceptConnection(int);
+    int acceptConnection(int);
 public:
-    ServerInavjagaGSPIO(int);
+    ServerInavjagaGSPIO();
     bool offerCoordinates(const sista::Coordinates&) const;
     void sendPlayers(std::vector<std::shared_ptr<Player>>&, player_id_t);
     bool recvReady(int timeout=1000);
+    void acceptMoveConnection(int);
+    void acceptSyncConnection(int);
 };
 
 /**
  * @note receives ACT, sends OWN_ACT
  */
 class ClientInavjagaGSPIO: public InavjagaGSPIO {
+protected:
+    void connectSocket(int, char*, char*);
 public:
-    ClientInavjagaGSPIO(int);
+    ClientInavjagaGSPIO();
     sista::Coordinates recvCoordinates() const;
     std::vector<std::shared_ptr<Player>> recvPlayers();
     void sendReady();
+    void connectMove(int, char*, char*);
+    void connectSync(int, char*, char*);
 };
 
 /**
