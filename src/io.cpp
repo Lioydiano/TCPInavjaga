@@ -265,18 +265,30 @@ ClientInavjagaGSPIO::ClientInavjagaGSPIO(int sockfd) {
 }
 TCPClientInavjagaGSPIO::TCPClientInavjagaGSPIO(int sockfd): ClientInavjagaGSPIO(sockfd) {}
 
-ServerInavjagaGSPIO::ServerInavjagaGSPIO(int sockfd) {
-    this->acceptConnection(sockfd);
-}
+ServerInavjagaGSPIO::ServerInavjagaGSPIO(int sockfd) {}
 TCPServerInavjagaGSPIO::TCPServerInavjagaGSPIO(int sockfd): ServerInavjagaGSPIO(sockfd) {}
 
-void ServerInavjagaGSPIO::acceptConnection(int sockfd) {
+void ServerInavjagaGSPIO::acceptSyncConnection(int sockfd) {
+    this->syncsocketfd = acceptConnection(sockfd);
+}
+
+void ServerInavjagaGSPIO::acceptMoveConnection(int sockfd) {
+    this->socketfd = acceptConnection(sockfd);
+}
+
+int ServerInavjagaGSPIO::acceptConnection(int sockfd) {
     sockaddr clientAddress;
     socklen_t length = sizeof(clientAddress);
-    this->socketfd = accept(sockfd, &clientAddress, &length);
-    if (this->socketfd < 0) {
+    int newSocket = accept(sockfd, &clientAddress, &length);
+    if (newSocket < 0) {
+        std::unique_lock lock(stderrMutex);
         std::cerr << "Something went wrong with accepting the connection from " << clientAddress.sa_data << std::endl;
     }
+    #if DEBUG
+    std::unique_lock lock(stderrMutex);
+    std::cerr << "Accepted connection from " << clientAddress.sa_data << std::endl;
+    #endif
+    return newSocket;
 }
 
 const char InavjagaGSPIO::acceptMessage[2] = "A";

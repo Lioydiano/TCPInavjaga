@@ -51,8 +51,8 @@ int main(int argc, char* argv[]) {
     std::ios_base::sync_with_stdio(true);
     sista::resetAnsi(); // Reset the settings
 
-    if (argc < 2) {
-        std::cerr << "The correct format is: ./inavjaga[Server] <ip-address> <tcp-port>" << std::endl;
+    if (argc < 3) {
+        std::cerr << "The correct format is: ./inavjaga[Server] <ip-address> <moves-tcp-port> <sync-tcp-port>" << std::endl;
         return 1;
     }
 
@@ -87,6 +87,7 @@ int main(int argc, char* argv[]) {
         std::cerr << "After creating the socket" << std::endl;
     }
     bindServerSocketToPort(serverSocket, argv[1], argv[2]);
+    bindServerSocketToPort(serverSocket, argv[1], argv[3]);
     std::vector<std::shared_ptr<ServerInavjagaGSPIO>> clientConnections = waitForConnections(serverSocket);
     #endif
     // This is just the stage in which we have established connections, but the handshake still misses

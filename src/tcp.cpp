@@ -70,7 +70,7 @@ void bindServerSocketToPort(int sockfd, char* addr, char* portno) {
     #endif
 }
 
-std::vector<std::shared_ptr<ServerInavjagaGSPIO>> waitForConnections(int sockfd) {
+std::vector<std::shared_ptr<ServerInavjagaGSPIO>> waitForConnections(int movesockfd, int syncsockfd) {
     std::vector<std::shared_ptr<ServerInavjagaGSPIO>> collectedConnections = {nullptr};
     std::future stopLobbySignal = std::async(std::launch::async, getch);
     std::chrono::duration zeroTime = std::chrono::microseconds(0);
@@ -83,18 +83,35 @@ std::vector<std::shared_ptr<ServerInavjagaGSPIO>> waitForConnections(int sockfd)
                 stopLobbySignal = std::async(std::launch::async, getch);
             }
         }
-        struct pollfd pollFd;
-        bzero(&pollFd, sizeof(pollfd));
-        pollFd.fd = sockfd;
-        pollFd.events = POLLIN;
-        int returnValue = poll(&pollFd, 1, 100);
-        if (returnValue < 0) {
-            std::unique_lock lock(stderrMutex);
-            std::cerr << "Error polling socket " << sockfd << std::endl;
-        }
-        if (pollFd.revents & POLLIN) {
-            collectedConnections.push_back(std::make_unique<TCPServerInavjagaGSPIO>(sockfd));
+        if (awaitConnection(movesockfd, 100)) {
+            std::unique_ptr<ServerInavjagaGSPIO> gspio = std::make_unique<TCPServerInavjagaGSPIO>(movesockfd);
+            gspio->acceptMoveConnection(movesockfd);
+            if (!awaitConnection(syncsockfd)) {
+                std::unique_lock lock(stderrMutex);
+                std::cerr << "Could not open the connection for synchronization in time on " << syncsockfd << std::endl;
+                continue;
+            }
+            gspio->acceptSyncConnection(syncsockfd);
+            collectedConnections.push_back(std::move(gspio));
         }
     }
     return collectedConnections;
+}
+
+/** @brief Awaits a connection on the specified socket
+ * @param sockfd The socket file descriptor
+ * @param timeout The timeout after which to return false
+ * @retval true When the connection happened
+ * @retval false When the connection timed out
+ * @return Whether the connection happened
+ */
+bool awaitConnection(int sockfd, int timeout) {
+    struct pollfd pollFd = {0,0,0};
+    pollFd.fd = sockfd;
+    pollFd.events = POLLIN;
+    if (poll(&pollFd, 1, timeout) < 0) {
+        std::unique_lock lock(stderrMutex);
+        std::cerr << "Error polling socket " << sockfd << std::endl;
+    }
+    return pollFd.revents & POLLIN;
 }
