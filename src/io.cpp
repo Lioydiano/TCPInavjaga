@@ -263,12 +263,39 @@ void RemoteInavjagaIO::sendMove(MoveEvent moveEvent) {
 ClientInavjagaGSPIO::ClientInavjagaGSPIO() {}
 TCPClientInavjagaGSPIO::TCPClientInavjagaGSPIO(int sockfd): ClientInavjagaGSPIO() {}
 
-void ClientInavjagaGSPIO::connectMove(int sockfd, char* addr, char* portno) {
-    
+void ClientInavjagaGSPIO::connect(int sockfd, char* addr, char* portno) {
+    // https://www.unixguide.net/network/socketfaq/2.16.shtml
+    int flag = 1;
+    int rc = setsockopt(sockfd, IPPROTO_TCP, TCP_NODELAY, &flag, sizeof(int));
+    if (rc < 0) {
+        std::unique_lock lock(stderrMutex);
+        std::cerr << "Setting the TCP_NODELAY to disable Nagle's algorithm failed" << std::endl;
+    }
+    struct sockaddr_in serverAddress;
+    bzero((char*)&serverAddress, sizeof(serverAddress)); // Clearing
+    inet_pton(AF_INET, addr, &(serverAddress.sin_addr)); // https://stackoverflow.com/a/5328184/15888601
+    // inet_aton(AF_INET, addr, &(serverAddress.sin_addr)); // man inet_pton (does it accept less than 3 digits?)
+    serverAddress.sin_port = htons(atoi(portno));
+    serverAddress.sin_family = AF_INET;
+    if (int rc = connect(sockfd, (struct sockaddr*)&serverAddress, sizeof(serverAddress)) < 0) {
+        std::unique_lock lock(stderrMutex);
+        std::cerr << "Could not connect to " << serverAddress.sin_addr.s_addr << ":" << serverAddress.sin_port << '\n';
+        std::cerr << "\tError was " << rc << " (" << errno << ")" << std::endl;
+    }
+    #if DEBUG
+    std::unique_lock lock(stderrMutex);
+    std::cerr << "Connected successfully to the port" << std::endl;
+    #endif
 }
 
 void ClientInavjagaGSPIO::connectMove(int sockfd, char* addr, char* portno) {
-    
+    this->connect(sockfd, addr, portno);
+    this->socketfd = sockfd;
+}
+
+void ClientInavjagaGSPIO::connectSync(int sockfd, char* addr, char* portno) {
+    this->connect(sockfd, addr, portno);
+    this->syncsockfd = sockfd;
 }
 
 ServerInavjagaGSPIO::ServerInavjagaGSPIO() {}

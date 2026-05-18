@@ -74,8 +74,11 @@ int main(int argc, char* argv[]) {
     #endif // The client instead will get its ID from the server
 
     #if CLIENT
-    int clientSocket = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
-    std::shared_ptr<ClientInavjagaGSPIO> connectionToServer = connectClientToServer(clientSocket, argv[1], argv[2]);
+    std::shared_ptr<ClientInavjagaGSPIO> connectionToServer = connectClientToServer(
+        socket(AF_INET, SOCK_STREAM, IPPROTO_TCP),
+        socket(AF_INET, SOCK_STREAM, IPPROTO_TCP),
+        argv[1], argv[2], argv[3]
+    );
     #elif SERVER
     {
         std::unique_lock lock(stderrMutex);

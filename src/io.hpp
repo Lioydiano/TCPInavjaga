@@ -78,6 +78,8 @@ public:
  * @note receives ACT, sends OWN_ACT
  */
 class ClientInavjagaGSPIO: public InavjagaGSPIO {
+protected:
+    void connect(int, char*, char*);
 public:
     ClientInavjagaGSPIO();
     sista::Coordinates recvCoordinates() const;
