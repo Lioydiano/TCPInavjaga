@@ -84,7 +84,7 @@ std::vector<std::shared_ptr<ServerInavjagaGSPIO>> waitForConnections(int movesoc
             }
         }
         if (awaitConnection(movesockfd, 100)) {
-            std::unique_ptr<ServerInavjagaGSPIO> gspio = std::make_unique<TCPServerInavjagaGSPIO>(movesockfd);
+            std::unique_ptr<ServerInavjagaGSPIO> gspio = std::make_unique<TCPServerInavjagaGSPIO>();
             gspio->acceptMoveConnection(movesockfd);
             if (!awaitConnection(syncsockfd)) {
                 std::unique_lock lock(stderrMutex);

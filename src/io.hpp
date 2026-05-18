@@ -66,12 +66,12 @@ class ServerInavjagaGSPIO: public InavjagaGSPIO {
 protected:
     int acceptConnection(int);
 public:
-    ServerInavjagaGSPIO(int);
+    ServerInavjagaGSPIO();
     bool offerCoordinates(const sista::Coordinates&) const;
     void sendPlayers(std::vector<std::shared_ptr<Player>>&, player_id_t);
     bool recvReady(int timeout=1000);
-    void acceptSyncConnection(int);
     void acceptMoveConnection(int);
+    void acceptSyncConnection(int);
 };
 
 /**
@@ -79,10 +79,12 @@ public:
  */
 class ClientInavjagaGSPIO: public InavjagaGSPIO {
 public:
-    ClientInavjagaGSPIO(int);
+    ClientInavjagaGSPIO();
     sista::Coordinates recvCoordinates() const;
     std::vector<std::shared_ptr<Player>> recvPlayers();
     void sendReady();
+    void connectMove(int, char*, char*);
+    void connectSync(int, char*, char*);
 };
 
 /**

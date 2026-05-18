@@ -260,13 +260,19 @@ void RemoteInavjagaIO::sendMove(MoveEvent moveEvent) {
     }
 }
 
-ClientInavjagaGSPIO::ClientInavjagaGSPIO(int sockfd) {
-    this->socketfd = sockfd;
-}
-TCPClientInavjagaGSPIO::TCPClientInavjagaGSPIO(int sockfd): ClientInavjagaGSPIO(sockfd) {}
+ClientInavjagaGSPIO::ClientInavjagaGSPIO() {}
+TCPClientInavjagaGSPIO::TCPClientInavjagaGSPIO(int sockfd): ClientInavjagaGSPIO() {}
 
-ServerInavjagaGSPIO::ServerInavjagaGSPIO(int sockfd) {}
-TCPServerInavjagaGSPIO::TCPServerInavjagaGSPIO(int sockfd): ServerInavjagaGSPIO(sockfd) {}
+void ClientInavjagaGSPIO::connectMove(int sockfd, char* addr, char* portno) {
+    
+}
+
+void ClientInavjagaGSPIO::connectMove(int sockfd, char* addr, char* portno) {
+    
+}
+
+ServerInavjagaGSPIO::ServerInavjagaGSPIO() {}
+TCPServerInavjagaGSPIO::TCPServerInavjagaGSPIO(int sockfd): ServerInavjagaGSPIO() {}
 
 void ServerInavjagaGSPIO::acceptSyncConnection(int sockfd) {
     this->syncsocketfd = acceptConnection(sockfd);
