@@ -79,7 +79,7 @@ public:
  */
 class ClientInavjagaGSPIO: public InavjagaGSPIO {
 protected:
-    void connect(int, char*, char*);
+    void connectSocket(int, char*, char*);
 public:
     ClientInavjagaGSPIO();
     sista::Coordinates recvCoordinates() const;

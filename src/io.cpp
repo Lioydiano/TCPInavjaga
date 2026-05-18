@@ -263,7 +263,7 @@ void RemoteInavjagaIO::sendMove(MoveEvent moveEvent) {
 ClientInavjagaGSPIO::ClientInavjagaGSPIO() {}
 TCPClientInavjagaGSPIO::TCPClientInavjagaGSPIO(int sockfd): ClientInavjagaGSPIO() {}
 
-void ClientInavjagaGSPIO::connect(int sockfd, char* addr, char* portno) {
+void ClientInavjagaGSPIO::connectSocket(int sockfd, char* addr, char* portno) {
     // https://www.unixguide.net/network/socketfaq/2.16.shtml
     int flag = 1;
     int rc = setsockopt(sockfd, IPPROTO_TCP, TCP_NODELAY, &flag, sizeof(int));
@@ -289,13 +289,13 @@ void ClientInavjagaGSPIO::connect(int sockfd, char* addr, char* portno) {
 }
 
 void ClientInavjagaGSPIO::connectMove(int sockfd, char* addr, char* portno) {
-    this->connect(sockfd, addr, portno);
+    this->connectSocket(sockfd, addr, portno);
     this->socketfd = sockfd;
 }
 
 void ClientInavjagaGSPIO::connectSync(int sockfd, char* addr, char* portno) {
-    this->connect(sockfd, addr, portno);
-    this->syncsockfd = sockfd;
+    this->connectSocket(sockfd, addr, portno);
+    this->syncsocketfd = sockfd;
 }
 
 ServerInavjagaGSPIO::ServerInavjagaGSPIO() {}

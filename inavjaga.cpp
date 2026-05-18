@@ -80,18 +80,11 @@ int main(int argc, char* argv[]) {
         argv[1], argv[2], argv[3]
     );
     #elif SERVER
-    {
-        std::unique_lock lock(stderrMutex);
-        std::cerr << "Before creating the socket" << std::endl;
-    }
     int serverSocket = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
-    {
-        std::unique_lock lock(stderrMutex);
-        std::cerr << "After creating the socket" << std::endl;
-    }
+    int serverSyncSocket = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
     bindServerSocketToPort(serverSocket, argv[1], argv[2]);
-    bindServerSocketToPort(serverSocket, argv[1], argv[3]);
-    std::vector<std::shared_ptr<ServerInavjagaGSPIO>> clientConnections = waitForConnections(serverSocket);
+    bindServerSocketToPort(serverSyncSocket, argv[1], argv[3]);
+    std::vector<std::shared_ptr<ServerInavjagaGSPIO>> clientConnections = waitForConnections(serverSocket, serverSyncSocket);
     #endif
     // This is just the stage in which we have established connections, but the handshake still misses
 
