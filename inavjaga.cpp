@@ -37,7 +37,6 @@ sista::Border border(
 std::mutex streamMutex = std::mutex();
 std::mutex stderrMutex = std::mutex();
 bool speedup = false;
-bool pause_ = false;
 int lastDeathFrame = 0;
 bool end = false;
 
@@ -222,36 +221,34 @@ int main(int argc, char* argv[]) {
     #endif
     std::thread localInputThread(input<LocalInavjagaIO>, localIO);
     std::thread remoteInputThread(input<RemoteInavjagaIO>, remoteIO);
+
+    auto start = std::chrono::high_resolution_clock::now();
+    std::chrono::duration<double> delta;
     for (int i=0; !end; i++) {
-        while (pause_) {
-            std::this_thread::sleep_for(std::chrono::milliseconds(100));
-            if (!pause_) {
-                std::lock_guard<std::mutex> lock(streamMutex); // Lock stays until scope ends
-                reprint();
-            } // Reprint after unpausing, just as a tool for allowing resizing
-            if (end) break;
+        std::this_thread::sleep_for(std::chrono::milliseconds(
+            ((int)(FRAME_DURATION / (std::pow(1 + (int)speedup, 2))))
+            - std::chrono::duration_cast<std::chrono::milliseconds>(delta).count()
+        )); // If there is speedup, the waiting time is reduced by a factor of 4
+        #if DEBUG
+        {
+            delta = std::chrono::high_resolution_clock::now() - start;
+            std::unique_lock stderrLock(stderrMutex);
+            std::cerr << "Frame number " << i << " took " 
+                      << std::chrono::duration_cast<std::chrono::milliseconds>(delta).count()
+                      << "ms" << std::endl;
         }
-        for (size_t p = 0; p < Player::players.size(); p++) {
-            if (Player::players[p] == nullptr) continue;
-            if (Player::players[p]->dead) {
-                processDeath(Player::players[p]);
-                Player::players[p]->dead = false;
-                if (p == Player::localPlayerId) {
-                    lastDeathFrame = i;
-                }
-            }
+        #endif
+        start = std::chrono::high_resolution_clock::now();
+
+        if (revivePlayers()) {
+            lastDeathFrame = i;
         }
         if (lastDeathFrame && i - lastDeathFrame == 20) {
             // After 20 frames it deletes the death reason
             std::lock_guard<std::mutex> lock(streamMutex); // Lock stays until scope ends
             reprint();
         }
-        std::this_thread::sleep_for(std::chrono::milliseconds(
-            (int)(FRAME_DURATION / (std::pow(1 + (int)speedup, 2)))
-        )); // If there is speedup, the waiting time is reduced by a factor of 4
-        #if DEBUG
-        auto start = std::chrono::high_resolution_clock::now();
-        #endif
+
         std::lock_guard<std::mutex> lock(streamMutex); // Lock stays until scope ends
         processFrame();
         if (i % MEAT_DURATION_PERIOD == MEAT_DURATION_PERIOD - 1) {
@@ -267,12 +264,14 @@ int main(int argc, char* argv[]) {
         }
         end = endConditions();
         std::flush(std::cout);
-        #if DEBUG
         auto stop = std::chrono::high_resolution_clock::now();
-        std::chrono::duration<double> delta = stop - start;
+        delta = stop - start;
+        #if DEBUG
         {
             std::unique_lock stderrLock(stderrMutex);
-            std::cerr << "Frame number " << i << " took " << delta.count() * 1000 << "ms" << std::endl;
+            std::cerr << "\tFrame number " << i << " took " 
+                      << std::chrono::duration_cast<std::chrono::microseconds>(delta).count()
+                      << "µs" << std::endl;
         }
         #endif
     }
@@ -406,7 +405,23 @@ void processFrame() {
     }
 }
 
+bool revivePlayers() {
+    bool localPlayerDied = false;
+    for (size_t p = 0; p < Player::players.size(); p++) {
+        if (Player::players[p] == nullptr) continue;
+        if (Player::players[p]->dead) {
+            processDeath(Player::players[p]);
+            Player::players[p]->dead = false;
+            if (p == Player::localPlayerId) {
+                localPlayerDied = true;
+            }
+        }
+    }
+    return localPlayerDied;
+}
+
 void processDeath(std::shared_ptr<Player> player) {
+    std::lock_guard<std::mutex> lock(streamMutex);
     sista::Coordinates deathCoordinates = player->getCoordinates();
     field->movePawn(player.get(), player->respawnCoordinates);
     if (DROP_INVENTORY_ON_DEATH) {
@@ -674,8 +689,6 @@ void printKeys() {
     std::cout << "Place Mine mode: \x1b[35mm\x1b[37m | \x1b[35m*\x1b[37m\n";
     cursor.goTo(22, WIDTH + 10);
     std::cout << "Speedup mode: \x1b[35m+\x1b[37m | \x1b[35m-\x1b[37m\n";
-    cursor.goTo(23, WIDTH + 10);
-    std::cout << "Pause or resume: \x1b[35m.\x1b[37m | \x1b[35mp\x1b[37m\n";
     cursor.goTo(24, WIDTH + 10);
     std::cout << "Quit: \x1b[35mQ\x1b[37m\n";
 }
