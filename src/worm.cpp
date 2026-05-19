@@ -1,6 +1,7 @@
 #include "worm.hpp"
 #include "constants.hpp"
 #include "direction.hpp"
+#include "player.hpp"
 #include "chest.hpp"
 #include "mine.hpp"
 #include "wall.hpp"
@@ -130,11 +131,15 @@ void Worm::move() {
     } else if (field->isOccupied(next)) {
         Entity* entity = (Entity*)field->getPawn(next);
         switch (entity->type) {
-            case Type::PLAYER:
+            case Type::PLAYER: {
                 this->turn(randomTurnDirection());
-                printEndInformation(EndReason::EATEN);
-                dead = true;
+                Player* player = (Player*)entity;
+                if (player->id == Player::localPlayerId) {
+                    printEndInformation(EndReason::EATEN);
+                }
+                player->dead = true;
                 break;
+            }
             case Type::WALL:
                 if (((Wall*)entity)->strength > 1)
                     ((Wall*)entity)->takeHit(); // They can weaken a wall but not destroy it
