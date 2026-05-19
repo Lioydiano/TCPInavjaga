@@ -235,21 +235,7 @@ int main(int argc, char* argv[]) {
         if (dead) {
             dead = false;
             lastDeathFrame = i;
-            sista::Coordinates deathCoordinates = Player::localPlayer->getCoordinates();
-            field->movePawn(Player::localPlayer.get(), Player::localPlayer->respawnCoordinates);
-            if (DROP_INVENTORY_ON_DEATH) {
-                std::shared_ptr<Chest> c = std::make_shared<Chest>(
-                    deathCoordinates, Inventory{
-                        Player::localPlayer->inventory.clay,
-                        Player::localPlayer->inventory.bullets,
-                        0
-                    }
-                );
-                Chest::chests.push_back(c);
-                field->addPrintPawn(c);
-            }
-            Player::localPlayer->inventory.clay = 0;
-            Player::localPlayer->inventory.bullets = 0;
+            processLocalDeath();
         }
         if (lastDeathFrame && i - lastDeathFrame == 20) {
             // After 20 frames it deletes the death reason
@@ -414,6 +400,24 @@ void processFrame() {
             Wall::walls[index]->takeHit();
         }
     }
+}
+
+void processLocalDeath() {
+    sista::Coordinates deathCoordinates = Player::localPlayer->getCoordinates();
+    field->movePawn(Player::localPlayer.get(), Player::localPlayer->respawnCoordinates);
+    if (DROP_INVENTORY_ON_DEATH) {
+        std::shared_ptr<Chest> c = std::make_shared<Chest>(
+            deathCoordinates, Inventory{
+                Player::localPlayer->inventory.clay,
+                Player::localPlayer->inventory.bullets,
+                0
+            }
+        );
+        Chest::chests.push_back(c);
+        field->addPrintPawn(c);
+    }
+    Player::localPlayer->inventory.clay = 0;
+    Player::localPlayer->inventory.bullets = 0;
 }
 
 void intro() {

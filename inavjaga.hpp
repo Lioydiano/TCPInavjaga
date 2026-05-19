@@ -36,6 +36,7 @@ void intro();
 void tutorial();
 void spawnInitialEnemies();
 void processFrame();
+void processLocalDeath();
 void spawnEnemies();
 bool endConditions();
 void printSideInstructions(int);
