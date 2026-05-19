@@ -232,6 +232,7 @@ int main(int argc, char* argv[]) {
             if (end) break;
         }
         for (size_t p = 0; p < Player::players.size(); p++) {
+            if (Player::players[p] == nullptr) continue;
             if (Player::players[p]->dead) {
                 processDeath(Player::players[p]);
                 Player::players[p]->dead = false;
