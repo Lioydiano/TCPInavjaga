@@ -238,7 +238,13 @@ int main(int argc, char* argv[]) {
             sista::Coordinates deathCoordinates = Player::localPlayer->getCoordinates();
             field->movePawn(Player::localPlayer.get(), Player::localPlayer->respawnCoordinates);
             if (DROP_INVENTORY_ON_DEATH) {
-                auto c = std::make_shared<Chest>(deathCoordinates, Inventory{Player::localPlayer->inventory.clay, Player::localPlayer->inventory.bullets, 0});
+                std::shared_ptr<Chest> c = std::make_shared<Chest>(
+                    deathCoordinates, Inventory{
+                        Player::localPlayer->inventory.clay,
+                        Player::localPlayer->inventory.bullets,
+                        0
+                    }
+                );
                 Chest::chests.push_back(c);
                 field->addPrintPawn(c);
             }
@@ -269,9 +275,7 @@ int main(int argc, char* argv[]) {
             dead = true;
             end = true;
         }
-        if (endConditions()) {
-            end = true;
-        }
+        end = endConditions();
         std::flush(std::cout);
         #if DEBUG
         auto stop = std::chrono::high_resolution_clock::now();
