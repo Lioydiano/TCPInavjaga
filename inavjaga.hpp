@@ -36,6 +36,7 @@ void intro();
 void tutorial();
 void spawnInitialEnemies();
 void processFrame();
+bool revivePlayers();
 void processDeath(std::shared_ptr<Player>);
 void spawnEnemies();
 bool endConditions();
