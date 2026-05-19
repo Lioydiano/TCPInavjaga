@@ -800,8 +800,7 @@ void spawnEnemies() {
 template<typename IO>
 void input(IO* io) {
     MoveEvent moveEvent = {INAVJAGA_PLAYER_ID_IGNORE, INAVJAGA_CHAR_MOVE_IGNORE};
-    while (moveEvent.move != 'Q') {
-        if (end) return;
+    while (!end) {
         moveEvent = io->getMove();
         if (moveEvent.playerId == INAVJAGA_PLAYER_ID_IGNORE) {
             moveEvent.playerId = Player::localPlayerId;
@@ -884,6 +883,7 @@ bool act(MoveEvent event) {
         case 'Q': /* case 'q': */
             if (event.playerId == Player::localPlayerId) {
                 printEndInformation(EndReason::QUIT);
+                Player::localPlayer->dead = true;
                 end = true;
             } else {
                 Player::disconnectPlayer(event.playerId);
