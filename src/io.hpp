@@ -94,7 +94,7 @@ public:
  */
 class TCPServerInavjagaGSPIO: public ServerInavjagaGSPIO {
 public:
-    TCPServerInavjagaGSPIO(int);
+    TCPServerInavjagaGSPIO();
 };
 
 /**
@@ -102,7 +102,7 @@ public:
  */
 class TCPClientInavjagaGSPIO: public ClientInavjagaGSPIO {
 public:
-    TCPClientInavjagaGSPIO(int);
+    TCPClientInavjagaGSPIO();
 };
 
 /**
