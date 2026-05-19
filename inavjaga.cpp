@@ -39,7 +39,6 @@ std::mutex stderrMutex = std::mutex();
 bool speedup = false;
 bool pause_ = false;
 int lastDeathFrame = 0;
-bool dead = false;
 bool end = false;
 
 
@@ -232,10 +231,14 @@ int main(int argc, char* argv[]) {
             } // Reprint after unpausing, just as a tool for allowing resizing
             if (end) break;
         }
-        if (dead) {
-            dead = false;
-            lastDeathFrame = i;
-            processLocalDeath();
+        for (size_t p = 0; p < Player::players.size(); p++) {
+            if (Player::players[p]->dead) {
+                processDeath(Player::players[p]);
+                Player::players[p]->dead = false;
+                if (p == Player::localPlayerId) {
+                    lastDeathFrame = i;
+                }
+            }
         }
         if (lastDeathFrame && i - lastDeathFrame == 20) {
             // After 20 frames it deletes the death reason
@@ -258,7 +261,7 @@ int main(int argc, char* argv[]) {
         // Check for negative amount of meat
         if (Player::localPlayer->inventory.meat < 0) {
             printEndInformation(EndReason::STARVED);
-            dead = true;
+            Player::localPlayer->dead = true;
             end = true;
         }
         end = endConditions();
@@ -402,22 +405,22 @@ void processFrame() {
     }
 }
 
-void processLocalDeath() {
-    sista::Coordinates deathCoordinates = Player::localPlayer->getCoordinates();
-    field->movePawn(Player::localPlayer.get(), Player::localPlayer->respawnCoordinates);
+void processDeath(std::shared_ptr<Player> player) {
+    sista::Coordinates deathCoordinates = player->getCoordinates();
+    field->movePawn(player.get(), player->respawnCoordinates);
     if (DROP_INVENTORY_ON_DEATH) {
         std::shared_ptr<Chest> c = std::make_shared<Chest>(
             deathCoordinates, Inventory{
-                Player::localPlayer->inventory.clay,
-                Player::localPlayer->inventory.bullets,
+                player->inventory.clay,
+                player->inventory.bullets,
                 0
             }
         );
         Chest::chests.push_back(c);
         field->addPrintPawn(c);
     }
-    Player::localPlayer->inventory.clay = 0;
-    Player::localPlayer->inventory.bullets = 0;
+    player->inventory.clay = 0;
+    player->inventory.bullets = 0;
 }
 
 void intro() {

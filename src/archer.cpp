@@ -231,10 +231,14 @@ bool Archer::shoot(Direction direction) {
             case Type::WALL:
                 ((Wall*)entity)->takeHit();
                 break;
-            case Type::PLAYER: // Counts as a dagger hit
-                printEndInformation(EndReason::STABBED);
-                dead = true;
+            case Type::PLAYER: { // Counts as a dagger hit
+                Player* player = (Player*)entity;
+                if (player->id == Player::localPlayerId) {
+                    printEndInformation(EndReason::STABBED);
+                }
+                player->dead = true;
                 break;
+            }
             case Type::MINE:
                 ((Mine*)entity)->trigger();
                 break;

@@ -26,6 +26,7 @@ public:
     sista::Coordinates respawnCoordinates;
     player_id_t id = 0;
     bool connected = true;
+    bool dead = false;
 
     Player();
     Player(sista::Coordinates);

@@ -4,6 +4,7 @@
 #include "wall.hpp"
 #include "worm.hpp"
 #include "bullet.hpp"
+#include "player.hpp"
 #include <unordered_map>
 
 extern std::unordered_map<Direction, char> directionSymbol;
@@ -60,10 +61,14 @@ void EnemyBullet::move() {
                 wormBody->die();
                 break;
             }
-            case Type::PLAYER:
-                printEndInformation(EndReason::SHOT);
-                dead = true;
+            case Type::PLAYER: {
+                Player* player = (Player*)entity;
+                if (player->id == Player::localPlayerId) {
+                    printEndInformation(EndReason::SHOT);
+                }
+                player->dead = true;
                 break;
+            }
             default:
                 break;
         }
