@@ -671,6 +671,7 @@ void ServerInavjagaGSPIO::sendPlayers(std::vector<std::shared_ptr<Player>>& play
 
 /** @brief Receives players from a server
  * @warning This operates with the constraint of at most 10 players
+ * @note The returned vector is padded to 10 players with nullptr
  * @return A collection of all the received players
  */
 std::vector<std::shared_ptr<Player>> ClientInavjagaGSPIO::recvPlayers() {
@@ -700,14 +701,7 @@ std::vector<std::shared_ptr<Player>> ClientInavjagaGSPIO::recvPlayers() {
             players[identifier - '0'] = Player::localPlayer;
         }
     }
-    size_t playersCount = 0;
-    for (size_t i = players.size(); i <= players.size(); i--) {
-        if (players[i] != nullptr) {
-            playersCount = ++i;
-            break;
-        }
-    }
-    return std::vector<std::shared_ptr<Player>>(players.begin(), players.begin() + playersCount);
+    return players;
 }
 
 InavjagaIO::InavjagaIO() {}
