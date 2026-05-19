@@ -264,8 +264,7 @@ int main(int argc, char* argv[]) {
         }
         end = endConditions();
         std::flush(std::cout);
-        auto stop = std::chrono::high_resolution_clock::now();
-        delta = stop - start;
+        delta = std::chrono::high_resolution_clock::now() - start;
         #if DEBUG
         {
             std::unique_lock stderrLock(stderrMutex);
