@@ -18,9 +18,9 @@ struct MoveEvent {
     char move;
 };
 
-/** InavjagaGSP input/output
+/** @brief InavjagaGSP input/output - 
  * It is the abstraction layer between the struct MoveEvent to be sent/received and a socket
- * @note the socket is typically TCP, but subclasses can implement it to be protocol agnostic
+ * @note the socket is typically TCP, but subclasses can override it to be transport layer agnostic
  */
 class InavjagaGSPIO {
 private:
@@ -87,22 +87,6 @@ public:
     void sendReady();
     void connectMove(int, char*, char*);
     void connectSync(int, char*, char*);
-};
-
-/**
- * @note it works over TCP
- */
-class TCPServerInavjagaGSPIO: public ServerInavjagaGSPIO {
-public:
-    TCPServerInavjagaGSPIO();
-};
-
-/**
- * @note it works over TCP
- */
-class TCPClientInavjagaGSPIO: public ClientInavjagaGSPIO {
-public:
-    TCPClientInavjagaGSPIO();
 };
 
 /**
