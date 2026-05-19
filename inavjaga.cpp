@@ -257,102 +257,7 @@ int main(int argc, char* argv[]) {
         auto start = std::chrono::high_resolution_clock::now();
         #endif
         std::lock_guard<std::mutex> lock(streamMutex); // Lock stays until scope ends
-        for (int k = 0; k < BULLET_SPEED; k++) {
-            // move player bullets
-            for (unsigned j = 0; j < Bullet::bullets.size(); j++) {
-                Bullet* bullet = Bullet::bullets[j].get();
-                if (bullet == nullptr) continue;
-                if (bullet->collided) continue;
-                bullet->move();
-            }
-            // collect collided player bullets, then remove them (safe even if remove() mutates Bullet::bullets)
-            {
-                std::vector<std::shared_ptr<Bullet>> to_remove;
-                for (auto &bp : Bullet::bullets) {
-                    Bullet* bullet = bp.get();
-                    if (bullet && bullet->collided) to_remove.push_back(bp);
-                }
-                for (auto &bp : to_remove) bp->remove();
-            }
-
-            // move enemy bullets
-            for (unsigned j = 0; j < EnemyBullet::enemyBullets.size(); j++) {
-                EnemyBullet* bullet = EnemyBullet::enemyBullets[j].get();
-                if (bullet == nullptr) continue;
-                if (bullet->collided) continue;
-                bullet->move();
-            }
-            // collect collided enemy bullets, then remove them
-            {
-                std::vector<std::shared_ptr<EnemyBullet>> to_remove;
-                for (auto &bp : EnemyBullet::enemyBullets) {
-                    EnemyBullet* bullet = bp.get();
-                    if (bullet && bullet->collided) to_remove.push_back(bp);
-                }
-                for (auto &bp : to_remove) bp->remove();
-            }
-        }
-        for (unsigned j = 0; j < Mine::mines.size(); j++) {
-            if (j >= Mine::mines.size()) break;
-            Mine* mine = Mine::mines[j].get();
-            if (mine->triggered) {
-                if (Mine::explosion(rng)) {
-                    mine->explode();
-                }
-            }
-        }
-        for (auto archer : Archer::archers) {
-            if (Archer::moving(rng)) {
-                archer->move();
-            }
-            if (Archer::shooting(rng)) {
-                archer->shoot();
-            }
-        }
-        for (unsigned j = 0; j < Worm::worms.size(); j++) {
-            Worm* worm = Worm::worms[j].get();
-            if (worm == nullptr) continue;
-            if (worm->collided) continue;
-            if (Worm::turning(rng)) {
-                worm->turn();
-            }
-            if (Worm::moving(rng)) {
-                worm->move();
-            }
-        }
-        for (auto &wp : Worm::worms) {
-            Worm* worm = wp.get();
-            if (worm && worm->collided) {
-                worm->die();
-            }
-        }
-        for (unsigned j = 0; j < Mine::mines.size(); j++) {
-            if (j >= Mine::mines.size()) break;
-            Mine* mine = Mine::mines[j].get();
-            if (!mine->triggered) {
-                for (int k=-MINE_SENSITIVITY_RADIUS; k<=MINE_SENSITIVITY_RADIUS; k++) {
-                    for (int h=-MINE_SENSITIVITY_RADIUS; h<=MINE_SENSITIVITY_RADIUS; h++) {
-                        if (k == 0 && h == 0) continue;
-                        sista::Coordinates target = mine->getCoordinates() + sista::Coordinates(k, h);
-                        if (field->isOutOfBounds(target)) {
-                            continue;
-                        } else if (field->isOccupied(target)) {
-                            Entity* entity = (Entity*)field->getPawn(target);
-                            if (entity->type == Type::WORM_HEAD) {
-                                mine->trigger();
-                            }
-                        }
-                    }
-                }
-            }
-        }
-        if (!Wall::walls.empty() && Wall::wearing(rng)) {
-            for (int j = 0; j < DAMAGED_WALLS_COUNT; j++) {
-                if (Wall::walls.empty()) break;
-                int index = std::uniform_int_distribution<int>(0, Wall::walls.size() - 1)(rng);
-                Wall::walls[index]->takeHit();
-            }
-        }
+        processFrame();
         if (i % MEAT_DURATION_PERIOD == MEAT_DURATION_PERIOD - 1) {
             Player::localPlayer->inventory.meat--;
         }
@@ -406,6 +311,105 @@ bool endConditions() {
         }
     }
     return false;
+}
+
+void processFrame() {
+    for (int k = 0; k < BULLET_SPEED; k++) {
+        // move player bullets
+        for (unsigned j = 0; j < Bullet::bullets.size(); j++) {
+            Bullet* bullet = Bullet::bullets[j].get();
+            if (bullet == nullptr) continue;
+            if (bullet->collided) continue;
+            bullet->move();
+        }
+        // collect collided player bullets, then remove them (safe even if remove() mutates Bullet::bullets)
+        {
+            std::vector<std::shared_ptr<Bullet>> to_remove;
+            for (auto &bp : Bullet::bullets) {
+                Bullet* bullet = bp.get();
+                if (bullet && bullet->collided) to_remove.push_back(bp);
+            }
+            for (auto &bp : to_remove) bp->remove();
+        }
+
+        // move enemy bullets
+        for (unsigned j = 0; j < EnemyBullet::enemyBullets.size(); j++) {
+            EnemyBullet* bullet = EnemyBullet::enemyBullets[j].get();
+            if (bullet == nullptr) continue;
+            if (bullet->collided) continue;
+            bullet->move();
+        }
+        // collect collided enemy bullets, then remove them
+        {
+            std::vector<std::shared_ptr<EnemyBullet>> to_remove;
+            for (auto &bp : EnemyBullet::enemyBullets) {
+                EnemyBullet* bullet = bp.get();
+                if (bullet && bullet->collided) to_remove.push_back(bp);
+            }
+            for (auto &bp : to_remove) bp->remove();
+        }
+    }
+    for (unsigned j = 0; j < Mine::mines.size(); j++) {
+        if (j >= Mine::mines.size()) break;
+        Mine* mine = Mine::mines[j].get();
+        if (mine->triggered) {
+            if (Mine::explosion(rng)) {
+                mine->explode();
+            }
+        }
+    }
+    for (auto archer : Archer::archers) {
+        if (Archer::moving(rng)) {
+            archer->move();
+        }
+        if (Archer::shooting(rng)) {
+            archer->shoot();
+        }
+    }
+    for (unsigned j = 0; j < Worm::worms.size(); j++) {
+        Worm* worm = Worm::worms[j].get();
+        if (worm == nullptr) continue;
+        if (worm->collided) continue;
+        if (Worm::turning(rng)) {
+            worm->turn();
+        }
+        if (Worm::moving(rng)) {
+            worm->move();
+        }
+    }
+    for (auto &wp : Worm::worms) {
+        Worm* worm = wp.get();
+        if (worm && worm->collided) {
+            worm->die();
+        }
+    }
+    for (unsigned j = 0; j < Mine::mines.size(); j++) {
+        if (j >= Mine::mines.size()) break;
+        Mine* mine = Mine::mines[j].get();
+        if (!mine->triggered) {
+            for (int k=-MINE_SENSITIVITY_RADIUS; k<=MINE_SENSITIVITY_RADIUS; k++) {
+                for (int h=-MINE_SENSITIVITY_RADIUS; h<=MINE_SENSITIVITY_RADIUS; h++) {
+                    if (k == 0 && h == 0) continue;
+                    sista::Coordinates target = mine->getCoordinates() + sista::Coordinates(k, h);
+                    if (field->isOutOfBounds(target)) {
+                        continue;
+                    } else if (field->isOccupied(target)) {
+                        Entity* entity = (Entity*)field->getPawn(target);
+                        if (entity->type == Type::WORM_HEAD) {
+                            mine->trigger();
+                        }
+                    }
+                }
+            }
+        }
+    }
+    if (!Wall::walls.empty() && Wall::wearing(rng)) {
+        for (int j = 0; j < DAMAGED_WALLS_COUNT; j++) {
+            if (Wall::walls.empty()) break;
+            int index = std::uniform_int_distribution<int>(0, Wall::walls.size() - 1)(rng);
+            Wall::walls[index]->takeHit();
+        }
+    }
 }
 
 void intro() {

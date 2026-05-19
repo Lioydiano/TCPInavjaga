@@ -35,6 +35,7 @@ void generateTunnels();
 void intro();
 void tutorial();
 void spawnInitialEnemies();
+void processFrame();
 void spawnEnemies();
 bool endConditions();
 void printSideInstructions(int);
