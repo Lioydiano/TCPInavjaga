@@ -627,6 +627,10 @@ bool ServerInavjagaGSPIO::offerCoordinates(const sista::Coordinates& coordinates
     }
 }
 
+void ServerInavjagaGSPIO::sendGameState(std::string payload) {
+    /// @todo implement
+}
+
 sista::Coordinates ClientInavjagaGSPIO::recvCoordinates() const {
     char buffer[10] = {0};
     int rc = recv(socketfd, &buffer, 10, 0);

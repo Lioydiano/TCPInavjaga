@@ -72,6 +72,7 @@ public:
     bool recvReady(int timeout=1000);
     void acceptMoveConnection(int);
     void acceptSyncConnection(int);
+    void sendGameState(std::string);
 };
 
 /**
