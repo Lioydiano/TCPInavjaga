@@ -1,5 +1,6 @@
 #include "include/cross_platform.hpp"
 #include "inavjaga.hpp"
+#include "src/serialize.hpp"
 #include <algorithm>
 #include <memory>
 #include <future>
