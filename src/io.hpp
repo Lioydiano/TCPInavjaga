@@ -31,6 +31,7 @@ private:
     static struct pollfd pollFds[10];
 protected:
     static std::mutex outputMutex;
+    static std::mutex syncMutex;
     static const char acceptMessage[2];
     static const char yesMessage[2];
     static const char noMessage[2];
@@ -38,6 +39,10 @@ protected:
     int socketfd;
     int syncsocketfd;
 
+    void sendSyncData(int);
+    void sendSyncData(std::string);
+    void recvSyncData(int&, int timeout=1000);
+    std::string recvSyncData(int timeout=1000);
     bool recvBool(int timeout = 1000) const;
     void sendCoordinates(const sista::Coordinates& coordinates) const;
 public:
@@ -72,7 +77,7 @@ public:
     bool recvReady(int timeout=1000);
     void acceptMoveConnection(int);
     void acceptSyncConnection(int);
-    void sendGameState(std::string);
+    void sendGameState(std::string, uint32_t, int);
 };
 
 /**

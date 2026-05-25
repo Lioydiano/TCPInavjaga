@@ -2,6 +2,7 @@
 #include "io.hpp"
 #include <netinet/tcp.h>
 #include <arpa/inet.h>
+#include <sys/ioctl.h>
 #include <exception>
 #include <string.h>
 #include <iostream>
@@ -10,6 +11,7 @@
 #include <poll.h>
 
 std::mutex InavjagaGSPIO::outputMutex = std::mutex();
+std::mutex InavjagaGSPIO::syncMutex = std::mutex();
 extern std::mutex stderrMutex;
 
 inline bool isSocketAlive(int descriptor) {
@@ -617,6 +619,80 @@ bool InavjagaGSPIO::waitYes(int timeout) {
     return false;
 }
 
+void InavjagaGSPIO::sendSyncData(int message) {
+    std::unique_lock lock(syncMutex);
+    if (ssize_t rc = write(this->syncsocketfd, &message, sizeof(int)) < 0) {
+        std::unique_lock lock(stderrMutex);
+        std::cerr << "Failed to send data with error " << rc << "(" << errno << ")" << std::endl;
+    }
+}
+
+void InavjagaGSPIO::sendSyncData(std::string message) {
+    std::unique_lock lock(syncMutex);
+    size_t length = message.length();
+    if (ssize_t rc = write(this->syncsocketfd, &length, sizeof(size_t)) < 0) {
+        std::unique_lock lock(stderrMutex);
+        std::cerr << "Failed to send data with error " << rc << "(" << errno << ")" << std::endl;
+    }
+    if (ssize_t rc = write(this->syncsocketfd, message.c_str(), sizeof(message.length())) < 0) {
+        std::unique_lock lock(stderrMutex);
+        std::cerr << "Failed to send data with error " << rc << "(" << errno << ")" << std::endl;
+    }
+}
+
+void InavjagaGSPIO::recvSyncData(int& message, int timeout) {
+    struct pollfd pollFd_ = {0,0,0};
+    pollFd_.fd = this->socketfd;
+    pollFd_.events = POLLIN;
+    if (int rc = poll(&pollFd_, 1, timeout) < 0) {
+        std::unique_lock lock(stderrMutex);
+        std::cerr << "Polling failed with error " << rc << " (" << errno << ")" << std::endl;
+        throw std::runtime_error("Polling failed");
+    }
+    if (pollFd_.revents & POLLIN) {
+        read(socketfd, &message, sizeof(int));
+        return;
+    }
+    {
+        std::unique_lock lock(stderrMutex);
+        std::cerr << "No message ready yet" << std::endl;
+    }
+}
+
+std::string InavjagaGSPIO::recvSyncData(int timeout) {
+    struct pollfd pollFd_ = {0,0,0};
+    pollFd_.fd = this->socketfd;
+    pollFd_.events = POLLIN;
+    if (int rc = poll(&pollFd_, 1, timeout) < 0) {
+        std::unique_lock lock(stderrMutex);
+        std::cerr << "Polling failed with error " << rc << " (" << errno << ")" << std::endl;
+        throw std::runtime_error("Polling failed");
+    }
+    if (pollFd_.revents & POLLIN) {
+        size_t size;
+        if (int rc = read(syncsocketfd, &size, sizeof(size_t)) < 0) {
+            std::unique_lock lock(stderrMutex);
+            std::cerr << "Receiving message length failed with error " << rc
+                      << " (" << errno << ")" << std::endl;
+            throw std::runtime_error("Receiving message length failed");
+        }
+        char* buffer = (char*)calloc(sizeof(char), size);
+        if (int rc = read(socketfd, buffer, size) < 0) {
+            std::unique_lock lock(stderrMutex);
+            std::cerr << "Receiving message failed with error " << rc
+                      << " (" << errno << ")" << std::endl;
+            throw std::runtime_error("Receiving message failed");
+        }
+        std::string received(buffer);
+        free(buffer);
+        return received;
+    }
+    {
+        std::unique_lock lock(stderrMutex);
+        std::cerr << "No message ready yet" << std::endl;
+    }
+}
+
 bool ServerInavjagaGSPIO::offerCoordinates(const sista::Coordinates& coordinates) const {
     this->sendCoordinates(coordinates);
     try {
@@ -627,8 +703,10 @@ bool ServerInavjagaGSPIO::offerCoordinates(const sista::Coordinates& coordinates
     }
 }
 
-void ServerInavjagaGSPIO::sendGameState(std::string payload) {
-    /// @todo implement
+void ServerInavjagaGSPIO::sendGameState(std::string payload, uint32_t seed, int frame) {
+    this->sendSyncData(frame);
+    this->sendRandomSeed(seed);
+    this->sendSyncData(payload);
 }
 
 sista::Coordinates ClientInavjagaGSPIO::recvCoordinates() const {
