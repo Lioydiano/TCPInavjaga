@@ -44,6 +44,7 @@ void printSideInstructions(int);
 void printKeys();
 void reprint();
 void updateClients(RemoteInavjagaIO*);
+void recvUpdates(RemoteInavjagaIO*);
 template<typename IO> void input(IO*);
 bool act(char);
 bool act(MoveEvent);

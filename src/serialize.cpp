@@ -2,6 +2,8 @@
 #include "archer.hpp"
 #include "bullet.hpp"
 #include "chest.hpp"
+#include "enemyBullet.hpp"
+#include "mine.hpp"
 #include <sstream>
 
 extern std::mutex streamMutex;
@@ -30,7 +32,25 @@ std::string serializeGameState() {
             serialized.append(";");
     }
     serialized.append(classTermination);
-
+    for (std::shared_ptr<EnemyBullet> enemyBullet : EnemyBullet::enemyBullets) {
+        serialized.append(serialize(enemyBullet));
+        if (enemyBullet != EnemyBullet::enemyBullets.back())
+            serialized.append(";");
+    }
+    serialized.append(classTermination);
+    for (std::shared_ptr<Mine> mine : Mine::mines) {
+        serialized.append(serialize(mine));
+        if (mine != Mine::mines.back())
+            serialized.append(";");
+    }
+    serialized.append(classTermination);
+    for (std::shared_ptr<Player> player : Player::players) {
+        serialized.append(serialize(player));
+        if (player != Player::players.back())
+            serialized.append(";");
+    }
+    serialized.append(classTermination);
+    
     /// @todo All the other parts that should be provided
 }
 
@@ -47,6 +67,26 @@ std::string serialize(std::shared_ptr<Bullet> bullet) {
 std::string serialize(std::shared_ptr<Chest> chest) {
     std::ostringstream os(serializeCoordinates(chest->getCoordinates()));
     os << ",{" << chest->inventory.clay << "," << chest->inventory.bullets << "," << chest->inventory.meat << "}";
+    return os.str();
+}
+
+std::string serialize(std::shared_ptr<EnemyBullet> enemyBullet) {
+    std::ostringstream os(serializeCoordinates(enemyBullet->getCoordinates()));
+    os << ',' << enemyBullet->collided << ',' << enemyBullet->direction;
+    return os.str();
+}
+
+std::string serialize(std::shared_ptr<Mine> mine) {
+    std::ostringstream os(serializeCoordinates(mine->getCoordinates()));
+    os << ',' << mine->triggered;
+    return os.str();
+}
+
+std::string serialize(std::shared_ptr<Player> player) {
+    std::ostringstream os(serializeCoordinates(player->getCoordinates()));
+    os << ',' << player->id << ',' << player->connected << ',' << player->dead
+       << ',' << player->mode << ",{" << player->inventory.clay << ","
+       << player->inventory.bullets << "," << player->inventory.meat << "}";
     return os.str();
 }
 

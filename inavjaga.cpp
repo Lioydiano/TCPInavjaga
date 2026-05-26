@@ -222,7 +222,9 @@ int main(int argc, char* argv[]) {
     #endif
     std::thread localInputThread(input<LocalInavjagaIO>, localIO);
     std::thread remoteInputThread(input<RemoteInavjagaIO>, remoteIO);
-    #if SERVER
+    #if CLIENT
+    std::thread remoteGameStateThread(recvUpdates, remoteIO);
+    #elif SERVER
     std::thread remoteGameStateThread(updateClients, remoteIO);
     #endif
 
