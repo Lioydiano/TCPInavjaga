@@ -4,6 +4,9 @@
 #include "chest.hpp"
 #include "enemyBullet.hpp"
 #include "mine.hpp"
+#include "portal.hpp"
+#include "wall.hpp"
+#include "worm.hpp"
 #include <sstream>
 
 extern std::mutex streamMutex;
@@ -50,8 +53,26 @@ std::string serializeGameState() {
             serialized.append(";");
     }
     serialized.append(classTermination);
-    
-    /// @todo All the other parts that should be provided
+    /// @warning This works under the assumption that portals are sorted
+    /// in such a way that two portals pointing at each other are subsequent
+    for (std::shared_ptr<Portal> portal : Portal::portals) {
+        serialized.append(serialize(portal));
+        if (portal != Portal::portals.back())
+            serialized.append(";");
+    }
+    serialized.append(classTermination);
+    for (std::shared_ptr<Wall> wall : Wall::walls) {
+        serialized.append(serialize(wall));
+        if (wall != Wall::walls.back())
+            serialized.append(";");
+    }
+    serialized.append(classTermination);
+    for (std::shared_ptr<Worm> worm : Worm::worms) {
+        serialized.append(serialize(worm));
+        if (worm != Worm::worms.back())
+            serialized.append(";");
+    }
+    serialized.append(classTermination);
 }
 
 std::string serialize(std::shared_ptr<Archer> archer) {
@@ -82,11 +103,31 @@ std::string serialize(std::shared_ptr<Mine> mine) {
     return os.str();
 }
 
+std::string serialize(std::shared_ptr<Portal> portal) {
+    std::ostringstream os(serializeCoordinates(portal->getCoordinates()));
+    return os.str();
+}
+
 std::string serialize(std::shared_ptr<Player> player) {
     std::ostringstream os(serializeCoordinates(player->getCoordinates()));
     os << ',' << player->id << ',' << player->connected << ',' << player->dead
        << ',' << player->mode << ",{" << player->inventory.clay << ","
        << player->inventory.bullets << "," << player->inventory.meat << "}";
+    return os.str();
+}
+
+std::string serialize(std::shared_ptr<Wall> wall) {
+    std::ostringstream os(serializeCoordinates(wall->getCoordinates()));
+    os << ',' << wall->strength;
+    return os.str();
+}
+
+std::string serialize(std::shared_ptr<Worm> worm) {
+    std::ostringstream os(serializeCoordinates(worm->getCoordinates()));
+    os << ',' << worm->direction << ',' << worm->hp << ',' << worm->collided;
+    for (std::shared_ptr<WormBody> wormBody : worm->body) {
+        os << ',' << serializeCoordinates(wormBody->getCoordinates());
+    }
     return os.str();
 }
 
