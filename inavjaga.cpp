@@ -842,13 +842,8 @@ void input(IO* io) {
             continue;
         }
         if (isAct(moveEvent)) {
-            if (std::is_same<IO, LocalInavjagaIO>::value) {
-                // Process local moves immediately for UX
-                act(moveEvent);
-            } else {
-                std::unique_lock lock(movesBufferMutex);
-                movesBuffer.push(moveEvent);
-            }
+            std::unique_lock lock(movesBufferMutex);
+            movesBuffer.push(moveEvent);
             #if CLIENT
             if (std::is_same<IO, RemoteInavjagaIO>::value) continue;
             #endif
