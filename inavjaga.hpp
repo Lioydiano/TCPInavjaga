@@ -35,6 +35,7 @@ void generateTunnels();
 void intro();
 void tutorial();
 void spawnInitialEnemies();
+void processMoves();
 void processFrame();
 bool revivePlayers();
 void processDeath(std::shared_ptr<Player>);

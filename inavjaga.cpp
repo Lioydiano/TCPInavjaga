@@ -10,6 +10,7 @@
 #include <stack>
 #include <iostream>
 #include <random>
+#include <queue>
 #include <map>
 
 std::shared_ptr<Player> Player::localPlayer;
@@ -35,6 +36,8 @@ sista::Border border(
         sista::Attribute::BRIGHT
     }
 );
+std::queue<MoveEvent> movesBuffer = std::queue<MoveEvent>();
+std::mutex movesBufferMutex = std::mutex();
 std::mutex streamMutex = std::mutex();
 std::mutex stderrMutex = std::mutex();
 bool speedup = false;
@@ -222,11 +225,11 @@ int main(int argc, char* argv[]) {
     #endif
     std::thread localInputThread(input<LocalInavjagaIO>, localIO);
     std::thread remoteInputThread(input<RemoteInavjagaIO>, remoteIO);
-    #if CLIENT
-    std::thread remoteGameStateThread(recvUpdates, remoteIO);
-    #elif SERVER
-    std::thread remoteGameStateThread(updateClients, remoteIO);
-    #endif
+    // #if CLIENT
+    // std::thread remoteGameStateThread(recvUpdates, remoteIO);
+    // #elif SERVER
+    // std::thread remoteGameStateThread(updateClients, remoteIO);
+    // #endif
 
     auto start = std::chrono::high_resolution_clock::now();
     std::chrono::duration<double> delta;
@@ -255,6 +258,7 @@ int main(int argc, char* argv[]) {
             reprint();
         }
 
+        processMoves(); // This has to be done earlier than the lock as act() wants it
         std::lock_guard<std::mutex> lock(streamMutex); // Lock stays until scope ends
         processFrame();
         if (i % MEAT_DURATION_PERIOD == MEAT_DURATION_PERIOD - 1) {
@@ -285,7 +289,7 @@ int main(int argc, char* argv[]) {
     deallocateAll();
     localInputThread.join();
     remoteInputThread.join();
-    remoteGameStateThread.join();
+    // remoteGameStateThread.join();
     field->clear();
     cursor.goTo(72, 0); // Move the cursor to the bottom of the screen, so the terminal is not left in a weird state
     std::this_thread::sleep_for(std::chrono::seconds(1)); // Give the time to see the final screen
@@ -310,6 +314,15 @@ bool endConditions() {
         }
     }
     return false;
+}
+
+void processMoves() {
+    std::unique_lock lock(movesBufferMutex);
+    while (!movesBuffer.empty()) {
+        MoveEvent current = movesBuffer.front();
+        movesBuffer.pop();
+        act(current);
+    }
 }
 
 void processFrame() {
@@ -828,7 +841,14 @@ void input(IO* io) {
         if (moveEvent.move == INAVJAGA_CHAR_MOVE_IGNORE) {
             continue;
         }
-        if (act(moveEvent)) {
+        if (isAct(moveEvent)) {
+            if (std::is_same<IO, LocalInavjagaIO>::value) {
+                // Process local moves immediately for UX
+                act(moveEvent);
+            } else {
+                std::unique_lock lock(movesBufferMutex);
+                movesBuffer.push(moveEvent);
+            }
             #if CLIENT
             if (std::is_same<IO, RemoteInavjagaIO>::value) continue;
             #endif
