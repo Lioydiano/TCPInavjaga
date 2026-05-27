@@ -46,6 +46,7 @@ void reprint();
 void updateClients(RemoteInavjagaIO*);
 void recvUpdates(RemoteInavjagaIO*);
 template<typename IO> void input(IO*);
+bool isAct(MoveEvent);
 bool act(char);
 bool act(MoveEvent);
 void printEndInformation(EndReason);

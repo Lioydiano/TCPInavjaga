@@ -837,6 +837,16 @@ void input(IO* io) {
     }
 }
 
+bool isAct(MoveEvent event) {
+    static std::set<char> moves = std::set<char>({
+        'w', 'a', 's', 'd',
+        'j', 'k', 'l', 'i',
+        'c', 'b', 'e', 'm', 'q'
+    });
+    char move = std::tolower(event.move);
+    return moves.count(move) > 0;
+}
+
 /** Process an action to the field from a Player
  * \param event the move event to process
  * \return whether the event was a valid one
@@ -911,7 +921,7 @@ bool act(MoveEvent event) {
         default:
             return false;
     }
-    return true;
+    return isAct(event);
 }
 
 bool act(char input_) {
