@@ -10,8 +10,8 @@
 #include "worm.hpp"
 #include <sista/coordinates.hpp>
 
-std::string serializeCoordinates(sista::Coordinates);
-std::string serializeCoordinates(unsigned short, unsigned short);
+std::string serialize(sista::Coordinates);
+std::string serialize(unsigned short, unsigned short);
 
 std::string serialize(std::shared_ptr<Archer>);
 std::string serialize(std::shared_ptr<Bullet>);

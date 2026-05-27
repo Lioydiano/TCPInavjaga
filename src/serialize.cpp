@@ -76,40 +76,40 @@ std::string serializeGameState() {
 }
 
 std::string serialize(std::shared_ptr<Archer> archer) {
-    return serializeCoordinates(archer->getCoordinates());
+    return serialize(archer->getCoordinates());
 }
 
 std::string serialize(std::shared_ptr<Bullet> bullet) {
-    std::ostringstream os(serializeCoordinates(bullet->getCoordinates()));
+    std::ostringstream os(serialize(bullet->getCoordinates()));
     os << ',' << bullet->collided << ',' << bullet->direction;
     return os.str();
 }
 
 std::string serialize(std::shared_ptr<Chest> chest) {
-    std::ostringstream os(serializeCoordinates(chest->getCoordinates()));
+    std::ostringstream os(serialize(chest->getCoordinates()));
     os << ",{" << chest->inventory.clay << "," << chest->inventory.bullets << "," << chest->inventory.meat << "}";
     return os.str();
 }
 
 std::string serialize(std::shared_ptr<EnemyBullet> enemyBullet) {
-    std::ostringstream os(serializeCoordinates(enemyBullet->getCoordinates()));
+    std::ostringstream os(serialize(enemyBullet->getCoordinates()));
     os << ',' << enemyBullet->collided << ',' << enemyBullet->direction;
     return os.str();
 }
 
 std::string serialize(std::shared_ptr<Mine> mine) {
-    std::ostringstream os(serializeCoordinates(mine->getCoordinates()));
+    std::ostringstream os(serialize(mine->getCoordinates()));
     os << ',' << mine->triggered;
     return os.str();
 }
 
 std::string serialize(std::shared_ptr<Portal> portal) {
-    std::ostringstream os(serializeCoordinates(portal->getCoordinates()));
+    std::ostringstream os(serialize(portal->getCoordinates()));
     return os.str();
 }
 
 std::string serialize(std::shared_ptr<Player> player) {
-    std::ostringstream os(serializeCoordinates(player->getCoordinates()));
+    std::ostringstream os(serialize(player->getCoordinates()));
     os << ',' << player->id << ',' << player->connected << ',' << player->dead
        << ',' << player->mode << ",{" << player->inventory.clay << ","
        << player->inventory.bullets << "," << player->inventory.meat << "}";
@@ -117,16 +117,16 @@ std::string serialize(std::shared_ptr<Player> player) {
 }
 
 std::string serialize(std::shared_ptr<Wall> wall) {
-    std::ostringstream os(serializeCoordinates(wall->getCoordinates()));
+    std::ostringstream os(serialize(wall->getCoordinates()));
     os << ',' << wall->strength;
     return os.str();
 }
 
 std::string serialize(std::shared_ptr<Worm> worm) {
-    std::ostringstream os(serializeCoordinates(worm->getCoordinates()));
+    std::ostringstream os(serialize(worm->getCoordinates()));
     os << ',' << worm->direction << ',' << worm->hp << ',' << worm->collided;
     for (std::shared_ptr<WormBody> wormBody : worm->body) {
-        os << ',' << serializeCoordinates(wormBody->getCoordinates());
+        os << ',' << serialize(wormBody->getCoordinates());
     }
     return os.str();
 }
@@ -137,7 +137,7 @@ std::string serialize(sista::Coordinates coordinates) {
     return os.str();
 }
 
-std::string serializeCoordinates(unsigned short y, unsigned short x) {
+std::string serialize(unsigned short y, unsigned short x) {
     std::ostringstream os;
     os << '{' << y << ',' << x << '}';
     return os.str();
