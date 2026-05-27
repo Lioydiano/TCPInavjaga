@@ -10,6 +10,7 @@
 #include <stack>
 #include <iostream>
 #include <random>
+#include <queue>
 #include <map>
 
 std::shared_ptr<Player> Player::localPlayer;
@@ -35,6 +36,8 @@ sista::Border border(
         sista::Attribute::BRIGHT
     }
 );
+std::queue<MoveEvent> movesBuffer = std::queue<MoveEvent>();
+std::mutex movesBufferMutex = std::mutex();
 std::mutex streamMutex = std::mutex();
 std::mutex stderrMutex = std::mutex();
 bool speedup = false;
@@ -255,6 +258,7 @@ int main(int argc, char* argv[]) {
             reprint();
         }
 
+        processMoves(); // This has to be done earlier than the lock as act() wants it
         std::lock_guard<std::mutex> lock(streamMutex); // Lock stays until scope ends
         processFrame();
         if (i % MEAT_DURATION_PERIOD == MEAT_DURATION_PERIOD - 1) {
@@ -310,6 +314,15 @@ bool endConditions() {
         }
     }
     return false;
+}
+
+void processMoves() {
+    std::unique_lock lock(movesBufferMutex);
+    while (!movesBuffer.empty()) {
+        MoveEvent current = movesBuffer.front();
+        movesBuffer.pop();
+        act(current);
+    }
 }
 
 void processFrame() {
@@ -828,13 +841,30 @@ void input(IO* io) {
         if (moveEvent.move == INAVJAGA_CHAR_MOVE_IGNORE) {
             continue;
         }
-        if (act(moveEvent)) {
+        if (isAct(moveEvent)) {
+            if (std::is_same<IO, LocalInavjagaIO>::value) {
+                // Process local moves immediately for UX
+                act(moveEvent);
+            } else {
+                std::unique_lock lock(movesBufferMutex);
+                movesBuffer.push(moveEvent);
+            }
             #if CLIENT
             if (std::is_same<IO, RemoteInavjagaIO>::value) continue;
             #endif
             io->sendMove(moveEvent);
         }
     }
+}
+
+bool isAct(MoveEvent event) {
+    static std::set<char> moves = std::set<char>({
+        'w', 'a', 's', 'd',
+        'j', 'k', 'l', 'i',
+        'c', 'b', 'e', 'm', 'q'
+    });
+    char move = std::tolower(event.move);
+    return moves.count(move) > 0;
 }
 
 /** Process an action to the field from a Player
@@ -911,7 +941,7 @@ bool act(MoveEvent event) {
         default:
             return false;
     }
-    return true;
+    return isAct(event);
 }
 
 bool act(char input_) {
