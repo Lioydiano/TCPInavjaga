@@ -225,11 +225,11 @@ int main(int argc, char* argv[]) {
     #endif
     std::thread localInputThread(input<LocalInavjagaIO>, localIO);
     std::thread remoteInputThread(input<RemoteInavjagaIO>, remoteIO);
-    // #if CLIENT
-    // std::thread remoteGameStateThread(recvUpdates, remoteIO);
-    // #elif SERVER
-    // std::thread remoteGameStateThread(updateClients, remoteIO);
-    // #endif
+    #if CLIENT
+    std::thread remoteGameStateThread(recvUpdates, remoteIO);
+    #elif SERVER
+    std::thread remoteGameStateThread(updateClients, remoteIO);
+    #endif
 
     auto start = std::chrono::high_resolution_clock::now();
     std::chrono::duration<double> delta;
@@ -289,7 +289,7 @@ int main(int argc, char* argv[]) {
     deallocateAll();
     localInputThread.join();
     remoteInputThread.join();
-    // remoteGameStateThread.join();
+    remoteGameStateThread.join();
     field->clear();
     cursor.goTo(72, 0); // Move the cursor to the bottom of the screen, so the terminal is not left in a weird state
     std::this_thread::sleep_for(std::chrono::seconds(1)); // Give the time to see the final screen
