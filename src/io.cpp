@@ -676,7 +676,7 @@ std::string InavjagaGSPIO::recvSyncData(int timeout) {
                       << " (" << errno << ")" << std::endl;
             throw std::runtime_error("Receiving message length failed");
         }
-        char* buffer = (char*)calloc(sizeof(char), size);
+        char* buffer = (char*)calloc(size, sizeof(char));
         if (int rc = read(socketfd, buffer, size) < 0) {
             std::unique_lock lock(stderrMutex);
             std::cerr << "Receiving message failed with error " << rc
