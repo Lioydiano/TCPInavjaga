@@ -38,9 +38,9 @@ sista::Border border(
     }
 );
 std::queue<MoveEvent> movesBuffer = std::queue<MoveEvent>();
-std::string gameState;
+std::string gameState = std::string();
 const size_t pastGameStatesBufferSize = 20; // Supporting up to 2s of latency
-std::string pastGameStates[pastGameStatesBufferSize] = {""};
+std::string pastGameStates[pastGameStatesBufferSize] = {std::string()};
 std::mutex movesBufferMutex = std::mutex();
 std::mutex streamMutex = std::mutex();
 std::mutex stderrMutex = std::mutex();
@@ -478,7 +478,9 @@ void fullProcessFrame(int i) {
 
 void updateClients(RemoteInavjagaIO* remote_) {
     ServerRemoteInavjagaIO* remote = (ServerRemoteInavjagaIO*)remote_;
+    std::this_thread::sleep_for(std::chrono::milliseconds(100));
     while (!end) {
+        std::this_thread::sleep_for(std::chrono::milliseconds(30));
         std::unique_lock lock(gameStateMutex);
         if (gameState.empty()) continue; // We haven't gone over a frame yet
         remote->sendGameStateToAll(gameState);

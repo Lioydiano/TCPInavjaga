@@ -622,6 +622,7 @@ bool InavjagaGSPIO::waitYes(int timeout) {
 void InavjagaGSPIO::sendSyncData(const std::string& message) {
     std::unique_lock lock(syncMutex);
     size_t length = message.length();
+    int convertedLength = htonl(length);
     #if DEBUG
     {
         std::unique_lock lock(stderrMutex);
@@ -629,7 +630,7 @@ void InavjagaGSPIO::sendSyncData(const std::string& message) {
         std::cerr << "Our message is " << message << std::endl;
     }
     #endif
-    if (ssize_t rc = write(this->syncsocketfd, &length, sizeof(size_t)) < 0) {
+    if (ssize_t rc = write(this->syncsocketfd, &convertedLength, sizeof(convertedLength)) < 0) {
         std::unique_lock lock(stderrMutex);
         std::cerr << "Failed to send data with error " << rc << "(" << errno << ")" << std::endl;
     }
@@ -662,13 +663,15 @@ std::string InavjagaGSPIO::recvSyncData(int timeout) {
     }
     std::string received;
     if (pollFd_.revents & POLLIN) {
-        size_t size;
-        if (int rc = read(syncsocketfd, &size, sizeof(size_t)) < 0) {
+        int convertedSize;
+        if (int rc = read(syncsocketfd, &convertedSize, sizeof(convertedSize)) < 0) {
             std::unique_lock lock(stderrMutex);
             std::cerr << "Receiving message length failed with error " << rc
                       << " (" << errno << ")" << std::endl;
             throw std::runtime_error("Receiving message length failed");
         }
+        size_t size = ntohl(convertedSize);
+        // I have reasons to believe that we might have to poll here in between
         char* buffer = (char*)calloc(size, sizeof(char));
         if (int rc = read(socketfd, buffer, size) < 0) {
             std::unique_lock lock(stderrMutex);
@@ -676,6 +679,12 @@ std::string InavjagaGSPIO::recvSyncData(int timeout) {
                       << " (" << errno << ")" << std::endl;
             throw std::runtime_error("Receiving message failed");
         }
+        #if DEBUG
+        else {
+            std::unique_lock lock(stderrMutex);
+            std::cerr << "We received " << rc << " characters instead of " << size << std::endl;
+        }
+        #endif
         received = std::string(buffer);
         free(buffer);
     }
