@@ -507,7 +507,6 @@ void recvUpdates(RemoteInavjagaIO* remote_) {
         int clientFrame = stoi(frameString);
         if (clientFrame == serverFrame) {
             // This means that there is a mismatch and there will be some work to do
-            /// @todo
             restoreGameState(serverGameState);
         } else {
             if (pastGameStates[serverFrame % pastGameStatesBufferSize] == serverGameState) {
@@ -525,7 +524,6 @@ void recvUpdates(RemoteInavjagaIO* remote_) {
                 /// since it would require a clock unsync greater than the latency
                 /// @note we assume that latency cannot be greater than 
                 /// pastGameStatesBufferSize * FRAME_DURATION milliseconds
-                /// @todo
                 restoreGameState(serverGameState);
                 for (int i = serverFrame + 1; i <= clientFrame; i++) {
                     fullProcessFrame(i);
@@ -533,6 +531,19 @@ void recvUpdates(RemoteInavjagaIO* remote_) {
             }
         }
     }
+}
+
+/** @brief Restores the field and the entities from a string
+ * @param serverGameState A string in the format defined by serializeGameState
+ * @cite serialize.cpp
+ * @todo The whole function is still empty
+ */
+void restoreGameState(const std::string& serverGameState) {
+    std::istringstream state(serverGameState);
+    #if DEBUG
+    std::unique_lock lock(stderrMutex);
+    std::cerr << "Restoring the game state to \n\t" << serverGameState << std::endl;
+    #endif
 }
 
 void intro() {
