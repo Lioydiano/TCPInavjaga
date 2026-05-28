@@ -480,6 +480,7 @@ void updateClients(RemoteInavjagaIO* remote_) {
     ServerRemoteInavjagaIO* remote = (ServerRemoteInavjagaIO*)remote_;
     while (!end) {
         std::unique_lock lock(gameStateMutex);
+        if (gameState.empty()) continue; // We haven't gone over a frame yet
         remote->sendGameStateToAll(gameState);
     }
 }
@@ -500,6 +501,15 @@ void recvUpdates(RemoteInavjagaIO* remote_) {
         std::istringstream isServer(serverGameState);
         std::string frameString;
         std::getline(isServer, frameString, ',');
+        if (std::empty(frameString) || !std::isalnum(frameString[0])) {
+            #if DEBUG
+            {
+                std::unique_lock lock(stderrMutex);
+                std::cerr << "We received absolute emptiness from the server on the synchronization channel" << std::endl;
+            }
+            #endif
+            return;
+        }
         int serverFrame = stoi(frameString);
         // Parsing the frame number from the client
         std::istringstream isClient(gameState);

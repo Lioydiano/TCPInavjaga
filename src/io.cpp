@@ -622,6 +622,13 @@ bool InavjagaGSPIO::waitYes(int timeout) {
 void InavjagaGSPIO::sendSyncData(const std::string& message) {
     std::unique_lock lock(syncMutex);
     size_t length = message.length();
+    #if DEBUG
+    {
+        std::unique_lock lock(stderrMutex);
+        std::cerr << "We are about to send " << length << " characters" << std::endl;
+        std::cerr << "Our message is " << message << std::endl;
+    }
+    #endif
     if (ssize_t rc = write(this->syncsocketfd, &length, sizeof(size_t)) < 0) {
         std::unique_lock lock(stderrMutex);
         std::cerr << "Failed to send data with error " << rc << "(" << errno << ")" << std::endl;
@@ -804,6 +811,12 @@ void ServerRemoteInavjagaIO::sendGameStateToAll(const std::string& gameState) {
     for (std::shared_ptr<InavjagaGSPIO> client_ : neighbors) {
         if (client_ == nullptr) continue;
         std::shared_ptr<ServerInavjagaGSPIO> client = std::static_pointer_cast<ServerInavjagaGSPIO>(client_);
+        #if DEBUG
+        {
+            std::unique_lock lock(stderrMutex);
+            std::cerr << "We are about to send the game state to " << client << " client" << std::endl;
+        }
+        #endif
         client->sendSyncData(gameState);
     }
 }
