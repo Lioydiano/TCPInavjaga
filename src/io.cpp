@@ -641,6 +641,7 @@ std::string InavjagaGSPIO::recvSyncData(int timeout) {
         std::cerr << "Polling failed with error " << rc << " (" << errno << ")" << std::endl;
         throw std::runtime_error("Polling failed");
     }
+    std::string received;
     if (pollFd_.revents & POLLIN) {
         size_t size;
         if (int rc = read(syncsocketfd, &size, sizeof(size_t)) < 0) {
@@ -656,14 +657,14 @@ std::string InavjagaGSPIO::recvSyncData(int timeout) {
                       << " (" << errno << ")" << std::endl;
             throw std::runtime_error("Receiving message failed");
         }
-        std::string received(buffer);
+        received = std::string(buffer);
         free(buffer);
-        return received;
     }
     {
         std::unique_lock lock(stderrMutex);
         std::cerr << "No message ready yet" << std::endl;
     }
+    return received;
 }
 
 bool ServerInavjagaGSPIO::offerCoordinates(const sista::Coordinates& coordinates) const {
