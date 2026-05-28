@@ -274,6 +274,9 @@ int main(int argc, char* argv[]) {
         }
         end = endConditions();
         std::flush(std::cout);
+
+        std::string gameState = std::to_string(i) + "," + serialize(rng) + "," + serializeGameState();
+
         delta = std::chrono::high_resolution_clock::now() - start;
         #if DEBUG
         {

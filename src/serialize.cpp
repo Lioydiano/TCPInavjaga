@@ -142,3 +142,19 @@ std::string serialize(unsigned short y, unsigned short x) {
     os << '{' << y << ',' << x << '}';
     return os.str();
 }
+
+/** @brief Serializes a Mersenne Twister random engine
+ * @cite https://en.cppreference.com/cpp/numeric/random/mersenne_twister_engine/operator_ltltgtgt
+*/
+std::string serialize(const std::mt19937& rng) {
+    std::ostringstream out;
+    out << rng;
+    return out.str();
+}
+
+std::mt19937 deserialize(const std::string& state) {
+    std::istringstream in(state);
+    std::mt19937 rng;
+    in >> rng;
+    return rng;
+}

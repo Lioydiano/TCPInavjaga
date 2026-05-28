@@ -23,5 +23,8 @@ std::string serialize(std::shared_ptr<Portal>);
 std::string serialize(std::shared_ptr<Wall>);
 std::string serialize(std::shared_ptr<Worm>);
 
+std::string serialize(const std::mt19937&);
+std::mt19937 deserialize(const std::string&);
+
 std::string serializeGameState();
 void sendGameState(std::shared_ptr<ServerInavjagaGSPIO>);
