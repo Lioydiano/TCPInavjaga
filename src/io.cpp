@@ -653,6 +653,7 @@ void InavjagaGSPIO::sendSyncData(const std::string& message) {
 }
 
 std::string InavjagaGSPIO::recvSyncData(int timeout) {
+    auto start = std::chrono::high_resolution_clock::now();
     struct pollfd pollFd_ = {0,0,0};
     pollFd_.fd = this->syncsocketfd;
     pollFd_.events = POLLIN;
@@ -661,6 +662,7 @@ std::string InavjagaGSPIO::recvSyncData(int timeout) {
         std::cerr << "Polling failed with error " << rc << " (" << errno << ")" << std::endl;
         throw std::runtime_error("Polling failed");
     }
+    std::chrono::duration<double> delta =  std::chrono::high_resolution_clock::now() - start;
     std::string received;
     if (pollFd_.revents & POLLIN) {
         int convertedSize;
@@ -672,26 +674,45 @@ std::string InavjagaGSPIO::recvSyncData(int timeout) {
         }
         size_t size = ntohl(convertedSize);
         // I have reasons to believe that we might have to poll here in between
-        char* buffer = (char*)calloc(size, sizeof(char));
-        if (int rc = read(socketfd, buffer, size) < 0) {
+        timeout -= std::chrono::duration_cast<std::chrono::milliseconds>(delta).count();
+        pollFd_ = {0,0,0};
+        pollFd_.fd = this->syncsocketfd;
+        pollFd_.events = POLLIN;
+        if (int rc = poll(&pollFd_, 1, timeout) < 0) {
             std::unique_lock lock(stderrMutex);
-            std::cerr << "Receiving message failed with error " << rc
-                      << " (" << errno << ")" << std::endl;
-            throw std::runtime_error("Receiving message failed");
+            std::cerr << "Polling failed with error " << rc << " (" << errno << ")" << std::endl;
+            throw std::runtime_error("Polling failed");
+        }
+        if (pollFd_.revents & POLLIN) {
+            char* buffer = (char*)calloc(size, sizeof(char));
+            if (int rc = read(syncsocketfd, buffer, size) < 0) {
+                std::unique_lock lock(stderrMutex);
+                std::cerr << "Receiving message failed with error " << rc
+                        << " (" << errno << ")" << std::endl;
+                throw std::runtime_error("Receiving message failed");
+            }
+            #if DEBUG
+            else {
+                std::unique_lock lock(stderrMutex);
+                std::cerr << "We received " << rc << " characters instead of " << size << std::endl;
+            }
+            #endif
+            received = std::string(buffer);
+            free(buffer);
         }
         #if DEBUG
         else {
             std::unique_lock lock(stderrMutex);
-            std::cerr << "We received " << rc << " characters instead of " << size << std::endl;
+            std::cerr << "\tNo message ready yet" << std::endl;
         }
         #endif
-        received = std::string(buffer);
-        free(buffer);
     }
-    {
+    #if DEBUG
+    else {
         std::unique_lock lock(stderrMutex);
-        std::cerr << "No message ready yet" << std::endl;
+        std::cerr << "No message size ready yet" << std::endl;
     }
+    #endif
     return received;
 }
 
