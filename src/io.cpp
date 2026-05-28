@@ -814,5 +814,5 @@ ClientRemoteInavjagaIO::ClientRemoteInavjagaIO(
 ): RemoteInavjagaIO({nullptr, connectionToServer}) {}
 
 std::string ClientRemoteInavjagaIO::recvGameState(int timeout) {
-    return this->neighbors[0]->recvSyncData(timeout);
+    return this->neighbors[1]->recvSyncData(timeout);
 }
