@@ -493,6 +493,7 @@ void recvUpdates(RemoteInavjagaIO* remote_) {
         std::unique_lock lock(gameStateMutex);
         std::string serverGameState;
         if ((serverGameState = remote->recvGameState()) == gameState) continue;
+        if (serverGameState.empty()) continue;
         #if DEBUG
         {
             std::unique_lock lock(stderrMutex);
