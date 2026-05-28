@@ -16,7 +16,7 @@ const std::string classTermination = "|";
 std::string serializeGameState() {
     std::unique_lock lock(streamMutex);
     std::string serialized;
-    serialized.append("Archers:");
+    serialized.append(classTermination);
     for (std::shared_ptr<Archer> archer : Archer::archers) {
         serialized.append(serialize(archer));
         if (archer != Archer::archers.back())
