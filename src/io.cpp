@@ -654,7 +654,7 @@ void InavjagaGSPIO::sendSyncData(const std::string& message) {
 
 std::string InavjagaGSPIO::recvSyncData(int timeout) {
     struct pollfd pollFd_ = {0,0,0};
-    pollFd_.fd = this->socketfd;
+    pollFd_.fd = this->syncsocketfd;
     pollFd_.events = POLLIN;
     if (int rc = poll(&pollFd_, 1, timeout) < 0) {
         std::unique_lock lock(stderrMutex);
