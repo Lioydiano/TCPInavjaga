@@ -39,13 +39,11 @@ protected:
     int socketfd;
     int syncsocketfd;
 
-    void recvSyncData(int&, int timeout=1000);
-    std::string recvSyncData(int timeout=1000);
     bool recvBool(int timeout = 1000) const;
     void sendCoordinates(const sista::Coordinates& coordinates) const;
 public:
-    void sendSyncData(int);
     void sendSyncData(const std::string&);
+    std::string recvSyncData(int timeout=1000);
     void sendNo();
     void sendYes();
     bool waitYes(int timeout=1000);
@@ -177,4 +175,5 @@ protected:
 public:
     ClientRemoteInavjagaIO(std::shared_ptr<ClientInavjagaGSPIO>);
     bool isChannelAlive() override;
+    std::string recvGameState(int timeout=100);
 };

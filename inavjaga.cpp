@@ -1,6 +1,7 @@
 #include "include/cross_platform.hpp"
 #include "inavjaga.hpp"
 #include "src/serialize.hpp"
+#include <sstream>
 #include <algorithm>
 #include <memory>
 #include <future>
@@ -38,6 +39,8 @@ sista::Border border(
 );
 std::queue<MoveEvent> movesBuffer = std::queue<MoveEvent>();
 std::string gameState;
+const size_t pastGameStatesBufferSize = 20; // Supporting up to 2s of latency
+std::string pastGameStates[pastGameStatesBufferSize] = {""};
 std::mutex movesBufferMutex = std::mutex();
 std::mutex streamMutex = std::mutex();
 std::mutex stderrMutex = std::mutex();
@@ -251,35 +254,15 @@ int main(int argc, char* argv[]) {
         #endif
         start = std::chrono::high_resolution_clock::now();
 
-        if (revivePlayers()) {
-            lastDeathFrame = i;
-        }
-        if (lastDeathFrame && i - lastDeathFrame == 20) {
-            // After 20 frames it deletes the death reason
-            std::lock_guard<std::mutex> lock(streamMutex); // Lock stays until scope ends
-            reprint();
-        }
-
-        processMoves(); // This has to be done earlier than the lock as act() wants it
-        std::lock_guard<std::mutex> lock(streamMutex); // Lock stays until scope ends
-        processFrame();
-        if (i % MEAT_DURATION_PERIOD == MEAT_DURATION_PERIOD - 1) {
-            Player::localPlayer->inventory.meat--;
-        }
-        spawnEnemies();
-        printSideInstructions(i);
-        // Check for negative amount of meat
-        if (Player::localPlayer->inventory.meat < 0) {
-            printEndInformation(EndReason::STARVED);
-            Player::localPlayer->dead = true;
-            end = true;
-        }
-        end = endConditions();
+        fullProcessFrame(i);
         std::flush(std::cout);
 
         {
             std::unique_lock lockGameState(gameStateMutex);
             gameState = std::to_string(i) + "," + serialize(rng) + "," + serializeGameState();
+            #if CLIENT
+            pastGameStates[i % pastGameStatesBufferSize] = gameState;
+            #endif
         }
 
         delta = std::chrono::high_resolution_clock::now() - start;
@@ -466,11 +449,89 @@ void processDeath(std::shared_ptr<Player> player) {
     player->inventory.bullets = 0;
 }
 
+void fullProcessFrame(int i) {
+    if (revivePlayers()) {
+        lastDeathFrame = i;
+    }
+    if (lastDeathFrame && i - lastDeathFrame == 20) {
+        // After 20 frames it deletes the death reason
+        std::lock_guard<std::mutex> lock(streamMutex); // Lock stays until scope ends
+        reprint();
+    }
+
+    processMoves(); // This has to be done earlier than the lock as act() wants it
+    std::lock_guard<std::mutex> lock(streamMutex); // Lock stays until scope ends
+    processFrame();
+    if (i % MEAT_DURATION_PERIOD == MEAT_DURATION_PERIOD - 1) {
+        Player::localPlayer->inventory.meat--;
+    }
+    spawnEnemies();
+    printSideInstructions(i);
+    // Check for negative amount of meat
+    if (Player::localPlayer->inventory.meat < 0) {
+        printEndInformation(EndReason::STARVED);
+        Player::localPlayer->dead = true;
+        end = true;
+    }
+    end = endConditions();
+}
+
 void updateClients(RemoteInavjagaIO* remote_) {
     ServerRemoteInavjagaIO* remote = (ServerRemoteInavjagaIO*)remote_;
     while (!end) {
         std::unique_lock lock(gameStateMutex);
         remote->sendGameStateToAll(gameState);
+    }
+}
+
+void recvUpdates(RemoteInavjagaIO* remote_) {
+    ClientRemoteInavjagaIO* remote = (ClientRemoteInavjagaIO*)remote_;
+    while (!end) {
+        std::unique_lock lock(gameStateMutex);
+        std::string serverGameState;
+        if ((serverGameState = remote->recvGameState()) == gameState) continue;
+        #if DEBUG
+        {
+            std::unique_lock lock(stderrMutex);
+            std::cerr << "The game state did not match with the server, latency might be there" << std::endl;
+        }
+        #endif
+        // Parsing the frame number from the server
+        std::istringstream isServer(serverGameState);
+        std::string frameString;
+        std::getline(isServer, frameString, ',');
+        int serverFrame = stoi(frameString);
+        // Parsing the frame number from the client
+        std::istringstream isClient(gameState);
+        std::getline(isClient, frameString, ',');
+        int clientFrame = stoi(frameString);
+        if (clientFrame == serverFrame) {
+            // This means that there is a mismatch and there will be some work to do
+            /// @todo
+            restoreGameState(serverGameState);
+        } else {
+            if (pastGameStates[serverFrame % pastGameStatesBufferSize] == serverGameState) {
+                // This means we are just some frames ahead, we can keep on going
+                #if DEBUG
+                {
+                    std::unique_lock lock(stderrMutex);
+                    std::cerr << "Because of latency, we are " << clientFrame - serverFrame << " frames ahead of the server" << std::endl;
+                }
+                #endif
+                continue;
+            } else {
+                // This means that we lost synchronization some frames ago
+                /// @note we assume that the server cannot be ahead of the client,
+                /// since it would require a clock unsync greater than the latency
+                /// @note we assume that latency cannot be greater than 
+                /// pastGameStatesBufferSize * FRAME_DURATION milliseconds
+                /// @todo
+                restoreGameState(serverGameState);
+                for (int i = serverFrame + 1; i <= clientFrame; i++) {
+                    fullProcessFrame(i);
+                }
+            }
+        }
     }
 }
 

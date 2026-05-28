@@ -619,14 +619,6 @@ bool InavjagaGSPIO::waitYes(int timeout) {
     return false;
 }
 
-void InavjagaGSPIO::sendSyncData(int message) {
-    std::unique_lock lock(syncMutex);
-    if (ssize_t rc = write(this->syncsocketfd, &message, sizeof(int)) < 0) {
-        std::unique_lock lock(stderrMutex);
-        std::cerr << "Failed to send data with error " << rc << "(" << errno << ")" << std::endl;
-    }
-}
-
 void InavjagaGSPIO::sendSyncData(const std::string& message) {
     std::unique_lock lock(syncMutex);
     size_t length = message.length();
@@ -637,25 +629,6 @@ void InavjagaGSPIO::sendSyncData(const std::string& message) {
     if (ssize_t rc = write(this->syncsocketfd, message.c_str(), sizeof(message.length())) < 0) {
         std::unique_lock lock(stderrMutex);
         std::cerr << "Failed to send data with error " << rc << "(" << errno << ")" << std::endl;
-    }
-}
-
-void InavjagaGSPIO::recvSyncData(int& message, int timeout) {
-    struct pollfd pollFd_ = {0,0,0};
-    pollFd_.fd = this->socketfd;
-    pollFd_.events = POLLIN;
-    if (int rc = poll(&pollFd_, 1, timeout) < 0) {
-        std::unique_lock lock(stderrMutex);
-        std::cerr << "Polling failed with error " << rc << " (" << errno << ")" << std::endl;
-        throw std::runtime_error("Polling failed");
-    }
-    if (pollFd_.revents & POLLIN) {
-        read(socketfd, &message, sizeof(int));
-        return;
-    }
-    {
-        std::unique_lock lock(stderrMutex);
-        std::cerr << "No message ready yet" << std::endl;
     }
 }
 
@@ -838,3 +811,7 @@ ClientRemoteInavjagaIO::ClientRemoteInavjagaIO() {}
 ClientRemoteInavjagaIO::ClientRemoteInavjagaIO(
     std::shared_ptr<ClientInavjagaGSPIO> connectionToServer
 ): RemoteInavjagaIO({nullptr, connectionToServer}) {}
+
+std::string ClientRemoteInavjagaIO::recvGameState(int timeout) {
+    return this->neighbors[0]->recvSyncData(timeout);
+}
