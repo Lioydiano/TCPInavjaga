@@ -68,12 +68,6 @@ std::string serializeGameState() {
     }
     serialized.append(classTermination);
     for (std::shared_ptr<Wall> wall : Wall::walls) {
-        #if DEBUG
-        {
-            std::unique_lock lock(stderrMutex);
-            std::cerr << "This wall " << wall.get() << " gets serialized as " << serialize(wall) << " client" << std::endl;
-        }
-        #endif
         serialized.append(serialize(wall));
         if (wall != Wall::walls.back())
             serialized.append(";");
