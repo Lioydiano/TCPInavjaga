@@ -73,6 +73,7 @@ std::string serializeGameState() {
             serialized.append(";");
     }
     serialized.append(classTermination);
+    return serialized;
 }
 
 std::string serialize(std::shared_ptr<Archer> archer) {
