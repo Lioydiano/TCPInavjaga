@@ -39,13 +39,13 @@ protected:
     int socketfd;
     int syncsocketfd;
 
-    void sendSyncData(int);
-    void sendSyncData(std::string);
     void recvSyncData(int&, int timeout=1000);
     std::string recvSyncData(int timeout=1000);
     bool recvBool(int timeout = 1000) const;
     void sendCoordinates(const sista::Coordinates& coordinates) const;
 public:
+    void sendSyncData(int);
+    void sendSyncData(const std::string&);
     void sendNo();
     void sendYes();
     bool waitYes(int timeout=1000);
@@ -169,6 +169,7 @@ protected:
     ServerRemoteInavjagaIO();
 public:
     ServerRemoteInavjagaIO(std::vector<std::shared_ptr<ServerInavjagaGSPIO>>&);
+    void sendGameStateToAll(const std::string&);
 };
 class ClientRemoteInavjagaIO: public RemoteInavjagaIO {
 protected:

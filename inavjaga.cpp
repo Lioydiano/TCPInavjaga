@@ -37,9 +37,11 @@ sista::Border border(
     }
 );
 std::queue<MoveEvent> movesBuffer = std::queue<MoveEvent>();
+std::string gameState;
 std::mutex movesBufferMutex = std::mutex();
 std::mutex streamMutex = std::mutex();
 std::mutex stderrMutex = std::mutex();
+std::mutex gameStateMutex = std::mutex();
 bool speedup = false;
 int lastDeathFrame = 0;
 bool end = false;
@@ -275,7 +277,10 @@ int main(int argc, char* argv[]) {
         end = endConditions();
         std::flush(std::cout);
 
-        std::string gameState = std::to_string(i) + "," + serialize(rng) + "," + serializeGameState();
+        {
+            std::unique_lock lockGameState(gameStateMutex);
+            gameState = std::to_string(i) + "," + serialize(rng) + "," + serializeGameState();
+        }
 
         delta = std::chrono::high_resolution_clock::now() - start;
         #if DEBUG
@@ -459,6 +464,14 @@ void processDeath(std::shared_ptr<Player> player) {
     }
     player->inventory.clay = 0;
     player->inventory.bullets = 0;
+}
+
+void updateClients(RemoteInavjagaIO* remote_) {
+    ServerRemoteInavjagaIO* remote = (ServerRemoteInavjagaIO*)remote_;
+    while (!end) {
+        std::unique_lock lock(gameStateMutex);
+        remote->sendGameStateToAll(gameState);
+    }
 }
 
 void intro() {

@@ -627,7 +627,7 @@ void InavjagaGSPIO::sendSyncData(int message) {
     }
 }
 
-void InavjagaGSPIO::sendSyncData(std::string message) {
+void InavjagaGSPIO::sendSyncData(const std::string& message) {
     std::unique_lock lock(syncMutex);
     size_t length = message.length();
     if (ssize_t rc = write(this->syncsocketfd, &length, sizeof(size_t)) < 0) {
@@ -701,12 +701,6 @@ bool ServerInavjagaGSPIO::offerCoordinates(const sista::Coordinates& coordinates
         std::cerr << e.what();
         return false;
     }
-}
-
-void ServerInavjagaGSPIO::sendGameState(std::string payload, uint32_t seed, int frame) {
-    this->sendSyncData(frame);
-    this->sendRandomSeed(seed);
-    this->sendSyncData(payload);
 }
 
 sista::Coordinates ClientInavjagaGSPIO::recvCoordinates() const {
@@ -831,6 +825,14 @@ ServerRemoteInavjagaIO::ServerRemoteInavjagaIO() {}
 ServerRemoteInavjagaIO::ServerRemoteInavjagaIO(
     std::vector<std::shared_ptr<ServerInavjagaGSPIO>>& connectionsToClients
 ): RemoteInavjagaIO(connectionsToClients) {}
+
+void ServerRemoteInavjagaIO::sendGameStateToAll(const std::string& gameState) {
+    for (std::shared_ptr<InavjagaGSPIO> client_ : neighbors) {
+        if (client_ == nullptr) continue;
+        std::shared_ptr<ServerInavjagaGSPIO> client = std::static_pointer_cast<ServerInavjagaGSPIO>(client_);
+        client->sendSyncData(gameState);
+    }
+}
 
 ClientRemoteInavjagaIO::ClientRemoteInavjagaIO() {}
 ClientRemoteInavjagaIO::ClientRemoteInavjagaIO(
