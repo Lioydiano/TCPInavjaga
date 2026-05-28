@@ -633,10 +633,22 @@ void InavjagaGSPIO::sendSyncData(const std::string& message) {
         std::unique_lock lock(stderrMutex);
         std::cerr << "Failed to send data with error " << rc << "(" << errno << ")" << std::endl;
     }
-    if (ssize_t rc = write(this->syncsocketfd, message.c_str(), sizeof(message.length())) < 0) {
+    #if DEBUG
+    else {
+        std::unique_lock lock(stderrMutex);
+        std::cerr << "We sent " << rc << " characters instead" << std::endl;
+    }
+    #endif
+    if (ssize_t rc = write(this->syncsocketfd, message.c_str(), message.length()) < 0) {
         std::unique_lock lock(stderrMutex);
         std::cerr << "Failed to send data with error " << rc << "(" << errno << ")" << std::endl;
     }
+    #if DEBUG
+    else {
+        std::unique_lock lock(stderrMutex);
+        std::cerr << "We sent " << rc << " characters instead" << std::endl;
+    }
+    #endif
 }
 
 std::string InavjagaGSPIO::recvSyncData(int timeout) {
