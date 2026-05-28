@@ -489,10 +489,17 @@ void updateClients(RemoteInavjagaIO* remote_) {
 
 void recvUpdates(RemoteInavjagaIO* remote_) {
     ClientRemoteInavjagaIO* remote = (ClientRemoteInavjagaIO*)remote_;
+    std::this_thread::sleep_for(std::chrono::milliseconds(100));
     while (!end) {
         std::unique_lock lock(gameStateMutex);
         std::string serverGameState;
         if ((serverGameState = remote->recvGameState()) == gameState) continue;
+        #if DEBUG
+        {
+            std::unique_lock lock(stderrMutex);
+            std::cerr << "The game state is: " << serverGameState << std::endl;
+        }
+        #endif
         if (serverGameState.empty()) continue;
         #if DEBUG
         {
@@ -517,6 +524,15 @@ void recvUpdates(RemoteInavjagaIO* remote_) {
         // Parsing the frame number from the client
         std::istringstream isClient(gameState);
         std::getline(isClient, frameString, ',');
+        if (std::empty(frameString) || !std::isalnum(frameString[0])) {
+            #if DEBUG
+            {
+                std::unique_lock lock(stderrMutex);
+                std::cerr << "The client has an absolutely empty or malformed game state" << std::endl;
+            }
+            #endif
+            return;
+        }
         int clientFrame = stoi(frameString);
         if (clientFrame == serverFrame) {
             // This means that there is a mismatch and there will be some work to do
