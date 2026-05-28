@@ -8,8 +8,13 @@
 #include "wall.hpp"
 #include "worm.hpp"
 #include <sstream>
+#include <memory>
+#if DEBUG
+#include <iostream>
+#endif
 
 extern std::mutex streamMutex;
+extern std::mutex stderrMutex;
 
 const std::string classTermination = "|";
 
@@ -63,6 +68,12 @@ std::string serializeGameState() {
     }
     serialized.append(classTermination);
     for (std::shared_ptr<Wall> wall : Wall::walls) {
+        #if DEBUG
+        {
+            std::unique_lock lock(stderrMutex);
+            std::cerr << "This wall " << wall.get() << " gets serialized as " << serialize(wall) << " client" << std::endl;
+        }
+        #endif
         serialized.append(serialize(wall));
         if (wall != Wall::walls.back())
             serialized.append(";");
@@ -82,51 +93,50 @@ std::string serialize(std::shared_ptr<Archer> archer) {
 }
 
 std::string serialize(std::shared_ptr<Bullet> bullet) {
-    std::ostringstream os(serialize(bullet->getCoordinates()));
-    os << ',' << bullet->collided << ',' << bullet->direction;
+    std::ostringstream os;
+    os << serialize(bullet->getCoordinates()) << ',' << bullet->collided << ',' << bullet->direction;
     return os.str();
 }
 
 std::string serialize(std::shared_ptr<Chest> chest) {
-    std::ostringstream os(serialize(chest->getCoordinates()));
-    os << ",{" << chest->inventory.clay << "," << chest->inventory.bullets << "," << chest->inventory.meat << "}";
+    std::ostringstream os;
+    os << serialize(chest->getCoordinates()) << ",{" << chest->inventory.clay << "," << chest->inventory.bullets << "," << chest->inventory.meat << "}";
     return os.str();
 }
 
 std::string serialize(std::shared_ptr<EnemyBullet> enemyBullet) {
-    std::ostringstream os(serialize(enemyBullet->getCoordinates()));
-    os << ',' << enemyBullet->collided << ',' << enemyBullet->direction;
+    std::ostringstream os;
+    os << serialize(enemyBullet->getCoordinates()) << ',' << enemyBullet->collided << ',' << enemyBullet->direction;
     return os.str();
 }
 
 std::string serialize(std::shared_ptr<Mine> mine) {
-    std::ostringstream os(serialize(mine->getCoordinates()));
-    os << ',' << mine->triggered;
+    std::ostringstream os;
+    os << serialize(mine->getCoordinates()) << ',' << mine->triggered;
     return os.str();
 }
 
 std::string serialize(std::shared_ptr<Portal> portal) {
-    std::ostringstream os(serialize(portal->getCoordinates()));
-    return os.str();
+    return serialize(portal->getCoordinates());
 }
 
 std::string serialize(std::shared_ptr<Player> player) {
-    std::ostringstream os(serialize(player->getCoordinates()));
-    os << ',' << player->id << ',' << player->connected << ',' << player->dead
+    std::ostringstream os;
+    os << serialize(player->getCoordinates()) << ',' << player->id << ',' << player->connected << ',' << player->dead
        << ',' << player->mode << ",{" << player->inventory.clay << ","
        << player->inventory.bullets << "," << player->inventory.meat << "}";
     return os.str();
 }
 
 std::string serialize(std::shared_ptr<Wall> wall) {
-    std::ostringstream os(serialize(wall->getCoordinates()));
-    os << ',' << wall->strength;
+    std::ostringstream os;
+    os << serialize(wall->getCoordinates()) << ',' << wall->strength;
     return os.str();
 }
 
 std::string serialize(std::shared_ptr<Worm> worm) {
-    std::ostringstream os(serialize(worm->getCoordinates()));
-    os << ',' << worm->direction << ',' << worm->hp << ',' << worm->collided;
+    std::ostringstream os;
+    os << serialize(worm->getCoordinates()) << ',' << worm->direction << ',' << worm->hp << ',' << worm->collided;
     for (std::shared_ptr<WormBody> wormBody : worm->body) {
         os << ',' << serialize(wormBody->getCoordinates());
     }
