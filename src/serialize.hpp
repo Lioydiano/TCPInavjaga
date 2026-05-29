@@ -10,7 +10,12 @@
 #include "worm.hpp"
 #include <sista/coordinates.hpp>
 
+extern const std::string classTermination;
+
+template<class T> std::shared_ptr<T> deserialize(const std::string&);
+
 std::string serialize(sista::Coordinates);
+sista::Coordinates deserializeCoordinates(const std::string&);
 std::string serialize(unsigned short, unsigned short);
 
 std::string serialize(std::shared_ptr<Archer>);
@@ -24,7 +29,7 @@ std::string serialize(std::shared_ptr<Wall>);
 std::string serialize(std::shared_ptr<Worm>);
 
 std::string serialize(const std::mt19937&);
-std::mt19937 deserialize(const std::string&);
+std::mt19937 deserializeRng(const std::string&);
 
 std::string serializeGameState();
 void sendGameState(std::shared_ptr<ServerInavjagaGSPIO>);

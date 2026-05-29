@@ -6,6 +6,7 @@ class Portal : public Entity {
 public:
     static sista::ANSISettings portalStyle;
     static std::vector<std::shared_ptr<Portal>> portals;
+    static std::vector<std::shared_ptr<Portal>>* entities;
     std::weak_ptr<Portal> exit; // The matching portal
 
     Portal(sista::Coordinates);

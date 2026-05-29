@@ -7,6 +7,7 @@ class Chest : public Entity {
 public:
     static sista::ANSISettings chestStyle;
     static std::vector<std::shared_ptr<Chest>> chests;
+    static std::vector<std::shared_ptr<Chest>>* entities;
     Inventory inventory;
 
     Chest(sista::Coordinates, Inventory);

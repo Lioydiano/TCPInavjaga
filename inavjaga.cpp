@@ -554,7 +554,10 @@ void recvUpdates(RemoteInavjagaIO* remote_) {
                 /// since it would require a clock unsync greater than the latency
                 /// @note we assume that latency cannot be greater than 
                 /// pastGameStatesBufferSize * FRAME_DURATION milliseconds
-                restoreGameState(serverGameState);
+                {
+                    std::unique_lock lock(streamMutex);
+                    restoreGameState(serverGameState);
+                }
                 for (int i = serverFrame + 1; i <= clientFrame; i++) {
                     fullProcessFrame(i);
                 }
@@ -594,6 +597,17 @@ void restoreGameState(const std::string& serverGameState) {
     std::getline(state, entities, classTermination[0]);
     deserializeEntities<Archer>(entities);
     /// @todo finish this function
+}
+
+template <class T>
+void deserializeEntities(const std::string& entities) {
+    std::istringstream entitiesStream(entities);
+    std::string entity;
+    while (std::getline(entitiesStream, entity, ';')) {
+        std::shared_ptr<T> entityObject = deserialize<T>(entity);
+        T::entities->push_back(entityObject);
+        field->addPawn(entityObject);
+    }
 }
 
 void intro() {

@@ -75,6 +75,7 @@ void EnemyBullet::move() {
         this->remove(); // Hit something and the situation was not handled
     }
 }
+std::vector<std::shared_ptr<EnemyBullet>>* EnemyBullet::entities = &EnemyBullet::enemyBullets;
 sista::ANSISettings EnemyBullet::enemyBulletStyle = {
     sista::ForegroundColor::GREEN,
     sista::BackgroundColor::BLACK,

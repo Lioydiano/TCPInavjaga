@@ -82,6 +82,24 @@ std::string serializeGameState() {
     return serialized;
 }
 
+// https://stackoverflow.com/a/4933205/15888601
+template<> std::shared_ptr<Archer> deserialize(const std::string& entity) {
+    return std::make_shared<Archer>(deserializeCoordinates(entity));
+}
+template <> std::shared_ptr<Bullet> deserialize(const std::string& entity) {
+    std::istringstream is(entity);
+    std::string coordinates;
+    std::getline(is, coordinates, ',');
+    std::string direction;
+    std::getline(is, direction, ',');
+    std::shared_ptr<Bullet> bullet = std::make_shared<Bullet>(
+        deserializeCoordinates(coordinates),
+        (Direction)std::stoi(direction)
+    );
+    is >> bullet->collided;
+    return bullet;
+}
+
 std::string serialize(std::shared_ptr<Archer> archer) {
     return serialize(archer->getCoordinates());
 }
@@ -143,6 +161,17 @@ std::string serialize(sista::Coordinates coordinates) {
     return os.str();
 }
 
+sista::Coordinates deserializeCoordinates(const std::string& coordinates) {
+    sista::Coordinates coords;
+    std::istringstream is(coordinates);
+    is.ignore(1); // Should ignore a '{', but is it worth failing silently?
+    is >> coords.y;
+    is.ignore(1); // Should ignore a ',', but is it worth failing silently?
+    is >> coords.x;
+    is.ignore(1); // Should ignore a '}', but is it worth failing silently?
+    return coords;
+}
+
 std::string serialize(unsigned short y, unsigned short x) {
     std::ostringstream os;
     os << '{' << y << ',' << x << '}';
@@ -158,7 +187,7 @@ std::string serialize(const std::mt19937& rng) {
     return out.str();
 }
 
-std::mt19937 deserialize(const std::string& state) {
+std::mt19937 deserializeRng(const std::string& state) {
     std::istringstream in(state);
     std::mt19937 rng;
     in >> rng;
