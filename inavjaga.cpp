@@ -599,6 +599,17 @@ void restoreGameState(const std::string& serverGameState) {
     /// @todo finish this function
 }
 
+template <class T>
+void deserializeEntities(const std::string& entities) {
+    std::istringstream entitiesStream(entities);
+    std::string entity;
+    while (std::getline(entitiesStream, entity, ';')) {
+        std::shared_ptr<T> entityObject = deserialize<T>(entity);
+        T::entities->push_back(entityObject);
+        field->addPawn(entityObject);
+    }
+}
+
 void intro() {
     #if defined(__linux__)
     std::future<int> future = std::async([](){ return static_cast<int>(getch()); });

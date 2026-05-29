@@ -264,6 +264,7 @@ void Archer::remove() {
     field->erasePawn(this);
     Entity::removeOwner(Archer::archers, this);
 }
+std::vector<std::shared_ptr<Archer>>* Archer::entities = &Archer::archers;
 std::bernoulli_distribution Archer::moving(ARCHER_MOVING_PROBABILITY);
 std::bernoulli_distribution Archer::shooting(ARCHER_SHOOTING_PROBABILITY);
 std::bernoulli_distribution Archer::spawning(ARCHER_SPAWNING_PROBABILITY);

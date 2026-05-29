@@ -82,6 +82,31 @@ std::string serializeGameState() {
     return serialized;
 }
 
+template<class T>
+std::shared_ptr<T> deserialize(const std::string& entity) {
+    if (std::is_same<T, Archer>::value) {
+        return std::make_shared<Archer>(deserializeCoordinates(entity));
+    } else if (std::is_same<T, Bullet>::value) {
+        std::istringstream is(entity);
+        std::string coordinates;
+        std::getline(is, coordinates, ',');
+        Direction direction;
+        std::getline(is, direction, ',');
+        std::shared_ptr<Bullet> bullet = std::make_shared<Bullet>(deserializeCoordinates(coordinates), direction);
+        is << bullet->collided;
+        return bullet;
+    }
+}
+// Explicitly compiling for different T values
+template std::shared_ptr<Archer> deserialize(const std::string&);
+template std::shared_ptr<Bullet> deserialize(const std::string&);
+template std::shared_ptr<Chest> deserialize(const std::string&);
+template std::shared_ptr<EnemyBullet> deserialize(const std::string&);
+template std::shared_ptr<Mine> deserialize(const std::string&);
+template std::shared_ptr<Player> deserialize(const std::string&);
+template std::shared_ptr<Wall> deserialize(const std::string&);
+template std::shared_ptr<Worm> deserialize(const std::string&);
+
 std::string serialize(std::shared_ptr<Archer> archer) {
     return serialize(archer->getCoordinates());
 }
@@ -143,6 +168,17 @@ std::string serialize(sista::Coordinates coordinates) {
     return os.str();
 }
 
+sista::Coordinates deserializeCoordinates(const std::string& coordinates) {
+    sista::Coordinates coords;
+    std::istringstream is(coordinates);
+    is.ignore(1); // Should ignore a '{', but is it worth failing silently?
+    is >> coords.y;
+    is.ignore(1); // Should ignore a ',', but is it worth failing silently?
+    is >> coords.x;
+    is.ignore(1); // Should ignore a '}', but is it worth failing silently?
+    return coords;
+}
+
 std::string serialize(unsigned short y, unsigned short x) {
     std::ostringstream os;
     os << '{' << y << ',' << x << '}';
@@ -158,7 +194,7 @@ std::string serialize(const std::mt19937& rng) {
     return out.str();
 }
 
-std::mt19937 deserialize(const std::string& state) {
+std::mt19937 deserializeRng(const std::string& state) {
     std::istringstream in(state);
     std::mt19937 rng;
     in >> rng;

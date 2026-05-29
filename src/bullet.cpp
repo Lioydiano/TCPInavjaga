@@ -67,6 +67,7 @@ void Bullet::move() {
         this->remove(); // Hit something and the situation was not handled
     }
 }
+std::vector<std::shared_ptr<Bullet>>* Bullet::entities = &Bullet::bullets;
 sista::ANSISettings Bullet::bulletStyle = {
     sista::ForegroundColor::MAGENTA,
     sista::BackgroundColor::BLACK,
