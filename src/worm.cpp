@@ -61,6 +61,7 @@ void WormBody::remove() {
     field->erasePawn(this);
     Entity::removeOwner(WormBody::wormBodies, this);
 }
+std::vector<std::shared_ptr<WormBody>>* WormBody::entities = &WormBody::wormBodies;
 sista::ANSISettings WormBody::wormBodyStyle = {
     sista::RGBColor(50, 0xff, 150),
     sista::BackgroundColor::BLACK,
@@ -224,6 +225,7 @@ void Worm::remove() {
     field->erasePawn(this);
     Entity::removeOwner(Worm::worms, this);
 }
+std::vector<std::shared_ptr<Worm>>* Worm::entities = &Worm::worms;
 Direction Worm::options[2] = {Direction::LEFT, Direction::RIGHT};
 std::bernoulli_distribution Worm::turning(WORM_TURNING_PROBABILITY);
 std::bernoulli_distribution Worm::moving(WORM_MOVING_PROBABILITY);

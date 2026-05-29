@@ -9,6 +9,7 @@ class WormBody : public Entity {
 public:
     static sista::ANSISettings wormBodyStyle;
     static std::vector<std::shared_ptr<WormBody>> wormBodies;
+    static std::vector<std::shared_ptr<WormBody>>* entities;
     std::weak_ptr<Worm> head;
 
     WormBody(sista::Coordinates, Direction);
@@ -22,6 +23,7 @@ class Worm : public Entity, public std::enable_shared_from_this<Worm> {
 public:
     static sista::ANSISettings wormHeadStyle;
     static std::vector<std::shared_ptr<Worm>> worms;
+    static std::vector<std::shared_ptr<Worm>>* entities;
     static std::bernoulli_distribution turning;
     static std::bernoulli_distribution moving;
     static std::bernoulli_distribution spawning;

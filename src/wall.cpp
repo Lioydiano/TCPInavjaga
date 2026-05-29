@@ -82,6 +82,7 @@ bool Wall::takeHit() {
     }
     return false;
 }
+std::vector<std::shared_ptr<Wall>>* Wall::entities = &Wall::walls;
 std::bernoulli_distribution Wall::wearing(WALL_WEARING_PROBABILITY);
 sista::ANSISettings Wall::wallStyle = {
     RGB_ROCKS_FOREGROUND,

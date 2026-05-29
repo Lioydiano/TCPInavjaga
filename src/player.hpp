@@ -18,6 +18,7 @@ public:
     static player_id_t localPlayerId;
     static std::shared_ptr<Player> localPlayer;
     static std::vector<std::shared_ptr<Player>> players;
+    static std::vector<std::shared_ptr<Player>>* entities;
     enum Mode {
         COLLECT, BULLET,
         DUMPCHEST, TRAP, MINE

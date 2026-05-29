@@ -58,6 +58,7 @@ void Mine::explode() {
     }
     this->remove();
 }
+std::vector<std::shared_ptr<Mine>>* Mine::entities = &Mine::mines;
 std::bernoulli_distribution Mine::explosion(MINE_EXPLOSION_IN_FRAME_PROBABILITY);
 std::uniform_int_distribution<int> Mine::mineDamage(MINE_MINIMUM_DAMAGE, MINE_MAXIMUM_DAMAGE);
 sista::ANSISettings Mine::mineStyle = {

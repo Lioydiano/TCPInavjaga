@@ -119,6 +119,7 @@ void Player::shoot(Direction direction) {
             return;
     }
 }
+std::vector<std::shared_ptr<Player>>* Player::entities = &Player::players;
 sista::ANSISettings Player::playerStyle = {
     sista::ForegroundColor::YELLOW,
     sista::BackgroundColor::BLACK,

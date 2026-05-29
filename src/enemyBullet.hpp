@@ -7,6 +7,7 @@ class EnemyBullet : public Entity {
 public:
     static sista::ANSISettings enemyBulletStyle;
     static std::vector<std::shared_ptr<EnemyBullet>> enemyBullets;
+    static std::vector<std::shared_ptr<EnemyBullet>>* entities;
     Direction direction;
     bool collided = false;
 
