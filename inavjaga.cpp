@@ -536,6 +536,7 @@ void recvUpdates(RemoteInavjagaIO* remote_) {
         int clientFrame = stoi(frameString);
         if (clientFrame == serverFrame) {
             // This means that there is a mismatch and there will be some work to do
+            std::unique_lock lock(streamMutex);
             restoreGameState(serverGameState);
         } else {
             if (pastGameStates[serverFrame % pastGameStatesBufferSize] == serverGameState) {
@@ -565,14 +566,34 @@ void recvUpdates(RemoteInavjagaIO* remote_) {
 /** @brief Restores the field and the entities from a string
  * @param serverGameState A string in the format defined by serializeGameState
  * @cite serialize.cpp
+ * @note Refer to serializeGameState for reverse implementation details
+ * @warning We assume the gameStateMutex to be already locked before the function is called
  * @todo The whole function is still empty
  */
 void restoreGameState(const std::string& serverGameState) {
     std::istringstream state(serverGameState);
     #if DEBUG
-    std::unique_lock lock(stderrMutex);
-    std::cerr << "Restoring the game state to \n\t" << serverGameState << std::endl;
+    {
+        std::unique_lock lock(stderrMutex);
+        std::cerr << "Restoring the game state to \n\t" << serverGameState << std::endl;
+    }
     #endif
+    {
+        std::unique_lock lock(streamMutex);
+        deallocateAll();
+        field->clear();
+    }
+
+    std::string frameString; // We are lk trashing this anyway
+    std::getline(state, frameString, ',');
+
+    state >> rng; // We restore the rng state
+    char _;
+    state >> _ >> _; // Comma and classTermination
+    std::string entities;
+    std::getline(state, entities, classTermination[0]);
+    deserializeEntities<Archer>(entities);
+    /// @todo finish this function
 }
 
 void intro() {
