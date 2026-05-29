@@ -82,30 +82,23 @@ std::string serializeGameState() {
     return serialized;
 }
 
-template<class T>
-std::shared_ptr<T> deserialize(const std::string& entity) {
-    if (std::is_same<T, Archer>::value) {
-        return std::make_shared<Archer>(deserializeCoordinates(entity));
-    } else if (std::is_same<T, Bullet>::value) {
-        std::istringstream is(entity);
-        std::string coordinates;
-        std::getline(is, coordinates, ',');
-        Direction direction;
-        std::getline(is, direction, ',');
-        std::shared_ptr<Bullet> bullet = std::make_shared<Bullet>(deserializeCoordinates(coordinates), direction);
-        is << bullet->collided;
-        return bullet;
-    }
+// https://stackoverflow.com/a/4933205/15888601
+template<> std::shared_ptr<Archer> deserialize(const std::string& entity) {
+    return std::make_shared<Archer>(deserializeCoordinates(entity));
 }
-// Explicitly compiling for different T values
-template std::shared_ptr<Archer> deserialize(const std::string&);
-template std::shared_ptr<Bullet> deserialize(const std::string&);
-template std::shared_ptr<Chest> deserialize(const std::string&);
-template std::shared_ptr<EnemyBullet> deserialize(const std::string&);
-template std::shared_ptr<Mine> deserialize(const std::string&);
-template std::shared_ptr<Player> deserialize(const std::string&);
-template std::shared_ptr<Wall> deserialize(const std::string&);
-template std::shared_ptr<Worm> deserialize(const std::string&);
+template <> std::shared_ptr<Bullet> deserialize(const std::string& entity) {
+    std::istringstream is(entity);
+    std::string coordinates;
+    std::getline(is, coordinates, ',');
+    std::string direction;
+    std::getline(is, direction, ',');
+    std::shared_ptr<Bullet> bullet = std::make_shared<Bullet>(
+        deserializeCoordinates(coordinates),
+        (Direction)std::stoi(direction)
+    );
+    is >> bullet->collided;
+    return bullet;
+}
 
 std::string serialize(std::shared_ptr<Archer> archer) {
     return serialize(archer->getCoordinates());
