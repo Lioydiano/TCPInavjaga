@@ -14,6 +14,9 @@ extern const std::string classTermination;
 
 template<class T> std::shared_ptr<T> deserialize(const std::string&);
 
+std::string serialize(const Inventory&);
+Inventory deserializeInventory(const std::string&);
+
 std::string serialize(sista::Coordinates);
 sista::Coordinates deserializeCoordinates(const std::string&);
 std::string serialize(unsigned short, unsigned short);

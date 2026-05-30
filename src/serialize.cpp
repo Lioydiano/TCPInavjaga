@@ -82,16 +82,25 @@ std::string serializeGameState() {
     return serialized;
 }
 
+std::string serialize(std::shared_ptr<Archer> archer) {
+    return serialize(archer->getCoordinates());
+}
 // https://stackoverflow.com/a/4933205/15888601
-template<> std::shared_ptr<Archer> deserialize(const std::string& entity) {
+template <> std::shared_ptr<Archer> deserialize(const std::string& entity) {
     return std::make_shared<Archer>(deserializeCoordinates(entity));
+}
+
+std::string serialize(std::shared_ptr<Bullet> bullet) {
+    std::ostringstream os;
+    os << serialize(bullet->getCoordinates()) << ':' << bullet->collided << ':' << bullet->direction;
+    return os.str();
 }
 template <> std::shared_ptr<Bullet> deserialize(const std::string& entity) {
     std::istringstream is(entity);
     std::string coordinates;
-    std::getline(is, coordinates, ',');
+    std::getline(is, coordinates, ':');
     std::string direction;
-    std::getline(is, direction, ',');
+    std::getline(is, direction, ':');
     std::shared_ptr<Bullet> bullet = std::make_shared<Bullet>(
         deserializeCoordinates(coordinates),
         (Direction)std::stoi(direction)
@@ -100,20 +109,21 @@ template <> std::shared_ptr<Bullet> deserialize(const std::string& entity) {
     return bullet;
 }
 
-std::string serialize(std::shared_ptr<Archer> archer) {
-    return serialize(archer->getCoordinates());
-}
-
-std::string serialize(std::shared_ptr<Bullet> bullet) {
-    std::ostringstream os;
-    os << serialize(bullet->getCoordinates()) << ',' << bullet->collided << ',' << bullet->direction;
-    return os.str();
-}
-
 std::string serialize(std::shared_ptr<Chest> chest) {
     std::ostringstream os;
-    os << serialize(chest->getCoordinates()) << ",{" << chest->inventory.clay << "," << chest->inventory.bullets << "," << chest->inventory.meat << "}";
+    os << serialize(chest->getCoordinates()) << ":" << serialize(chest->inventory);
     return os.str();
+}
+template <> std::shared_ptr<Chest> deserialize(const std::string& entity) {
+    std::istringstream is(entity);
+    std::string coordinates;
+    std::getline(is, coordinates, ':');
+    std::string inventory;
+    std::getline(is, inventory, ':');
+    return std::make_shared<Chest>(
+        deserializeCoordinates(coordinates),
+        deserializeInventory(inventory)
+    );
 }
 
 std::string serialize(std::shared_ptr<EnemyBullet> enemyBullet) {
@@ -153,6 +163,10 @@ std::string serialize(std::shared_ptr<Worm> worm) {
         os << ',' << serialize(wormBody->getCoordinates());
     }
     return os.str();
+}
+
+std::string serialize(const Inventory& inventory) {
+    return "{" + std::to_string(inventory.clay) + "," + std::to_string(inventory.bullets) + "," + std::to_string(inventory.meat) + "}";
 }
 
 std::string serialize(sista::Coordinates coordinates) {
