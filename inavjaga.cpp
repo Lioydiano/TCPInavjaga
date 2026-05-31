@@ -504,7 +504,7 @@ void updateClients(RemoteInavjagaIO* remote_) {
     ServerRemoteInavjagaIO* remote = (ServerRemoteInavjagaIO*)remote_;
     std::this_thread::sleep_for(std::chrono::milliseconds(100));
     while (!end) {
-        std::this_thread::sleep_for(std::chrono::milliseconds(100));
+        std::this_thread::sleep_for(std::chrono::milliseconds(30));
         #if DEBUG
         {
             std::unique_lock stderrLock(stderrMutex);
@@ -527,6 +527,7 @@ void recvUpdates(RemoteInavjagaIO* remote_) {
     ClientRemoteInavjagaIO* remote = (ClientRemoteInavjagaIO*)remote_;
     std::this_thread::sleep_for(std::chrono::milliseconds(100));
     while (!end) {
+        std::this_thread::sleep_for(std::chrono::milliseconds(30));
         #if DEBUG
         {
             std::unique_lock stderrLock(stderrMutex);
