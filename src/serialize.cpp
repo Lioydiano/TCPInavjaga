@@ -235,7 +235,22 @@ template <> std::shared_ptr<Worm> deserialize(const std::string& entity) {
 }
 
 std::string serialize(const Inventory& inventory) {
-    return "{" + std::to_string(inventory.clay) + "," + std::to_string(inventory.bullets) + "," + std::to_string(inventory.meat) + "}";
+    return "{" + std::to_string(inventory.clay)
+        + "," + std::to_string(inventory.bullets)
+        + "," + std::to_string(inventory.meat) + "}";
+}
+
+Inventory deserializeInventory(const std::string& inventory) {
+    Inventory inv;
+    std::istringstream is(inventory);
+    is.ignore(1); // Should ignore a '{', but is it worth failing silently?
+    is >> inv.clay;
+    is.ignore(1); // Should ignore a ',', but is it worth failing silently?
+    is >> inv.bullets;
+    is.ignore(1); // Should ignore a ',', but is it worth failing silently?
+    is >> inv.meat;
+    is.ignore(1); // Should ignore a '}', but is it worth failing silently?
+    return inv;
 }
 
 std::string serialize(sista::Coordinates coordinates) {
