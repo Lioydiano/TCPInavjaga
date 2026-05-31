@@ -96,6 +96,12 @@ std::string serialize(std::shared_ptr<Bullet> bullet) {
     return os.str();
 }
 template <> std::shared_ptr<Bullet> deserialize(const std::string& entity) {
+    #if DEBUG
+    {
+        std::unique_lock lock(stderrMutex);
+        std::cerr << "Trying to deserialize Bullet: " << entity << std::endl;
+    }
+    #endif
     std::istringstream is(entity);
     std::string coordinates;
     std::getline(is, coordinates, ':');
@@ -132,6 +138,12 @@ std::string serialize(std::shared_ptr<EnemyBullet> enemyBullet) {
     return os.str();
 }
 template <> std::shared_ptr<EnemyBullet> deserialize(const std::string& entity) {
+    #if DEBUG
+    {
+        std::unique_lock lock(stderrMutex);
+        std::cerr << "Trying to deserialize EnemyBullet: " << entity << std::endl;
+    }
+    #endif
     std::istringstream is(entity);
     std::string coordinates;
     std::getline(is, coordinates, ':');
@@ -215,6 +227,12 @@ std::string serialize(std::shared_ptr<Worm> worm) {
     return os.str();
 }
 template <> std::shared_ptr<Worm> deserialize(const std::string& entity) {
+    #if DEBUG
+    {
+        std::unique_lock lock(stderrMutex);
+        std::cerr << "Trying to deserialize Worm: " << entity << std::endl;
+    }
+    #endif
     std::istringstream is(entity);
     std::string coordinates;
     std::getline(is, coordinates, ':');

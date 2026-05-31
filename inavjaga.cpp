@@ -570,7 +570,7 @@ void recvUpdates(RemoteInavjagaIO* remote_) {
             #endif
             return;
         }
-        int serverFrame = stoi(frameString);
+        int serverFrame = std::stoi(frameString);
         // Parsing the frame number from the client
         std::istringstream isClient(gameState);
         std::getline(isClient, frameString, ',');
@@ -584,7 +584,7 @@ void recvUpdates(RemoteInavjagaIO* remote_) {
             #endif
             continue;
         }
-        int clientFrame = stoi(frameString);
+        int clientFrame = std::stoi(frameString);
         if (clientFrame == serverFrame) {
             // This means that there is a mismatch and there will be some work to do
             restoreGameState(serverGameState);
