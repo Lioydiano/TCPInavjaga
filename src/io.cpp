@@ -779,6 +779,9 @@ std::vector<std::shared_ptr<Player>> ClientInavjagaGSPIO::recvPlayers() {
     char identifier = 0;
     recv(socketfd, &identifier, 1, 0);
     Player::localPlayerId = identifier - '0';
+    #if DEBUG
+    std::cerr << "Set the localPlayerId to " << Player::localPlayerId << std::endl;
+    #endif
     while (true) {
         #if DEBUG
         std::cerr << "Waiting for player identifier..." << std::endl;
@@ -791,13 +794,15 @@ std::vector<std::shared_ptr<Player>> ClientInavjagaGSPIO::recvPlayers() {
             break;
         }
         coordinates = this->recvCoordinates();
-        players[identifier - '0'] = std::make_shared<Player>(coordinates);
-        players[identifier - '0']->id = identifier - '0';
-        players[identifier - '0']->respawnCoordinates = coordinates;
-        players[identifier - '0']->mode = Player::Mode::BULLET;
-        if (identifier - '0' == Player::localPlayerId) {
+        if (identifier - '0' != Player::localPlayerId) {
+            players[identifier - '0'] = std::make_shared<Player>(coordinates);
+            players[identifier - '0']->id = identifier - '0';
+            players[identifier - '0']->respawnCoordinates = coordinates;
+            players[identifier - '0']->mode = Player::Mode::BULLET;
+        } else if (identifier - '0' == Player::localPlayerId) {
             Player::localPlayer->setSettings(Player::localPlayerStyle);
             players[identifier - '0'] = Player::localPlayer;
+            players[identifier - '0']->id = Player::localPlayerId;
         }
     }
     return players;
