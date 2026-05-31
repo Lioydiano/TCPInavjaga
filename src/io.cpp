@@ -634,22 +634,10 @@ void InavjagaGSPIO::sendSyncData(const std::string& message) {
         std::unique_lock lock(stderrMutex);
         std::cerr << "Failed to send data with error " << rc << "(" << errno << ")" << std::endl;
     }
-    #if DEBUG
-    else {
-        std::unique_lock lock(stderrMutex);
-        std::cerr << "We sent " << rc << " characters instead" << std::endl;
-    }
-    #endif
     if (ssize_t rc = write(this->syncsocketfd, message.c_str(), message.length()) < 0) {
         std::unique_lock lock(stderrMutex);
         std::cerr << "Failed to send data with error " << rc << "(" << errno << ")" << std::endl;
     }
-    #if DEBUG
-    else {
-        std::unique_lock lock(stderrMutex);
-        std::cerr << "We sent " << rc << " characters instead" << std::endl;
-    }
-    #endif
 }
 
 std::string InavjagaGSPIO::recvSyncData(int timeout) {
@@ -685,16 +673,28 @@ std::string InavjagaGSPIO::recvSyncData(int timeout) {
         }
         if (pollFd_.revents & POLLIN) {
             char* buffer = (char*)calloc(size, sizeof(char));
+            #if DEBUG
+            {
+                std::unique_lock lock(stderrMutex);
+                std::cerr << "Time to read " << size << " characters from the server." << std::endl;
+            }
+            #endif
             if (int rc = read(syncsocketfd, buffer, size) < 0) {
                 std::unique_lock lock(stderrMutex);
                 std::cerr << "Receiving message failed with error " << rc
                         << " (" << errno << ")" << std::endl;
                 throw std::runtime_error("Receiving message failed");
+            } else if (rc == 0) {
+                std::unique_lock lock(stderrMutex);
+                std::cerr << "Receiving message enountered EOF, since rc=" << rc
+                        << " (" << errno << ")" << std::endl;
+                free(buffer);
+                return "";
             }
             #if DEBUG
-            else {
+            {
                 std::unique_lock lock(stderrMutex);
-                std::cerr << "We received " << rc << " characters instead of " << size << std::endl;
+                std::cerr << "The buffer contains: " << buffer << std::endl;
             }
             #endif
             received = std::string(buffer);
