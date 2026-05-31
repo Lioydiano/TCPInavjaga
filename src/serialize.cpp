@@ -92,7 +92,7 @@ template <> std::shared_ptr<Archer> deserialize(const std::string& entity) {
 
 std::string serialize(std::shared_ptr<Bullet> bullet) {
     std::ostringstream os;
-    os << serialize(bullet->getCoordinates()) << ':' << bullet->collided << ':' << bullet->direction;
+    os << serialize(bullet->getCoordinates()) << ':' << bullet->direction << ':' << bullet->collided;
     return os.str();
 }
 template <> std::shared_ptr<Bullet> deserialize(const std::string& entity) {
@@ -134,7 +134,7 @@ template <> std::shared_ptr<Chest> deserialize(const std::string& entity) {
 
 std::string serialize(std::shared_ptr<EnemyBullet> enemyBullet) {
     std::ostringstream os;
-    os << serialize(enemyBullet->getCoordinates()) << ':' << enemyBullet->collided << ':' << enemyBullet->direction;
+    os << serialize(enemyBullet->getCoordinates()) << ':' << enemyBullet->direction << ':' << enemyBullet->collided;
     return os.str();
 }
 template <> std::shared_ptr<EnemyBullet> deserialize(const std::string& entity) {
