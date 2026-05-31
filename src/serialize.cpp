@@ -55,7 +55,7 @@ std::string serializeGameState() {
     for (std::shared_ptr<Player> player : Player::players) {
         if (player == nullptr) continue;
         serialized.append(serialize(player));
-        if (player != Player::players.back())
+        // if (player != Player::players.back())
             serialized.append(";");
     }
     serialized.append(classTermination);
