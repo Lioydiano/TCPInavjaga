@@ -28,7 +28,7 @@ void bindServerSocketToPort(int sockfd, char* addr, char* portno) {
         std::unique_lock lock(stderrMutex);
         std::cerr << "Preparing to listen on " << serverAddress.sin_addr.s_addr << ":" << serverAddress.sin_port << std::endl;
     }
-    if (int rc = bind(sockfd, (struct sockaddr*)&serverAddress, sizeof(serverAddress)) < 0) {
+    if (int rc = bind(sockfd, (struct sockaddr*)&serverAddress, sizeof(serverAddress)); rc < 0) {
         std::unique_lock lock(stderrMutex);
         std::cerr << "Could not bind address " << addr << ":" << portno << ", error code " << rc << "(" << errno << ")" << std::endl;
     }

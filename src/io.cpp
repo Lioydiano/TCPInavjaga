@@ -63,7 +63,7 @@ uint32_t InavjagaGSPIO::recvRandomSeed(int timeout) {
     struct pollfd pollFd_ = {0,0,0};
     pollFd_.fd = this->socketfd;
     pollFd_.events = POLLIN;
-    if (int rc = poll(&pollFd_, 1, timeout) < 0) {
+    if (int rc = poll(&pollFd_, 1, timeout); rc < 0) {
         std::unique_lock lock(stderrMutex);
         std::cerr << "Polling failed with error " << rc << " (" << errno << ")" << std::endl;
         throw std::runtime_error("Polling failed");
@@ -278,7 +278,7 @@ void ClientInavjagaGSPIO::connectSocket(int sockfd, char* addr, char* portno) {
     // inet_aton(AF_INET, addr, &(serverAddress.sin_addr)); // man inet_pton (does it accept less than 3 digits?)
     serverAddress.sin_port = htons(atoi(portno));
     serverAddress.sin_family = AF_INET;
-    if (int rc = connect(sockfd, (struct sockaddr*)&serverAddress, sizeof(serverAddress)) < 0) {
+    if (int rc = connect(sockfd, (struct sockaddr*)&serverAddress, sizeof(serverAddress)); rc < 0) {
         std::unique_lock lock(stderrMutex);
         std::cerr << "Could not connect to " << serverAddress.sin_addr.s_addr << ":" << serverAddress.sin_port << '\n';
         std::cerr << "\tError was " << rc << " (" << errno << ")" << std::endl;
@@ -460,7 +460,7 @@ std::map<std::string, std::variant<int, float>> InavjagaGSPIO::recvConstants() {
         insertionIndex = 0;
         do {
             errno = 0;
-            if (int rc = recv(this->socketfd, &current, 1, 0) < 0) {
+            if (int rc = recv(this->socketfd, &current, 1, 0); rc < 0) {
                 std::cerr << "Receiving failed with error " << rc << " (" << errno << ")" << std::endl;
                 throw std::runtime_error("Error receiving constants from the server");
             }
@@ -478,7 +478,7 @@ std::map<std::string, std::variant<int, float>> InavjagaGSPIO::recvConstants() {
         insertionIndex = 0;
         do {
             errno = 0;
-            if (int rc = recv(this->socketfd, &current, 1, 0) < 0) {
+            if (int rc = recv(this->socketfd, &current, 1, 0); rc < 0) {
                 std::cerr << "Receiving failed with error " << rc << " (" << errno << ")" << std::endl;
                 throw std::runtime_error("Error receiving constants from the server");
             }
@@ -528,13 +528,13 @@ bool ServerInavjagaGSPIO::recvReady(int timeout) {
     pollFd.events = POLLIN;
     pollFd.revents = 0;
     errno = 0;
-    if (int rc = poll(&pollFd, 1, timeout) < 0) {
+    if (int rc = poll(&pollFd, 1, timeout); rc < 0) {
         std::cerr << "Polling failed with error " << rc << " (" << errno << ")" << std::endl;
         return false;
     }
     if (pollFd.revents & POLLIN) {
         errno = 0;
-        if (int rc = recv(socketfd, inputBuffer, (size_t)2, 0) < 0) {
+        if (int rc = recv(socketfd, inputBuffer, (size_t)2, 0); rc < 0) {
             std::cerr << "Receiving failed with error " << rc << " (" << errno << ")" << std::endl;
             return false;
         }
@@ -570,13 +570,13 @@ bool InavjagaGSPIO::recvBool(int timeout) const {
     pollFd.events = POLLIN;
     pollFd.revents = 0;
     errno = 0;
-    if (int rc = poll(&pollFd, 1, timeout) < 0) {
+    if (int rc = poll(&pollFd, 1, timeout); rc < 0) {
         std::cerr << "Polling failed with error " << rc << " (" << errno << ")" << std::endl;
         throw std::runtime_error("Did not receive a boolean answer within the specified timeout");
     }
     if (pollFd.revents & POLLIN) {
         errno = 0;
-        if (int rc = recv(socketfd, inputBuffer, (size_t)2, 0) < 0) {
+        if (int rc = recv(socketfd, inputBuffer, (size_t)2, 0); rc < 0) {
             std::cerr << "Receiving failed with error " << rc << " (" << errno << ")" << std::endl;
         }
         #if DEBUG
@@ -645,7 +645,7 @@ std::string InavjagaGSPIO::recvSyncData(int timeout) {
     struct pollfd pollFd_ = {0,0,0};
     pollFd_.fd = this->syncsocketfd;
     pollFd_.events = POLLIN;
-    if (int rc = poll(&pollFd_, 1, timeout) < 0) {
+    if (int rc = poll(&pollFd_, 1, timeout); rc < 0) {
         std::unique_lock lock(stderrMutex);
         std::cerr << "Polling failed with error " << rc << " (" << errno << ")" << std::endl;
         throw std::runtime_error("Polling failed");
@@ -654,7 +654,7 @@ std::string InavjagaGSPIO::recvSyncData(int timeout) {
     std::string received;
     if (pollFd_.revents & POLLIN) {
         int convertedSize;
-        if (int rc = read(syncsocketfd, &convertedSize, sizeof(convertedSize)) < 0) {
+        if (int rc = read(syncsocketfd, &convertedSize, sizeof(convertedSize)); rc < 0) {
             std::unique_lock lock(stderrMutex);
             std::cerr << "Receiving message length failed with error " << rc
                       << " (" << errno << ")" << std::endl;
@@ -666,7 +666,7 @@ std::string InavjagaGSPIO::recvSyncData(int timeout) {
         pollFd_ = {0,0,0};
         pollFd_.fd = this->syncsocketfd;
         pollFd_.events = POLLIN;
-        if (int rc = poll(&pollFd_, 1, timeout) < 0) {
+        if (int rc = poll(&pollFd_, 1, timeout); rc < 0) {
             std::unique_lock lock(stderrMutex);
             std::cerr << "Polling failed with error " << rc << " (" << errno << ")" << std::endl;
             throw std::runtime_error("Polling failed");
@@ -679,7 +679,7 @@ std::string InavjagaGSPIO::recvSyncData(int timeout) {
                 std::cerr << "Time to read " << size << " characters from the server." << std::endl;
             }
             #endif
-            if (int rc = read(syncsocketfd, buffer, size) < 0) {
+            if (int rc = read(syncsocketfd, buffer, size); rc < 0) {
                 std::unique_lock lock(stderrMutex);
                 std::cerr << "Receiving message failed with error " << rc
                         << " (" << errno << ")" << std::endl;
