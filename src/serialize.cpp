@@ -96,12 +96,6 @@ std::string serialize(std::shared_ptr<Bullet> bullet) {
     return os.str();
 }
 template <> std::shared_ptr<Bullet> deserialize(const std::string& entity) {
-    #if DEBUG
-    {
-        std::unique_lock lock(stderrMutex);
-        std::cerr << "Trying to deserialize Bullet: " << entity << std::endl;
-    }
-    #endif
     std::istringstream is(entity);
     std::string coordinates;
     std::getline(is, coordinates, ':');
@@ -138,12 +132,6 @@ std::string serialize(std::shared_ptr<EnemyBullet> enemyBullet) {
     return os.str();
 }
 template <> std::shared_ptr<EnemyBullet> deserialize(const std::string& entity) {
-    #if DEBUG
-    {
-        std::unique_lock lock(stderrMutex);
-        std::cerr << "Trying to deserialize EnemyBullet: " << entity << std::endl;
-    }
-    #endif
     std::istringstream is(entity);
     std::string coordinates;
     std::getline(is, coordinates, ':');
@@ -227,12 +215,6 @@ std::string serialize(std::shared_ptr<Worm> worm) {
     return os.str();
 }
 template <> std::shared_ptr<Worm> deserialize(const std::string& entity) {
-    #if DEBUG
-    {
-        std::unique_lock lock(stderrMutex);
-        std::cerr << "Trying to deserialize Worm: " << entity << std::endl;
-    }
-    #endif
     std::istringstream is(entity);
     std::string coordinates;
     std::getline(is, coordinates, ':');
@@ -245,12 +227,6 @@ template <> std::shared_ptr<Worm> deserialize(const std::string& entity) {
     is >> worm->hp >> separator >> worm->collided >> separator;
     std::string wormBodyCoordinates, wormBodyDirection;
     while (std::getline(is, wormBodyCoordinates, ':')) {
-        #if DEBUG
-        {
-            std::unique_lock lock(stderrMutex);
-            std::cerr << "\tQuel pezzettin del mio codin: " << wormBodyCoordinates << std::endl;
-        }
-        #endif
         std::getline(is, wormBodyDirection, ':');
         worm->body.push_back(std::make_shared<WormBody>(
             deserializeCoordinates(wormBodyCoordinates),

@@ -281,12 +281,12 @@ int main(int argc, char* argv[]) {
             #endif
             #if CLIENT
             pastGameStates[i % pastGameStatesBufferSize] = gameState;
+            #endif
             #if DEBUG
             {
                 std::unique_lock stderrLock(stderrMutex);
                 std::cerr << "gameState stored" << std::endl;
             }
-            #endif
             #endif
         }
 
@@ -504,7 +504,7 @@ void fullProcessFrame(int i) {
 void updateClients(RemoteInavjagaIO* remote_) {
     ServerRemoteInavjagaIO* remote = (ServerRemoteInavjagaIO*)remote_;
     while (!end) {
-        std::this_thread::sleep_for(std::chrono::milliseconds(90));
+        std::this_thread::sleep_for(std::chrono::milliseconds(100));
         #if DEBUG
         {
             std::unique_lock stderrLock(stderrMutex);
