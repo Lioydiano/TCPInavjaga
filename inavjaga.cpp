@@ -262,6 +262,12 @@ int main(int argc, char* argv[]) {
             gameState = std::to_string(i) + "," + serialize(rng) + "," + serializeGameState();
             #if CLIENT
             pastGameStates[i % pastGameStatesBufferSize] = gameState;
+            #if DEBUG
+            {
+                std::unique_lock stderrLock(stderrMutex);
+                std::cerr << "gameState stored" << std::endl;
+            }
+            #endif
             #endif
         }
 
@@ -515,10 +521,17 @@ void recvUpdates(RemoteInavjagaIO* remote_) {
         #if DEBUG
         {
             std::unique_lock lock(stderrMutex);
-            std::cerr << "The game state is: " << serverGameState << std::endl;
+            std::cerr << "The srv game state is: " << serverGameState << std::endl;
+        }
+        #endif
+        #if DEBUG
+        {
+            std::unique_lock lock(stderrMutex);
+            std::cerr << "\tThe game state is: " << gameState << std::endl;
         }
         #endif
         if (serverGameState.empty()) continue;
+        if (serverGameState == gameState) continue;
         #if DEBUG
         {
             std::unique_lock lock(stderrMutex);
@@ -547,6 +560,7 @@ void recvUpdates(RemoteInavjagaIO* remote_) {
             {
                 std::unique_lock lock(stderrMutex);
                 std::cerr << "The client has an absolutely empty or malformed game state" << std::endl;
+                std::cerr << gameState << std::endl;
             }
             #endif
             continue;
