@@ -19,7 +19,7 @@ extern std::shared_ptr<sista::SwappableField> field;
 extern std::mt19937 rng;
 extern std::bernoulli_distribution dumbMoveDistribution;
 extern bool dead;
-enum EndReason {STARVED, SHOT, EATEN, STABBED, TOUCHDOWN, QUIT};
+enum EndReason {STARVED=0, SHOT=1, EATEN=2, STABBED=3, TOUCHDOWN=4, QUIT=5};
 void printEndInformation(EndReason);
 
 namespace {
