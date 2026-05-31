@@ -259,7 +259,25 @@ int main(int argc, char* argv[]) {
 
         {
             std::unique_lock lockGameState(gameStateMutex);
+            delta = std::chrono::high_resolution_clock::now() - start;
+            #if DEBUG
+            {
+                std::unique_lock stderrLock(stderrMutex);
+                std::cerr << "\tObtaining the lock on gameStateMutex on frame " << i << " took " 
+                        << std::chrono::duration_cast<std::chrono::microseconds>(delta).count()
+                        << "µs" << std::endl;
+            }
+            #endif
             gameState = std::to_string(i) + "," + serialize(rng) + "," + serializeGameState();
+            delta = std::chrono::high_resolution_clock::now() - start;
+            #if DEBUG
+            {
+                std::unique_lock stderrLock(stderrMutex);
+                std::cerr << "\tWhile getting to the serialized game state on frame " << i << " took " 
+                        << std::chrono::duration_cast<std::chrono::microseconds>(delta).count()
+                        << "µs" << std::endl;
+            }
+            #endif
             #if CLIENT
             pastGameStates[i % pastGameStatesBufferSize] = gameState;
             #if DEBUG
