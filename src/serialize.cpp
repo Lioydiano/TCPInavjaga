@@ -242,16 +242,19 @@ template <> std::shared_ptr<Worm> deserialize(const std::string& entity) {
         deserializeCoordinates(coordinates)
     );
     char separator;
-    is >> separator >> worm->hp >> separator >> worm->collided;
-    std::string wormBodyString;
-    while (std::getline(is, wormBodyString, ':')) {
-        std::istringstream wormBodyIS(wormBodyString.substr(1));
-        std::getline(wormBodyIS, coordinates, ':');
-        wormBodyIS >> separator;
-        std::string direction;
-        std::getline(wormBodyIS, direction, ':');
+    is >> worm->hp >> separator >> worm->collided >> separator;
+    std::string wormBodyCoordinates, wormBodyDirection;
+    while (std::getline(is, wormBodyCoordinates, ':')) {
+        #if DEBUG
+        {
+            std::unique_lock lock(stderrMutex);
+            std::cerr << "\tQuel pezzettin del mio codin: " << wormBodyCoordinates << std::endl;
+        }
+        #endif
+        std::getline(is, wormBodyDirection, ':');
         worm->body.push_back(std::make_shared<WormBody>(
-            deserializeCoordinates(wormBodyString), (Direction)std::stoi(direction)
+            deserializeCoordinates(wormBodyCoordinates),
+            (Direction)std::stoi(wormBodyDirection)
         ));
     }
     return worm;
