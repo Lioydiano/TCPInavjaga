@@ -147,7 +147,7 @@ std::pair<size_t, MoveEvent> InavjagaGSPIO::pollMany(
         errno = 0;
         int rc = poll(&(pollFds[1]), iosLen - 1, timeout);
         #if DEBUG
-        std::cerr << &(pollFds[1]) << " for a __nfds=" << iosLen - 1 << std::endl;
+        // std::cerr << &(pollFds[1]) << " for a __nfds=" << iosLen - 1 << std::endl;
         #endif
         if (rc <= 0) {
             if (rc < 0) {

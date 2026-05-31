@@ -481,8 +481,20 @@ void updateClients(RemoteInavjagaIO* remote_) {
     std::this_thread::sleep_for(std::chrono::milliseconds(100));
     while (!end) {
         std::this_thread::sleep_for(std::chrono::milliseconds(30));
+        #if DEBUG
+        {
+            std::unique_lock stderrLock(stderrMutex);
+            std::cerr << "Trying to lock the gameStateMutex" << std::endl;
+        }
+        #endif
         std::unique_lock lock(gameStateMutex);
         if (gameState.empty()) continue; // We haven't gone over a frame yet
+        #if DEBUG
+        {
+            std::unique_lock stderrLock(stderrMutex);
+            std::cerr << "\tLocked the gameState and now trying to send it" << std::endl;
+        }
+        #endif
         remote->sendGameStateToAll(gameState);
     }
 }
@@ -491,6 +503,12 @@ void recvUpdates(RemoteInavjagaIO* remote_) {
     ClientRemoteInavjagaIO* remote = (ClientRemoteInavjagaIO*)remote_;
     std::this_thread::sleep_for(std::chrono::milliseconds(100));
     while (!end) {
+        #if DEBUG
+        {
+            std::unique_lock stderrLock(stderrMutex);
+            std::cerr << "Trying to lock the gameStateMutex in recvUpdates" << std::endl;
+        }
+        #endif
         std::unique_lock lock(gameStateMutex);
         std::string serverGameState;
         if ((serverGameState = remote->recvGameState()) == gameState) continue;
@@ -531,7 +549,7 @@ void recvUpdates(RemoteInavjagaIO* remote_) {
                 std::cerr << "The client has an absolutely empty or malformed game state" << std::endl;
             }
             #endif
-            return;
+            continue;
         }
         int clientFrame = stoi(frameString);
         if (clientFrame == serverFrame) {
@@ -612,6 +630,7 @@ void restoreGameState(const std::string& serverGameState) {
     deserializeEntities<Wall>(entities);
     std::getline(state, entities, classTermination[0]);
     deserializeEntities<Worm>(entities);
+    std::cout << std::flush;
     /// @todo finish this function
 }
 
