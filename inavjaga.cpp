@@ -587,7 +587,6 @@ void recvUpdates(RemoteInavjagaIO* remote_) {
         int clientFrame = stoi(frameString);
         if (clientFrame == serverFrame) {
             // This means that there is a mismatch and there will be some work to do
-            std::unique_lock lock(streamMutex);
             restoreGameState(serverGameState);
         } else {
             if (pastGameStates[serverFrame % pastGameStatesBufferSize] == serverGameState) {
@@ -605,10 +604,7 @@ void recvUpdates(RemoteInavjagaIO* remote_) {
                 /// since it would require a clock unsync greater than the latency
                 /// @note we assume that latency cannot be greater than 
                 /// pastGameStatesBufferSize * FRAME_DURATION milliseconds
-                {
-                    std::unique_lock lock(streamMutex);
-                    restoreGameState(serverGameState);
-                }
+                restoreGameState(serverGameState);
                 for (int i = serverFrame + 1; i <= clientFrame; i++) {
                     fullProcessFrame(i);
                 }
@@ -633,9 +629,27 @@ void restoreGameState(const std::string& serverGameState) {
     }
     #endif
     {
+        #if DEBUG
+        {
+            std::unique_lock lock(stderrMutex);
+            std::cerr << "\t- Waiting to obtain the streamMutex" << std::endl;
+        }
+        #endif
         std::unique_lock lock(streamMutex);
         deallocateAll();
+        #if DEBUG
+        {
+            std::unique_lock lock(stderrMutex);
+            std::cerr << "\t- Cleared the vectors" << std::endl;
+        }
+        #endif
         field->clear();
+        #if DEBUG
+        {
+            std::unique_lock lock(stderrMutex);
+            std::cerr << "\t- Cleared the field" << std::endl;
+        }
+        #endif
     }
 
     std::string frameString; // We are lk trashing this anyway
@@ -644,6 +658,7 @@ void restoreGameState(const std::string& serverGameState) {
     state >> rng; // We restore the rng state
     char _;
     state >> _ >> _; // Comma and classTermination
+    std::unique_lock lock(streamMutex);
     std::string entities;
     std::getline(state, entities, classTermination[0]);
     deserializeEntities<Archer>(entities);
