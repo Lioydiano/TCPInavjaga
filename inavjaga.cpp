@@ -608,7 +608,10 @@ void restoreGameState(const std::string& serverGameState) {
     deserializeEntities<Player>(entities);
     std::getline(state, entities, classTermination[0]);
     deserializeEntities<Portal>(entities);
-
+    std::getline(state, entities, classTermination[0]);
+    deserializeEntities<Wall>(entities);
+    std::getline(state, entities, classTermination[0]);
+    deserializeEntities<Worm>(entities);
     /// @todo finish this function
 }
 
