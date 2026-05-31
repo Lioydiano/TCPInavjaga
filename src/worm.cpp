@@ -35,7 +35,7 @@ inline Direction randomTurnDirection() {
 }
 }
 
-WormBody::WormBody(sista::Coordinates coordinates, Direction direction) : Entity(directionSymbol[direction], coordinates, wormBodyStyle, Type::WORM_BODY) {
+WormBody::WormBody(sista::Coordinates coordinates, Direction direction) : Entity(directionSymbol[direction], coordinates, wormBodyStyle, Type::WORM_BODY), direction(direction) {
     // ownership moved to creator via std::shared_ptr; do not push here
 }
 void WormBody::die() {

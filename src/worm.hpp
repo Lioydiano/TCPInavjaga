@@ -11,6 +11,7 @@ public:
     static std::vector<std::shared_ptr<WormBody>> wormBodies;
     static std::vector<std::shared_ptr<WormBody>>* entities;
     std::weak_ptr<Worm> head;
+    Direction direction;
 
     WormBody(sista::Coordinates, Direction);
     void remove() override;

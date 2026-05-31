@@ -198,10 +198,11 @@ template <> std::shared_ptr<Wall> deserialize(const std::string& entity) {
     std::istringstream is(entity);
     std::string coordinates;
     std::getline(is, coordinates, ':');
+    short int strength;
+    is >> strength;
     std::shared_ptr<Wall> wall = std::make_shared<Wall>(
-        deserializeCoordinates(coordinates)
+        deserializeCoordinates(coordinates), strength
     );
-    is >> wall->strength;
     return wall;
 }
 
@@ -209,7 +210,7 @@ std::string serialize(std::shared_ptr<Worm> worm) {
     std::ostringstream os;
     os << serialize(worm->getCoordinates()) << ':' << worm->direction << ':' << worm->hp << ':' << worm->collided;
     for (std::shared_ptr<WormBody> wormBody : worm->body) {
-        os << ':' << serialize(wormBody->getCoordinates());
+        os << ':' << serialize(wormBody->getCoordinates()) << ':' << wormBody->direction;
     }
     return os.str();
 }
@@ -226,9 +227,13 @@ template <> std::shared_ptr<Worm> deserialize(const std::string& entity) {
     is >> separator >> worm->hp >> separator >> worm->collided;
     std::string wormBodyString;
     while (std::getline(is, wormBodyString, ':')) {
-        wormBodyString = wormBodyString.substr(1);
+        std::istringstream wormBodyIS(wormBodyString.substr(1));
+        std::getline(wormBodyIS, coordinates, ':');
+        wormBodyIS >> separator;
+        std::string direction;
+        std::getline(wormBodyIS, direction, ':');
         worm->body.push_back(std::make_shared<WormBody>(
-            deserializeCoordinates(wormBodyString)
+            deserializeCoordinates(wormBodyString), (Direction)std::stoi(direction)
         ));
     }
     return worm;
