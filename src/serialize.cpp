@@ -191,17 +191,47 @@ template <> std::shared_ptr<Player> deserialize(const std::string& entity) {
 
 std::string serialize(std::shared_ptr<Wall> wall) {
     std::ostringstream os;
-    os << serialize(wall->getCoordinates()) << ',' << wall->strength;
+    os << serialize(wall->getCoordinates()) << ':' << wall->strength;
     return os.str();
+}
+template <> std::shared_ptr<Wall> deserialize(const std::string& entity) {
+    std::istringstream is(entity);
+    std::string coordinates;
+    std::getline(is, coordinates, ':');
+    std::shared_ptr<Wall> wall = std::make_shared<Wall>(
+        deserializeCoordinates(coordinates)
+    );
+    is >> wall->strength;
+    return wall;
 }
 
 std::string serialize(std::shared_ptr<Worm> worm) {
     std::ostringstream os;
-    os << serialize(worm->getCoordinates()) << ',' << worm->direction << ',' << worm->hp << ',' << worm->collided;
+    os << serialize(worm->getCoordinates()) << ':' << worm->direction << ':' << worm->hp << ':' << worm->collided;
     for (std::shared_ptr<WormBody> wormBody : worm->body) {
-        os << ',' << serialize(wormBody->getCoordinates());
+        os << ':' << serialize(wormBody->getCoordinates());
     }
     return os.str();
+}
+template <> std::shared_ptr<Worm> deserialize(const std::string& entity) {
+    std::istringstream is(entity);
+    std::string coordinates;
+    std::getline(is, coordinates, ':');
+    std::string direction;
+    std::getline(is, direction, ':');
+    std::shared_ptr<Worm> worm = std::make_shared<Worm>(
+        deserializeCoordinates(coordinates)
+    );
+    char separator;
+    is >> separator >> worm->hp >> separator >> worm->collided;
+    std::string wormBodyString;
+    while (std::getline(is, wormBodyString, ':')) {
+        wormBodyString = wormBodyString.substr(1);
+        worm->body.push_back(std::make_shared<WormBody>(
+            deserializeCoordinates(wormBodyString)
+        ));
+    }
+    return worm;
 }
 
 std::string serialize(const Inventory& inventory) {
