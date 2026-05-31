@@ -134,7 +134,7 @@ template <> std::shared_ptr<Chest> deserialize(const std::string& entity) {
 
 std::string serialize(std::shared_ptr<EnemyBullet> enemyBullet) {
     std::ostringstream os;
-    os << serialize(enemyBullet->getCoordinates()) << ',' << enemyBullet->collided << ',' << enemyBullet->direction;
+    os << serialize(enemyBullet->getCoordinates()) << ':' << enemyBullet->collided << ':' << enemyBullet->direction;
     return os.str();
 }
 template <> std::shared_ptr<EnemyBullet> deserialize(const std::string& entity) {
