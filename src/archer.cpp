@@ -22,7 +22,7 @@ extern std::unordered_map<Direction, sista::Coordinates> directionMap;
 extern std::map<int, std::vector<int>> passages; // {y, {x1, x2, x3...}}
 extern std::map<int, std::vector<int>> breaches; // Central breaches, "holes"
 extern std::shared_ptr<sista::SwappableField> field;
-extern std::mt19937 rng;
+extern std::minstd_rand rng;
 extern std::bernoulli_distribution dumbMoveDistribution;
 extern bool dead;
 enum EndReason {STARVED=0, SHOT=1, EATEN=2, STABBED=3, TOUCHDOWN=4, QUIT=5};

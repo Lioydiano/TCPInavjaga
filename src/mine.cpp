@@ -5,7 +5,7 @@
 #include "constants.hpp"
 
 extern std::shared_ptr<sista::SwappableField> field;
-extern std::mt19937 rng;
+extern std::minstd_rand rng;
 
 Mine::Mine(sista::Coordinates coordinates) : Entity('*', coordinates, mineStyle, Type::MINE), triggered(false) {
     // ownership moved to creator via std::shared_ptr; do not push here

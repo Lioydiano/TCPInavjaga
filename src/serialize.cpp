@@ -305,15 +305,15 @@ std::string serialize(unsigned short y, unsigned short x) {
 /** @brief Serializes a Mersenne Twister random engine
  * @cite https://en.cppreference.com/cpp/numeric/random/mersenne_twister_engine/operator_ltltgtgt
 */
-std::string serialize(const std::mt19937& rng) {
+std::string serialize(const std::minstd_rand& rng) {
     std::ostringstream out;
     out << rng;
     return out.str();
 }
 
-std::mt19937 deserializeRng(const std::string& state) {
+std::minstd_rand deserializeRng(const std::string& state) {
     std::istringstream in(state);
-    std::mt19937 rng;
+    std::minstd_rand rng;
     in >> rng;
     return rng;
 }

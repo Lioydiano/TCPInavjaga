@@ -1396,6 +1396,6 @@ std::set<char> movementKeys = {
     'w', 'W', 'd', 'D', 's', 'S', 'a', 'A'
 };
 std::random_device randomDevice;
-std::mt19937 rng;
+std::minstd_rand rng;
 std::map<int, std::vector<int>> passages; // Lateral passages, "main tunnel" tresholds
 std::map<int, std::vector<int>> breaches; // Central breaches, "holes"
