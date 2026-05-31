@@ -616,26 +616,16 @@ template <class T>
 void deserializeEntities(const std::string& entities) {
     std::istringstream entitiesStream(entities);
     std::string entity;
-    while (std::getline(entitiesStream, entity, ';')) {
+    for (int counter = 0; std::getline(entitiesStream, entity, ';'); counter++) {
         std::shared_ptr<T> entityObject = deserialize<T>(entity);
         T::entities->push_back(entityObject);
         field->addPawn(entityObject);
-    }
-}
-template <class Portal>
-inline void deserializeEntities(const std::string& entities) {
-    std::istringstream entitiesStream(entities);
-    std::string entity;
-    int counter = 0;
-    while (std::getline(entitiesStream, entity, ';')) {
-        std::shared_ptr<Portal> entityObject = deserialize<Portal>(entity);
-        Portal::entities->push_back(entityObject);
-        field->addPawn(entityObject);
-        if (counter % 2 == 1) {
-            Portal::entities[counter - 1]->exit = Portal::entities[counter];
-            Portal::entities[counter]->exit = Portal::entities[counter - 1];
+        if (std::is_same<T, Portal>::value) {
+            if (counter % 2 == 1) {
+                (*Portal::entities)[counter - 1]->exit = (*Portal::entities)[counter];
+                (*Portal::entities)[counter]->exit = (*Portal::entities)[counter - 1];
+            }
         }
-        counter++;
     }
 }
 
