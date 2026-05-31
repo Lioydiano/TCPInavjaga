@@ -144,6 +144,7 @@ int main(int argc, char* argv[]) {
             Player::players.push_back(std::make_shared<Player>(spawn_client));
             Player::players.back()->id = Player::players.size() - 1;
             Player::players.back()->respawnCoordinates = spawn_client;
+            Player::players.back()->mode = Player::Mode::BULLET;
             field->addPawn(Player::players.back());
         }
     }
