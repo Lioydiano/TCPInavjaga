@@ -131,23 +131,62 @@ std::string serialize(std::shared_ptr<EnemyBullet> enemyBullet) {
     os << serialize(enemyBullet->getCoordinates()) << ',' << enemyBullet->collided << ',' << enemyBullet->direction;
     return os.str();
 }
+template <> std::shared_ptr<EnemyBullet> deserialize(const std::string& entity) {
+    std::istringstream is(entity);
+    std::string coordinates;
+    std::getline(is, coordinates, ':');
+    std::string direction;
+    std::getline(is, direction, ':');
+    std::shared_ptr<EnemyBullet> bullet = std::make_shared<EnemyBullet>(
+        deserializeCoordinates(coordinates),
+        (Direction)std::stoi(direction)
+    );
+    is >> bullet->collided;
+    return bullet;
+}
 
 std::string serialize(std::shared_ptr<Mine> mine) {
     std::ostringstream os;
-    os << serialize(mine->getCoordinates()) << ',' << mine->triggered;
+    os << serialize(mine->getCoordinates()) << ':' << mine->triggered;
     return os.str();
+}
+template <> std::shared_ptr<Mine> deserialize(const std::string& entity) {
+    std::istringstream is(entity);
+    std::string coordinates;
+    std::getline(is, coordinates, ':');
+    std::shared_ptr<Mine> mine = std::make_shared<Mine>(
+        deserializeCoordinates(coordinates)
+    );
+    is >> mine->triggered;
+    return mine;
 }
 
 std::string serialize(std::shared_ptr<Portal> portal) {
     return serialize(portal->getCoordinates());
 }
+template <> std::shared_ptr<Portal> deserialize(const std::string& entity) {
+    return std::make_shared<Portal>(deserializeCoordinates(entity));
+}
 
 std::string serialize(std::shared_ptr<Player> player) {
     std::ostringstream os;
-    os << serialize(player->getCoordinates()) << ',' << player->id << ',' << player->connected << ',' << player->dead
-       << ',' << player->mode << ",{" << player->inventory.clay << ","
-       << player->inventory.bullets << "," << player->inventory.meat << "}";
+    os << serialize(player->getCoordinates()) << ':' << player->id << ':' << player->connected << ':' << player->dead
+       << ':' << player->mode << ":" << serialize(player->inventory);
     return os.str();
+}
+template <> std::shared_ptr<Player> deserialize(const std::string& entity) {
+    std::istringstream is(entity);
+    std::string coordinates;
+    std::getline(is, coordinates, ':');
+    std::shared_ptr<Player> player = std::make_shared<Player>(
+        deserializeCoordinates(coordinates)
+    );
+    char separator;
+    is >> separator >> player->id >> separator >> player->connected >> separator >> player->dead >> separator;
+    int mode;
+    is >> mode >> separator;
+    player->mode = (Player::Mode)mode;
+    return player;
 }
 
 std::string serialize(std::shared_ptr<Wall> wall) {
