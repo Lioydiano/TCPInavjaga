@@ -503,9 +503,8 @@ void fullProcessFrame(int i) {
 
 void updateClients(RemoteInavjagaIO* remote_) {
     ServerRemoteInavjagaIO* remote = (ServerRemoteInavjagaIO*)remote_;
-    std::this_thread::sleep_for(std::chrono::milliseconds(100));
     while (!end) {
-        std::this_thread::sleep_for(std::chrono::milliseconds(30));
+        std::this_thread::sleep_for(std::chrono::milliseconds(90));
         #if DEBUG
         {
             std::unique_lock stderrLock(stderrMutex);
@@ -535,15 +534,15 @@ void recvUpdates(RemoteInavjagaIO* remote_) {
             std::cerr << "Trying to lock the gameStateMutex in recvUpdates" << std::endl;
         }
         #endif
-        std::unique_lock lock(gameStateMutex);
         std::string serverGameState;
-        if ((serverGameState = remote->recvGameState()) == gameState) continue;
+        serverGameState = remote->recvGameState();
         #if DEBUG
         {
             std::unique_lock lock(stderrMutex);
             std::cerr << "The srv game state is: " << serverGameState << std::endl;
         }
         #endif
+        std::unique_lock lock(gameStateMutex);
         #if DEBUG
         {
             std::unique_lock lock(stderrMutex);
