@@ -672,12 +672,22 @@ void restoreGameState(const std::string& serverGameState) {
     deserializeEntities<Mine>(entities);
     std::getline(state, entities, classTermination[0]);
     deserializeEntities<Player>(entities);
+    Player::localPlayer = Player::players[Player::localPlayerId];
+    Player::localPlayer->setSettings(Player::localPlayerStyle);
     std::getline(state, entities, classTermination[0]);
     deserializeEntities<Portal>(entities);
     std::getline(state, entities, classTermination[0]);
     deserializeEntities<Wall>(entities);
     std::getline(state, entities, classTermination[0]);
     deserializeEntities<Worm>(entities);
+    for (std::shared_ptr<Worm> worm : Worm::worms) {
+        for (std::shared_ptr<WormBody> wormBody : worm->body) {
+            WormBody::wormBodies.push_back(wormBody);
+            field->addPawn(wormBody);
+        }
+    }
+    sista::clearScreen();
+    field->print(border);
     std::cout << std::flush;
     /// @todo finish this function
 }
@@ -1358,15 +1368,16 @@ sista::Coordinates negotiateCoordinates(std::weak_ptr<sista::SwappableField> fie
 }
 
 void deallocateAll() {
-    Wall::walls.clear();
+    Archer::archers.clear();
     Bullet::bullets.clear();
     Chest::chests.clear();
+    EnemyBullet::enemyBullets.clear();
+    Player::players.clear();
     Portal::portals.clear();
     Mine::mines.clear();
-    EnemyBullet::enemyBullets.clear();
-    Archer::archers.clear();
-    WormBody::wormBodies.clear();
+    Wall::walls.clear();
     Worm::worms.clear();
+    WormBody::wormBodies.clear();
 }
 
 std::unordered_map<Direction, sista::Coordinates> directionMap = {
