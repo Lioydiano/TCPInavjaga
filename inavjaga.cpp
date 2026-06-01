@@ -595,6 +595,8 @@ void recvUpdates(RemoteInavjagaIO* remote_) {
         if (clientFrame == serverFrame) {
             // This means that there is a mismatch and there will be some work to do
             restoreGameState(serverGameState);
+            pastGameStates[serverFrame % pastGameStatesBufferSize] = serverGameState;
+            gameState = serverGameState;
         } else {
             if (pastGameStates[serverFrame % pastGameStatesBufferSize] == serverGameState) {
                 // This means we are just some frames ahead, we can keep on going
@@ -612,9 +614,14 @@ void recvUpdates(RemoteInavjagaIO* remote_) {
                 /// @note we assume that latency cannot be greater than 
                 /// pastGameStatesBufferSize * FRAME_DURATION milliseconds
                 restoreGameState(serverGameState);
+                pastGameStates[serverFrame % pastGameStatesBufferSize] = serverGameState;
                 for (int i = serverFrame + 1; i <= clientFrame; i++) {
                     fullProcessFrame(i);
+                    pastGameStates[i % pastGameStatesBufferSize] = std::to_string(i)
+                        + "," + serialize(rng)
+                        + "," + serializeGameState();
                 }
+                gameState = pastGameStates[clientFrame % pastGameStatesBufferSize];
             }
         }
     }
