@@ -523,6 +523,12 @@ void updateClients(RemoteInavjagaIO* remote_) {
     }
 }
 
+inline void rtrimGameState(std::string &s) {
+    s.erase(std::find_if(s.rbegin(), s.rend(), [](unsigned char ch) {
+        return ch == classTermination[0];
+    }).base(), s.end());
+}
+
 void recvUpdates(RemoteInavjagaIO* remote_) {
     ClientRemoteInavjagaIO* remote = (ClientRemoteInavjagaIO*)remote_;
     std::this_thread::sleep_for(std::chrono::milliseconds(100));
@@ -536,6 +542,7 @@ void recvUpdates(RemoteInavjagaIO* remote_) {
         #endif
         std::string serverGameState;
         serverGameState = remote->recvGameState();
+        rtrimGameState(serverGameState); // To cut out garbage in the string
         #if DEBUG
         {
             std::unique_lock lock(stderrMutex);
