@@ -456,7 +456,7 @@ bool revivePlayers() {
 }
 
 void processDeath(std::shared_ptr<Player> player) {
-    std::lock_guard<std::mutex> lock(streamMutex);
+    std::unique_lock<std::mutex> lock(streamMutex);
     sista::Coordinates deathCoordinates = player->getCoordinates();
     field->movePawn(player.get(), player->respawnCoordinates);
     if (DROP_INVENTORY_ON_DEATH) {
@@ -480,12 +480,12 @@ void fullProcessFrame(int i) {
     }
     if (lastDeathFrame && i - lastDeathFrame == 20) {
         // After 20 frames it deletes the death reason
-        std::lock_guard<std::mutex> lock(streamMutex); // Lock stays until scope ends
+        std::unique_lock<std::mutex> lock(streamMutex); // Lock stays until scope ends
         reprint();
     }
 
     processMoves(); // This has to be done earlier than the lock as act() wants it
-    std::lock_guard<std::mutex> lock(streamMutex); // Lock stays until scope ends
+    std::unique_lock<std::mutex> lock(streamMutex); // Lock stays until scope ends
     processFrame();
     if (i % MEAT_DURATION_PERIOD == MEAT_DURATION_PERIOD - 1) {
         for (std::shared_ptr<Player> player : Player::players)
@@ -701,9 +701,7 @@ void restoreGameState(const std::string& serverGameState) {
             field->addPawn(wormBody);
         }
     }
-    sista::clearScreen();
-    field->print(border);
-    std::cout << std::flush;
+    reprint();
     /// @todo finish this function
 }
 
