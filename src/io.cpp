@@ -699,20 +699,20 @@ std::string InavjagaGSPIO::recvSyncData(int timeout) {
             #endif
             received = std::string(buffer);
             free(buffer);
-        }
-        #if DEBUG
-        else {
+        } else {
+            #if DEBUG
             std::unique_lock lock(stderrMutex);
             std::cerr << "\tNo message ready yet" << std::endl;
+            #endif
+            return "";
         }
-        #endif
-    }
-    #if DEBUG
-    else {
+    } else {
+        #if DEBUG
         std::unique_lock lock(stderrMutex);
         std::cerr << "No message size ready yet" << std::endl;
+        #endif
+        return "";
     }
-    #endif
     return received;
 }
 
