@@ -488,7 +488,8 @@ void fullProcessFrame(int i) {
     std::lock_guard<std::mutex> lock(streamMutex); // Lock stays until scope ends
     processFrame();
     if (i % MEAT_DURATION_PERIOD == MEAT_DURATION_PERIOD - 1) {
-        Player::localPlayer->inventory.meat--;
+        for (std::shared_ptr<Player> player : Player::players)
+            player->inventory.meat--;
     }
     spawnEnemies();
     printSideInstructions(i);
