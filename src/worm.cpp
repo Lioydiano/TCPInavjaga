@@ -74,7 +74,7 @@ sista::ANSISettings WormBody::wormBodyStyle = {
 Worm::Worm(sista::Coordinates coordinates) : Entity('H', coordinates, wormHeadStyle, Type::WORM_HEAD), hp(WORM_HEALTH_POINTS), collided(false) {
     direction = randomDirection();
 }
-Worm::Worm(sista::Coordinates coordinates, Direction direction) : Worm(coordinates) {
+Worm::Worm(sista::Coordinates coordinates, Direction direction) : Entity('H', coordinates, wormHeadStyle, Type::WORM_HEAD), hp(WORM_HEALTH_POINTS), collided(false) {
     this->direction = direction;
 }
 void Worm::move() {
