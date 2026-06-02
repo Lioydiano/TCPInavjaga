@@ -224,7 +224,8 @@ template <> std::shared_ptr<Worm> deserialize(const std::string& entity) {
     std::string direction;
     std::getline(is, direction, ':');
     std::shared_ptr<Worm> worm = std::make_shared<Worm>(
-        deserializeCoordinates(coordinates)
+        deserializeCoordinates(coordinates),
+        (Direction)std::stoi(direction)
     );
     char separator;
     is >> worm->hp >> separator >> worm->collided >> separator;

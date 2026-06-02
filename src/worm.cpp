@@ -68,6 +68,9 @@ sista::ANSISettings WormBody::wormBodyStyle = {
     sista::Attribute::BRIGHT
 };
 
+/** @brief Constructs the head of a Worm without tail with all the needed internal state
+ * @warning This constructor consumes the global rng
+ */
 Worm::Worm(sista::Coordinates coordinates) : Entity('H', coordinates, wormHeadStyle, Type::WORM_HEAD), hp(WORM_HEALTH_POINTS), collided(false) {
     direction = randomDirection();
 }
