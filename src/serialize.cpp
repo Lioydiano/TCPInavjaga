@@ -224,30 +224,12 @@ template <> std::shared_ptr<Worm> deserialize(const std::string& entity) {
     std::getline(is, coordinates, ':');
     std::string direction;
     std::getline(is, direction, ':');
-    #if DEBUG
-    {
-        std::unique_lock lock(stderrMutex);
-        std::cerr << "d1The rng state is: " << rng << std::endl;
-    }
-    #endif
     std::shared_ptr<Worm> worm = std::make_shared<Worm>(
         deserializeCoordinates(coordinates),
         (Direction)std::stoi(direction)
     );
-    #if DEBUG
-    {
-        std::unique_lock lock(stderrMutex);
-        std::cerr << "d2The rng state is: " << rng << std::endl;
-    }
-    #endif
     char separator;
     is >> worm->hp >> separator >> worm->collided >> separator;
-    #if DEBUG
-    {
-        std::unique_lock lock(stderrMutex);
-        std::cerr << "d4The rng state is: " << rng << std::endl;
-    }
-    #endif
     std::string wormBodyCoordinates, wormBodyDirection;
     while (std::getline(is, wormBodyCoordinates, ':')) {
         std::getline(is, wormBodyDirection, ':');
@@ -255,12 +237,6 @@ template <> std::shared_ptr<Worm> deserialize(const std::string& entity) {
             deserializeCoordinates(wormBodyCoordinates),
             (Direction)std::stoi(wormBodyDirection)
         ));
-        #if DEBUG
-        {
-            std::unique_lock lock(stderrMutex);
-            std::cerr << "d4The rng state is: " << rng << std::endl;
-        }
-        #endif
     }
     return worm;
 }
