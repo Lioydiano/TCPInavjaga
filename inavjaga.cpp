@@ -264,7 +264,19 @@ int main(int argc, char* argv[]) {
                         << "µs" << std::endl;
             }
             #endif
+            #if DEBUG
+            {
+                std::unique_lock lock(stderrMutex);
+                std::cerr << "1The rng state is: " << rng << std::endl;
+            }
+            #endif
             gameState = std::to_string(i) + "," + serialize(rng) + "," + serializeGameState();
+            #if DEBUG
+            {
+                std::unique_lock lock(stderrMutex);
+                std::cerr << "2The rng state is: " << rng << std::endl;
+            }
+            #endif
             delta = std::chrono::high_resolution_clock::now() - start;
             #if DEBUG
             {
@@ -691,7 +703,19 @@ void restoreGameState(const std::string& serverGameState) {
     std::string frameString; // We are lk trashing this anyway
     std::getline(state, frameString, ',');
 
+    #if DEBUG
+    {
+        std::unique_lock lock(stderrMutex);
+        std::cerr << "The rng state is: " << rng << std::endl;
+    }
+    #endif
     state >> rng; // We restore the rng state
+    #if DEBUG
+    {
+        std::unique_lock lock(stderrMutex);
+        std::cerr << "The rng state is: " << rng << std::endl;
+    }
+    #endif
     char _;
     state >> _ >> _; // Comma and classTermination
     std::unique_lock lock(streamMutex);
