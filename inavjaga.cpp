@@ -37,7 +37,7 @@ sista::Border border(
         sista::Attribute::BRIGHT
     }
 );
-std::queue<MoveEvent> movesBuffer = std::queue<MoveEvent>();
+std::priority_queue<MoveEvent> movesBuffer = std::priority_queue<MoveEvent>();
 std::string gameState = std::string();
 const size_t pastGameStatesBufferSize = 20; // Supporting up to 2s of latency
 std::string pastGameStates[pastGameStatesBufferSize] = {std::string()};
@@ -343,7 +343,7 @@ bool endConditions() {
 void processMoves() {
     std::unique_lock lock(movesBufferMutex);
     while (!movesBuffer.empty()) {
-        MoveEvent current = movesBuffer.front();
+        MoveEvent current = movesBuffer.top();
         movesBuffer.pop();
         act(current);
     }

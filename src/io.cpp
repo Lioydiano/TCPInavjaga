@@ -14,6 +14,11 @@ std::mutex InavjagaGSPIO::outputMutex = std::mutex();
 std::mutex InavjagaGSPIO::syncMutex = std::mutex();
 extern std::mutex stderrMutex;
 
+bool MoveEvent::operator<(const MoveEvent& moveEvent) const {
+    if (this->playerId < moveEvent.playerId) return true;
+    return this->move < moveEvent.move;
+}
+
 inline bool isSocketAlive(int descriptor) {
     // Source - https://stackoverflow.com/a/4142038
     // Posted by Simone, modified by community. See post 'Timeline' for change history
