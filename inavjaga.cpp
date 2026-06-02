@@ -231,9 +231,6 @@ int main(int argc, char* argv[]) {
     #endif
     std::thread localInputThread(input<LocalInavjagaIO>, localIO);
     std::thread remoteInputThread(input<RemoteInavjagaIO>, remoteIO);
-    #if CLIENT
-    std::thread remoteGameStateThread(recvUpdates, remoteIO);
-    #endif
 
     auto start = std::chrono::high_resolution_clock::now();
     std::chrono::duration<double> delta;
@@ -286,7 +283,9 @@ int main(int argc, char* argv[]) {
                 std::cerr << "gameState stored" << std::endl;
             }
             #endif
-            #if SERVER
+            #if CLIENT
+            recvUpdates(remoteIO);
+            #elif SERVER
             updateClients(remoteIO);
             #endif
         }
@@ -528,98 +527,93 @@ inline void rtrimGameState(std::string &s) {
 
 void recvUpdates(RemoteInavjagaIO* remote_) {
     ClientRemoteInavjagaIO* remote = (ClientRemoteInavjagaIO*)remote_;
-    std::this_thread::sleep_for(std::chrono::milliseconds(100));
-    while (!end) {
-        std::this_thread::sleep_for(std::chrono::milliseconds(30));
-        #if DEBUG
-        {
-            std::unique_lock stderrLock(stderrMutex);
-            std::cerr << "Trying to lock the gameStateMutex in recvUpdates" << std::endl;
-        }
-        #endif
-        std::string serverGameState;
-        serverGameState = remote->recvGameState();
-        rtrimGameState(serverGameState); // To cut out garbage in the string
+    #if DEBUG
+    {
+        std::unique_lock stderrLock(stderrMutex);
+        std::cerr << "Trying to lock the gameStateMutex in recvUpdates" << std::endl;
+    }
+    #endif
+    std::string serverGameState;
+    serverGameState = remote->recvGameState();
+    rtrimGameState(serverGameState); // To cut out garbage in the string
+    #if DEBUG
+    {
+        std::unique_lock lock(stderrMutex);
+        std::cerr << "The srv game state is: " << serverGameState << std::endl;
+    }
+    #endif
+    #if DEBUG
+    {
+        std::unique_lock lock(stderrMutex);
+        std::cerr << "\tThe game state is: " << gameState << std::endl;
+    }
+    #endif
+    if (serverGameState.empty()) return;
+    if (serverGameState == gameState) return;
+    #if DEBUG
+    {
+        std::unique_lock lock(stderrMutex);
+        std::cerr << "The game state did not match with the server, latency might be there" << std::endl;
+    }
+    #endif
+    // Parsing the frame number from the server
+    std::istringstream isServer(serverGameState);
+    std::string frameString;
+    std::getline(isServer, frameString, ',');
+    if (std::empty(frameString) || !std::isalnum(frameString[0])) {
         #if DEBUG
         {
             std::unique_lock lock(stderrMutex);
-            std::cerr << "The srv game state is: " << serverGameState << std::endl;
+            std::cerr << "We received absolute emptiness from the server on the synchronization channel" << std::endl;
         }
         #endif
-        std::unique_lock lock(gameStateMutex);
+        return;
+    }
+    int serverFrame = std::stoi(frameString);
+    // Parsing the frame number from the client
+    std::istringstream isClient(gameState);
+    std::getline(isClient, frameString, ',');
+    if (std::empty(frameString) || !std::isalnum(frameString[0])) {
         #if DEBUG
         {
             std::unique_lock lock(stderrMutex);
-            std::cerr << "\tThe game state is: " << gameState << std::endl;
+            std::cerr << "The client has an absolutely empty or malformed game state" << std::endl;
+            std::cerr << gameState << std::endl;
         }
         #endif
-        if (serverGameState.empty()) continue;
-        if (serverGameState == gameState) continue;
-        #if DEBUG
-        {
-            std::unique_lock lock(stderrMutex);
-            std::cerr << "The game state did not match with the server, latency might be there" << std::endl;
-        }
-        #endif
-        // Parsing the frame number from the server
-        std::istringstream isServer(serverGameState);
-        std::string frameString;
-        std::getline(isServer, frameString, ',');
-        if (std::empty(frameString) || !std::isalnum(frameString[0])) {
+        return;
+    }
+    int clientFrame = std::stoi(frameString);
+    if (clientFrame == serverFrame) {
+        // This means that there is a mismatch and there will be some work to do
+        restoreGameState(serverGameState);
+        pastGameStates[serverFrame % pastGameStatesBufferSize] = serverGameState;
+        gameState = serverGameState;
+    } else {
+        if (pastGameStates[serverFrame % pastGameStatesBufferSize] == serverGameState) {
+            // This means we are just some frames ahead, we can keep on going
             #if DEBUG
             {
                 std::unique_lock lock(stderrMutex);
-                std::cerr << "We received absolute emptiness from the server on the synchronization channel" << std::endl;
+                std::cerr << "Because of latency, we are " << clientFrame - serverFrame << " frames ahead of the server" << std::endl;
             }
             #endif
             return;
-        }
-        int serverFrame = std::stoi(frameString);
-        // Parsing the frame number from the client
-        std::istringstream isClient(gameState);
-        std::getline(isClient, frameString, ',');
-        if (std::empty(frameString) || !std::isalnum(frameString[0])) {
-            #if DEBUG
-            {
-                std::unique_lock lock(stderrMutex);
-                std::cerr << "The client has an absolutely empty or malformed game state" << std::endl;
-                std::cerr << gameState << std::endl;
-            }
-            #endif
-            continue;
-        }
-        int clientFrame = std::stoi(frameString);
-        if (clientFrame == serverFrame) {
-            // This means that there is a mismatch and there will be some work to do
+        } else {
+            // This means that we lost synchronization some frames ago
+            /// @note we assume that the server cannot be ahead of the client,
+            /// since it would require a clock unsync greater than the latency
+            /// @note we assume that latency cannot be greater than 
+            /// pastGameStatesBufferSize * FRAME_DURATION milliseconds
             restoreGameState(serverGameState);
             pastGameStates[serverFrame % pastGameStatesBufferSize] = serverGameState;
-            gameState = serverGameState;
-        } else {
-            if (pastGameStates[serverFrame % pastGameStatesBufferSize] == serverGameState) {
-                // This means we are just some frames ahead, we can keep on going
-                #if DEBUG
-                {
-                    std::unique_lock lock(stderrMutex);
-                    std::cerr << "Because of latency, we are " << clientFrame - serverFrame << " frames ahead of the server" << std::endl;
-                }
-                #endif
-                continue;
-            } else {
-                // This means that we lost synchronization some frames ago
-                /// @note we assume that the server cannot be ahead of the client,
-                /// since it would require a clock unsync greater than the latency
-                /// @note we assume that latency cannot be greater than 
-                /// pastGameStatesBufferSize * FRAME_DURATION milliseconds
-                restoreGameState(serverGameState);
-                pastGameStates[serverFrame % pastGameStatesBufferSize] = serverGameState;
-                for (int i = serverFrame + 1; i <= clientFrame; i++) {
-                    fullProcessFrame(i);
-                    pastGameStates[i % pastGameStatesBufferSize] = std::to_string(i)
-                        + "," + serialize(rng)
-                        + "," + serializeGameState();
-                }
-                gameState = pastGameStates[clientFrame % pastGameStatesBufferSize];
+            for (int i = serverFrame + 1; i <= clientFrame; i++) {
+                fullProcessFrame(i);
+                pastGameStates[i % pastGameStatesBufferSize] = std::to_string(i)
+                    + "," + serialize(rng)
+                    + "," + serializeGameState();
             }
+            gameState = pastGameStates[clientFrame % pastGameStatesBufferSize];
         }
     }
 }
