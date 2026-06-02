@@ -284,9 +284,9 @@ int main(int argc, char* argv[]) {
             }
             #endif
             #if CLIENT
-            if (int rc = recvUpdates(remoteIO); rc >= 0) {
-                i = rc;
-            }
+            // if (int rc = recvUpdates(remoteIO); rc >= 0) {
+            //     i = rc;
+            // }
             #elif SERVER
             updateClients(remoteIO);
             #endif
@@ -498,8 +498,10 @@ void fullProcessFrame(int i) {
     std::unique_lock<std::mutex> lock(streamMutex); // Lock stays until scope ends
     processFrame();
     if (i % MEAT_DURATION_PERIOD == MEAT_DURATION_PERIOD - 1) {
-        for (std::shared_ptr<Player> player : Player::players)
+        for (std::shared_ptr<Player> player : Player::players) {
+            if (player == nullptr) continue;
             player->inventory.meat--;
+        }
     }
     spawnEnemies();
     printSideInstructions(i);
