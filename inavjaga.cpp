@@ -510,7 +510,6 @@ void updateClients(RemoteInavjagaIO* remote_) {
         std::cerr << "Trying to lock the gameStateMutex" << std::endl;
     }
     #endif
-    std::unique_lock lock(gameStateMutex);
     if (gameState.empty()) return; // We haven't gone over a frame yet
     #if DEBUG
     {
