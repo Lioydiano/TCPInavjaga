@@ -8,6 +8,7 @@
 #include "portal.hpp"
 #include "wall.hpp"
 #include "worm.hpp"
+#include <sstream>
 #include <sista/coordinates.hpp>
 
 extern const std::string classTermination;
@@ -16,6 +17,7 @@ template<class T> std::shared_ptr<T> deserialize(const std::string&);
 
 std::string serialize(const Inventory&);
 Inventory deserializeInventory(const std::string&);
+Inventory deserializeInventory(std::istringstream&);
 
 std::string serialize(sista::Coordinates);
 sista::Coordinates deserializeCoordinates(const std::string&);

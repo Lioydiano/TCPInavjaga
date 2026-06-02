@@ -190,6 +190,7 @@ template <> std::shared_ptr<Player> deserialize(const std::string& entity) {
     int mode;
     is >> mode >> separator;
     player->mode = (Player::Mode)mode;
+    player->inventory = deserializeInventory(entity);
     return player;
 }
 
@@ -257,6 +258,17 @@ Inventory deserializeInventory(const std::string& inventory) {
     is.ignore(1); // Should ignore a ',', but is it worth failing silently?
     is >> inv.meat;
     is.ignore(1); // Should ignore a '}', but is it worth failing silently?
+    return inv;
+}
+Inventory deserializeInventory(std::istringstream& inventory) {
+    Inventory inv;
+    inventory.ignore(1); // Should ignore a '{', but is it worth failing silently?
+    inventory >> inv.clay;
+    inventory.ignore(1); // Should ignore a ',', but is it worth failing silently?
+    inventory >> inv.bullets;
+    inventory.ignore(1); // Should ignore a ',', but is it worth failing silently?
+    inventory >> inv.meat;
+    inventory.ignore(1); // Should ignore a '}', but is it worth failing silently?
     return inv;
 }
 
