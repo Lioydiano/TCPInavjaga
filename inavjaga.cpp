@@ -712,14 +712,14 @@ void restoreGameState(const std::string& serverGameState) {
     #if DEBUG
     {
         std::unique_lock lock(stderrMutex);
-        std::cerr << "The rng state is: " << rng << std::endl;
+        std::cerr << "4The rng state is: " << rng << std::endl;
     }
     #endif
     state >> rng; // We restore the rng state
     #if DEBUG
     {
         std::unique_lock lock(stderrMutex);
-        std::cerr << "The rng state is: " << rng << std::endl;
+        std::cerr << "5The rng state is: " << rng << std::endl;
     }
     #endif
     char _;
@@ -728,30 +728,90 @@ void restoreGameState(const std::string& serverGameState) {
     std::string entities;
     std::getline(state, entities, classTermination[0]);
     deserializeEntities<Archer>(entities);
+    #if DEBUG
+    {
+        std::unique_lock lock(stderrMutex);
+        std::cerr << "6The rng state is: " << rng << std::endl;
+    }
+    #endif
     std::getline(state, entities, classTermination[0]);
     deserializeEntities<Bullet>(entities);
+    #if DEBUG
+    {
+        std::unique_lock lock(stderrMutex);
+        std::cerr << "7The rng state is: " << rng << std::endl;
+    }
+    #endif
     std::getline(state, entities, classTermination[0]);
     deserializeEntities<Chest>(entities);
+    #if DEBUG
+    {
+        std::unique_lock lock(stderrMutex);
+        std::cerr << "8The rng state is: " << rng << std::endl;
+    }
+    #endif
     std::getline(state, entities, classTermination[0]);
     deserializeEntities<EnemyBullet>(entities);
+    #if DEBUG
+    {
+        std::unique_lock lock(stderrMutex);
+        std::cerr << "9The rng state is: " << rng << std::endl;
+    }
+    #endif
     std::getline(state, entities, classTermination[0]);
     deserializeEntities<Mine>(entities);
+    #if DEBUG
+    {
+        std::unique_lock lock(stderrMutex);
+        std::cerr << "aThe rng state is: " << rng << std::endl;
+    }
+    #endif
     std::getline(state, entities, classTermination[0]);
     deserializeEntities<Player>(entities);
     Player::localPlayer = Player::players[Player::localPlayerId];
     Player::localPlayer->setSettings(Player::localPlayerStyle);
+    #if DEBUG
+    {
+        std::unique_lock lock(stderrMutex);
+        std::cerr << "bThe rng state is: " << rng << std::endl;
+    }
+    #endif
     std::getline(state, entities, classTermination[0]);
     deserializeEntities<Portal>(entities);
+    #if DEBUG
+    {
+        std::unique_lock lock(stderrMutex);
+        std::cerr << "cThe rng state is: " << rng << std::endl;
+    }
+    #endif
     std::getline(state, entities, classTermination[0]);
     deserializeEntities<Wall>(entities);
+    #if DEBUG
+    {
+        std::unique_lock lock(stderrMutex);
+        std::cerr << "dThe rng state is: " << rng << std::endl;
+    }
+    #endif
     std::getline(state, entities, classTermination[0]);
     deserializeEntities<Worm>(entities);
+    #if DEBUG
+    {
+        std::unique_lock lock(stderrMutex);
+        std::cerr << "eThe rng state is: " << rng << std::endl;
+    }
+    #endif
     for (std::shared_ptr<Worm> worm : Worm::worms) {
         for (std::shared_ptr<WormBody> wormBody : worm->body) {
             WormBody::wormBodies.push_back(wormBody);
             field->addPawn(wormBody);
         }
     }
+    #if DEBUG
+    {
+        std::unique_lock lock(stderrMutex);
+        std::cerr << "fThe rng state is: " << rng << std::endl;
+    }
+    #endif
     /// @todo finish this function
 }
 
