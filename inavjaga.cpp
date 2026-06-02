@@ -500,6 +500,10 @@ void fullProcessFrame(int i) {
     if (i % MEAT_DURATION_PERIOD == MEAT_DURATION_PERIOD - 1) {
         for (std::shared_ptr<Player> player : Player::players) {
             if (player == nullptr) continue;
+            #if DEBUG
+            std::unique_lock stderrLock(stderrMutex);
+            std::cerr << "Decreasing the meat of " << player << " to " << player->inventory.meat - 1 << std::endl; 
+            #endif
             player->inventory.meat--;
         }
     }
