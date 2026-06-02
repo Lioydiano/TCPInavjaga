@@ -16,10 +16,10 @@
 extern std::unordered_map<Direction, char> directionSymbol;
 extern std::unordered_map<Direction, sista::Coordinates> directionMap;
 extern std::shared_ptr<sista::SwappableField> field;
-extern std::mt19937 rng;
+extern std::minstd_rand rng;
 extern std::bernoulli_distribution dumbMoveDistribution;
 extern bool dead;
-enum EndReason {STARVED, SHOT, EATEN, STABBED, TOUCHDOWN, QUIT};
+enum EndReason {STARVED=0, SHOT=1, EATEN=2, STABBED=3, TOUCHDOWN=4, QUIT=5};
 void printEndInformation(EndReason);
 
 namespace {
@@ -35,7 +35,7 @@ inline Direction randomTurnDirection() {
 }
 }
 
-WormBody::WormBody(sista::Coordinates coordinates, Direction direction) : Entity(directionSymbol[direction], coordinates, wormBodyStyle, Type::WORM_BODY) {
+WormBody::WormBody(sista::Coordinates coordinates, Direction direction) : Entity(directionSymbol[direction], coordinates, wormBodyStyle, Type::WORM_BODY), direction(direction) {
     // ownership moved to creator via std::shared_ptr; do not push here
 }
 void WormBody::die() {
@@ -61,16 +61,20 @@ void WormBody::remove() {
     field->erasePawn(this);
     Entity::removeOwner(WormBody::wormBodies, this);
 }
+std::vector<std::shared_ptr<WormBody>>* WormBody::entities = &WormBody::wormBodies;
 sista::ANSISettings WormBody::wormBodyStyle = {
     sista::RGBColor(50, 0xff, 150),
     sista::BackgroundColor::BLACK,
     sista::Attribute::BRIGHT
 };
 
+/** @brief Constructs the head of a Worm without tail with all the needed internal state
+ * @warning This constructor consumes the global rng
+ */
 Worm::Worm(sista::Coordinates coordinates) : Entity('H', coordinates, wormHeadStyle, Type::WORM_HEAD), hp(WORM_HEALTH_POINTS), collided(false) {
     direction = randomDirection();
 }
-Worm::Worm(sista::Coordinates coordinates, Direction direction) : Worm(coordinates) {
+Worm::Worm(sista::Coordinates coordinates, Direction direction) : Entity('H', coordinates, wormHeadStyle, Type::WORM_HEAD), hp(WORM_HEALTH_POINTS), collided(false) {
     this->direction = direction;
 }
 void Worm::move() {
@@ -224,6 +228,7 @@ void Worm::remove() {
     field->erasePawn(this);
     Entity::removeOwner(Worm::worms, this);
 }
+std::vector<std::shared_ptr<Worm>>* Worm::entities = &Worm::worms;
 Direction Worm::options[2] = {Direction::LEFT, Direction::RIGHT};
 std::bernoulli_distribution Worm::turning(WORM_TURNING_PROBABILITY);
 std::bernoulli_distribution Worm::moving(WORM_MOVING_PROBABILITY);

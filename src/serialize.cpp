@@ -11,6 +11,7 @@
 #include <memory>
 #if DEBUG
 #include <iostream>
+extern std::minstd_rand rng;
 #endif
 
 extern std::mutex streamMutex;
@@ -55,7 +56,7 @@ std::string serializeGameState() {
     for (std::shared_ptr<Player> player : Player::players) {
         if (player == nullptr) continue;
         serialized.append(serialize(player));
-        if (player != Player::players.back())
+        // if (player != Player::players.back())
             serialized.append(";");
     }
     serialized.append(classTermination);
@@ -85,62 +86,198 @@ std::string serializeGameState() {
 std::string serialize(std::shared_ptr<Archer> archer) {
     return serialize(archer->getCoordinates());
 }
+// https://stackoverflow.com/a/4933205/15888601
+template <> std::shared_ptr<Archer> deserialize(const std::string& entity) {
+    return std::make_shared<Archer>(deserializeCoordinates(entity));
+}
 
 std::string serialize(std::shared_ptr<Bullet> bullet) {
     std::ostringstream os;
-    os << serialize(bullet->getCoordinates()) << ',' << bullet->collided << ',' << bullet->direction;
+    os << serialize(bullet->getCoordinates()) << ':' << bullet->direction << ':' << bullet->collided;
     return os.str();
+}
+template <> std::shared_ptr<Bullet> deserialize(const std::string& entity) {
+    std::istringstream is(entity);
+    std::string coordinates;
+    std::getline(is, coordinates, ':');
+    std::string direction;
+    std::getline(is, direction, ':');
+    std::shared_ptr<Bullet> bullet = std::make_shared<Bullet>(
+        deserializeCoordinates(coordinates),
+        (Direction)std::stoi(direction)
+    );
+    is >> bullet->collided;
+    return bullet;
 }
 
 std::string serialize(std::shared_ptr<Chest> chest) {
     std::ostringstream os;
-    os << serialize(chest->getCoordinates()) << ",{" << chest->inventory.clay << "," << chest->inventory.bullets << "," << chest->inventory.meat << "}";
+    os << serialize(chest->getCoordinates()) << ":" << serialize(chest->inventory);
     return os.str();
+}
+template <> std::shared_ptr<Chest> deserialize(const std::string& entity) {
+    std::istringstream is(entity);
+    std::string coordinates;
+    std::getline(is, coordinates, ':');
+    std::string inventory;
+    std::getline(is, inventory, ':');
+    return std::make_shared<Chest>(
+        deserializeCoordinates(coordinates),
+        deserializeInventory(inventory)
+    );
 }
 
 std::string serialize(std::shared_ptr<EnemyBullet> enemyBullet) {
     std::ostringstream os;
-    os << serialize(enemyBullet->getCoordinates()) << ',' << enemyBullet->collided << ',' << enemyBullet->direction;
+    os << serialize(enemyBullet->getCoordinates()) << ':' << enemyBullet->direction << ':' << enemyBullet->collided;
     return os.str();
+}
+template <> std::shared_ptr<EnemyBullet> deserialize(const std::string& entity) {
+    std::istringstream is(entity);
+    std::string coordinates;
+    std::getline(is, coordinates, ':');
+    std::string direction;
+    std::getline(is, direction, ':');
+    std::shared_ptr<EnemyBullet> bullet = std::make_shared<EnemyBullet>(
+        deserializeCoordinates(coordinates),
+        (Direction)std::stoi(direction)
+    );
+    is >> bullet->collided;
+    return bullet;
 }
 
 std::string serialize(std::shared_ptr<Mine> mine) {
     std::ostringstream os;
-    os << serialize(mine->getCoordinates()) << ',' << mine->triggered;
+    os << serialize(mine->getCoordinates()) << ':' << mine->triggered;
     return os.str();
+}
+template <> std::shared_ptr<Mine> deserialize(const std::string& entity) {
+    std::istringstream is(entity);
+    std::string coordinates;
+    std::getline(is, coordinates, ':');
+    std::shared_ptr<Mine> mine = std::make_shared<Mine>(
+        deserializeCoordinates(coordinates)
+    );
+    is >> mine->triggered;
+    return mine;
 }
 
 std::string serialize(std::shared_ptr<Portal> portal) {
     return serialize(portal->getCoordinates());
 }
+template <> std::shared_ptr<Portal> deserialize(const std::string& entity) {
+    return std::make_shared<Portal>(deserializeCoordinates(entity));
+}
 
 std::string serialize(std::shared_ptr<Player> player) {
     std::ostringstream os;
-    os << serialize(player->getCoordinates()) << ',' << player->id << ',' << player->connected << ',' << player->dead
-       << ',' << player->mode << ",{" << player->inventory.clay << ","
-       << player->inventory.bullets << "," << player->inventory.meat << "}";
+    os << serialize(player->getCoordinates()) << ':' << serialize(player->respawnCoordinates) << ':'
+       << player->id << ':' << player->connected << ':' << player->dead
+       << ':' << player->mode << ":" << serialize(player->inventory);
     return os.str();
+}
+template <> std::shared_ptr<Player> deserialize(const std::string& entity) {
+    std::istringstream is(entity);
+    std::string coordinates;
+    std::getline(is, coordinates, ':');
+    std::shared_ptr<Player> player = std::make_shared<Player>(
+        deserializeCoordinates(coordinates)
+    );
+    std::getline(is, coordinates, ':');
+    player->respawnCoordinates = deserializeCoordinates(coordinates);
+    char separator;
+    is >> player->id >> separator >> player->connected >> separator >> player->dead >> separator;
+    int mode;
+    is >> mode >> separator;
+    player->mode = (Player::Mode)mode;
+    std::string inventory;
+    std::getline(is, inventory);
+    player->inventory = deserializeInventory(inventory);
+    return player;
 }
 
 std::string serialize(std::shared_ptr<Wall> wall) {
     std::ostringstream os;
-    os << serialize(wall->getCoordinates()) << ',' << wall->strength;
+    os << serialize(wall->getCoordinates()) << ':' << wall->strength;
     return os.str();
+}
+template <> std::shared_ptr<Wall> deserialize(const std::string& entity) {
+    std::istringstream is(entity);
+    std::string coordinates;
+    std::getline(is, coordinates, ':');
+    short int strength;
+    is >> strength;
+    std::shared_ptr<Wall> wall = std::make_shared<Wall>(
+        deserializeCoordinates(coordinates), strength
+    );
+    return wall;
 }
 
 std::string serialize(std::shared_ptr<Worm> worm) {
     std::ostringstream os;
-    os << serialize(worm->getCoordinates()) << ',' << worm->direction << ',' << worm->hp << ',' << worm->collided;
+    os << serialize(worm->getCoordinates()) << ':' << worm->direction << ':' << worm->hp << ':' << worm->collided;
     for (std::shared_ptr<WormBody> wormBody : worm->body) {
-        os << ',' << serialize(wormBody->getCoordinates());
+        os << ':' << serialize(wormBody->getCoordinates()) << ':' << wormBody->direction;
     }
     return os.str();
+}
+template <> std::shared_ptr<Worm> deserialize(const std::string& entity) {
+    std::istringstream is(entity);
+    std::string coordinates;
+    std::getline(is, coordinates, ':');
+    std::string direction;
+    std::getline(is, direction, ':');
+    std::shared_ptr<Worm> worm = std::make_shared<Worm>(
+        deserializeCoordinates(coordinates),
+        (Direction)std::stoi(direction)
+    );
+    char separator;
+    is >> worm->hp >> separator >> worm->collided >> separator;
+    std::string wormBodyCoordinates, wormBodyDirection;
+    while (std::getline(is, wormBodyCoordinates, ':')) {
+        std::getline(is, wormBodyDirection, ':');
+        worm->body.push_back(std::make_shared<WormBody>(
+            deserializeCoordinates(wormBodyCoordinates),
+            (Direction)std::stoi(wormBodyDirection)
+        ));
+    }
+    return worm;
+}
+
+std::string serialize(const Inventory& inventory) {
+    return "{" + std::to_string(inventory.clay)
+        + "," + std::to_string(inventory.bullets)
+        + "," + std::to_string(inventory.meat) + "}";
+}
+
+Inventory deserializeInventory(const std::string& inventory) {
+    Inventory inv;
+    std::istringstream is(inventory);
+    is.ignore(1); // Should ignore a '{', but is it worth failing silently?
+    is >> inv.clay;
+    is.ignore(1); // Should ignore a ',', but is it worth failing silently?
+    is >> inv.bullets;
+    is.ignore(1); // Should ignore a ',', but is it worth failing silently?
+    is >> inv.meat;
+    is.ignore(1); // Should ignore a '}', but is it worth failing silently?
+    return inv;
 }
 
 std::string serialize(sista::Coordinates coordinates) {
     std::ostringstream os;
     os << '{' << coordinates.y << ',' << coordinates.x << '}';
     return os.str();
+}
+
+sista::Coordinates deserializeCoordinates(const std::string& coordinates) {
+    sista::Coordinates coords;
+    std::istringstream is(coordinates);
+    is.ignore(1); // Should ignore a '{', but is it worth failing silently?
+    is >> coords.y;
+    is.ignore(1); // Should ignore a ',', but is it worth failing silently?
+    is >> coords.x;
+    is.ignore(1); // Should ignore a '}', but is it worth failing silently?
+    return coords;
 }
 
 std::string serialize(unsigned short y, unsigned short x) {
@@ -152,15 +289,15 @@ std::string serialize(unsigned short y, unsigned short x) {
 /** @brief Serializes a Mersenne Twister random engine
  * @cite https://en.cppreference.com/cpp/numeric/random/mersenne_twister_engine/operator_ltltgtgt
 */
-std::string serialize(const std::mt19937& rng) {
+std::string serialize(const std::minstd_rand& rng) {
     std::ostringstream out;
     out << rng;
     return out.str();
 }
 
-std::mt19937 deserialize(const std::string& state) {
+std::minstd_rand deserializeRng(const std::string& state) {
     std::istringstream in(state);
-    std::mt19937 rng;
+    std::minstd_rand rng;
     in >> rng;
     return rng;
 }

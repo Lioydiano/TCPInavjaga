@@ -14,6 +14,7 @@ void Portal::remove() {
     field->erasePawn(this);
     Entity::removeOwner(Portal::portals, this);
 }
+std::vector<std::shared_ptr<Portal>>* Portal::entities = &Portal::portals;
 sista::ANSISettings Portal::portalStyle = {
     RGB_ROCKS_FOREGROUND,
     RGB_ROCKS_BACKGROUND,

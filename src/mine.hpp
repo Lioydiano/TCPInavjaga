@@ -8,6 +8,7 @@ public:
     static sista::ANSISettings mineStyle;
     static sista::ANSISettings triggeredMineStyle;
     static std::vector<std::shared_ptr<Mine>> mines;
+    static std::vector<std::shared_ptr<Mine>>* entities;
     static std::bernoulli_distribution explosion;
     static std::uniform_int_distribution<int> mineDamage;
     bool triggered;

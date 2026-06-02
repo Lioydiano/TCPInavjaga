@@ -16,6 +16,8 @@
 struct MoveEvent {
     player_id_t playerId;
     char move;
+
+    bool operator<(const MoveEvent&) const;
 };
 
 /** @brief InavjagaGSP input/output - 

@@ -14,6 +14,11 @@ std::mutex InavjagaGSPIO::outputMutex = std::mutex();
 std::mutex InavjagaGSPIO::syncMutex = std::mutex();
 extern std::mutex stderrMutex;
 
+bool MoveEvent::operator<(const MoveEvent& moveEvent) const {
+    if (this->playerId < moveEvent.playerId) return true;
+    return this->move < moveEvent.move;
+}
+
 inline bool isSocketAlive(int descriptor) {
     // Source - https://stackoverflow.com/a/4142038
     // Posted by Simone, modified by community. See post 'Timeline' for change history
@@ -63,7 +68,7 @@ uint32_t InavjagaGSPIO::recvRandomSeed(int timeout) {
     struct pollfd pollFd_ = {0,0,0};
     pollFd_.fd = this->socketfd;
     pollFd_.events = POLLIN;
-    if (int rc = poll(&pollFd_, 1, timeout) < 0) {
+    if (int rc = poll(&pollFd_, 1, timeout); rc < 0) {
         std::unique_lock lock(stderrMutex);
         std::cerr << "Polling failed with error " << rc << " (" << errno << ")" << std::endl;
         throw std::runtime_error("Polling failed");
@@ -147,7 +152,7 @@ std::pair<size_t, MoveEvent> InavjagaGSPIO::pollMany(
         errno = 0;
         int rc = poll(&(pollFds[1]), iosLen - 1, timeout);
         #if DEBUG
-        std::cerr << &(pollFds[1]) << " for a __nfds=" << iosLen - 1 << std::endl;
+        // std::cerr << &(pollFds[1]) << " for a __nfds=" << iosLen - 1 << std::endl;
         #endif
         if (rc <= 0) {
             if (rc < 0) {
@@ -278,7 +283,7 @@ void ClientInavjagaGSPIO::connectSocket(int sockfd, char* addr, char* portno) {
     // inet_aton(AF_INET, addr, &(serverAddress.sin_addr)); // man inet_pton (does it accept less than 3 digits?)
     serverAddress.sin_port = htons(atoi(portno));
     serverAddress.sin_family = AF_INET;
-    if (int rc = connect(sockfd, (struct sockaddr*)&serverAddress, sizeof(serverAddress)) < 0) {
+    if (int rc = connect(sockfd, (struct sockaddr*)&serverAddress, sizeof(serverAddress)); rc < 0) {
         std::unique_lock lock(stderrMutex);
         std::cerr << "Could not connect to " << serverAddress.sin_addr.s_addr << ":" << serverAddress.sin_port << '\n';
         std::cerr << "\tError was " << rc << " (" << errno << ")" << std::endl;
@@ -460,7 +465,7 @@ std::map<std::string, std::variant<int, float>> InavjagaGSPIO::recvConstants() {
         insertionIndex = 0;
         do {
             errno = 0;
-            if (int rc = recv(this->socketfd, &current, 1, 0) < 0) {
+            if (int rc = recv(this->socketfd, &current, 1, 0); rc < 0) {
                 std::cerr << "Receiving failed with error " << rc << " (" << errno << ")" << std::endl;
                 throw std::runtime_error("Error receiving constants from the server");
             }
@@ -478,7 +483,7 @@ std::map<std::string, std::variant<int, float>> InavjagaGSPIO::recvConstants() {
         insertionIndex = 0;
         do {
             errno = 0;
-            if (int rc = recv(this->socketfd, &current, 1, 0) < 0) {
+            if (int rc = recv(this->socketfd, &current, 1, 0); rc < 0) {
                 std::cerr << "Receiving failed with error " << rc << " (" << errno << ")" << std::endl;
                 throw std::runtime_error("Error receiving constants from the server");
             }
@@ -528,13 +533,13 @@ bool ServerInavjagaGSPIO::recvReady(int timeout) {
     pollFd.events = POLLIN;
     pollFd.revents = 0;
     errno = 0;
-    if (int rc = poll(&pollFd, 1, timeout) < 0) {
+    if (int rc = poll(&pollFd, 1, timeout); rc < 0) {
         std::cerr << "Polling failed with error " << rc << " (" << errno << ")" << std::endl;
         return false;
     }
     if (pollFd.revents & POLLIN) {
         errno = 0;
-        if (int rc = recv(socketfd, inputBuffer, (size_t)2, 0) < 0) {
+        if (int rc = recv(socketfd, inputBuffer, (size_t)2, 0); rc < 0) {
             std::cerr << "Receiving failed with error " << rc << " (" << errno << ")" << std::endl;
             return false;
         }
@@ -570,13 +575,13 @@ bool InavjagaGSPIO::recvBool(int timeout) const {
     pollFd.events = POLLIN;
     pollFd.revents = 0;
     errno = 0;
-    if (int rc = poll(&pollFd, 1, timeout) < 0) {
+    if (int rc = poll(&pollFd, 1, timeout); rc < 0) {
         std::cerr << "Polling failed with error " << rc << " (" << errno << ")" << std::endl;
         throw std::runtime_error("Did not receive a boolean answer within the specified timeout");
     }
     if (pollFd.revents & POLLIN) {
         errno = 0;
-        if (int rc = recv(socketfd, inputBuffer, (size_t)2, 0) < 0) {
+        if (int rc = recv(socketfd, inputBuffer, (size_t)2, 0); rc < 0) {
             std::cerr << "Receiving failed with error " << rc << " (" << errno << ")" << std::endl;
         }
         #if DEBUG
@@ -634,22 +639,10 @@ void InavjagaGSPIO::sendSyncData(const std::string& message) {
         std::unique_lock lock(stderrMutex);
         std::cerr << "Failed to send data with error " << rc << "(" << errno << ")" << std::endl;
     }
-    #if DEBUG
-    else {
-        std::unique_lock lock(stderrMutex);
-        std::cerr << "We sent " << rc << " characters instead" << std::endl;
-    }
-    #endif
     if (ssize_t rc = write(this->syncsocketfd, message.c_str(), message.length()) < 0) {
         std::unique_lock lock(stderrMutex);
         std::cerr << "Failed to send data with error " << rc << "(" << errno << ")" << std::endl;
     }
-    #if DEBUG
-    else {
-        std::unique_lock lock(stderrMutex);
-        std::cerr << "We sent " << rc << " characters instead" << std::endl;
-    }
-    #endif
 }
 
 std::string InavjagaGSPIO::recvSyncData(int timeout) {
@@ -657,7 +650,7 @@ std::string InavjagaGSPIO::recvSyncData(int timeout) {
     struct pollfd pollFd_ = {0,0,0};
     pollFd_.fd = this->syncsocketfd;
     pollFd_.events = POLLIN;
-    if (int rc = poll(&pollFd_, 1, timeout) < 0) {
+    if (int rc = poll(&pollFd_, 1, timeout); rc < 0) {
         std::unique_lock lock(stderrMutex);
         std::cerr << "Polling failed with error " << rc << " (" << errno << ")" << std::endl;
         throw std::runtime_error("Polling failed");
@@ -666,7 +659,7 @@ std::string InavjagaGSPIO::recvSyncData(int timeout) {
     std::string received;
     if (pollFd_.revents & POLLIN) {
         int convertedSize;
-        if (int rc = read(syncsocketfd, &convertedSize, sizeof(convertedSize)) < 0) {
+        if (int rc = read(syncsocketfd, &convertedSize, sizeof(convertedSize)); rc < 0) {
             std::unique_lock lock(stderrMutex);
             std::cerr << "Receiving message length failed with error " << rc
                       << " (" << errno << ")" << std::endl;
@@ -678,41 +671,47 @@ std::string InavjagaGSPIO::recvSyncData(int timeout) {
         pollFd_ = {0,0,0};
         pollFd_.fd = this->syncsocketfd;
         pollFd_.events = POLLIN;
-        if (int rc = poll(&pollFd_, 1, timeout) < 0) {
+        if (int rc = poll(&pollFd_, 1, timeout); rc < 0) {
             std::unique_lock lock(stderrMutex);
             std::cerr << "Polling failed with error " << rc << " (" << errno << ")" << std::endl;
             throw std::runtime_error("Polling failed");
         }
         if (pollFd_.revents & POLLIN) {
             char* buffer = (char*)calloc(size, sizeof(char));
-            if (int rc = read(syncsocketfd, buffer, size) < 0) {
+            #if DEBUG
+            {
+                std::unique_lock lock(stderrMutex);
+                std::cerr << "Time to read " << size << " characters from the server." << std::endl;
+            }
+            #endif
+            if (int rc = read(syncsocketfd, buffer, size); rc < 0) {
                 std::unique_lock lock(stderrMutex);
                 std::cerr << "Receiving message failed with error " << rc
                         << " (" << errno << ")" << std::endl;
                 throw std::runtime_error("Receiving message failed");
-            }
-            #if DEBUG
-            else {
+            } else if (rc == 0) {
                 std::unique_lock lock(stderrMutex);
-                std::cerr << "We received " << rc << " characters instead of " << size << std::endl;
+                std::cerr << "Receiving message enountered EOF, since rc=" << rc
+                        << " (" << errno << ")" << std::endl;
+                free(buffer);
+                return "";
             }
-            #endif
             received = std::string(buffer);
             free(buffer);
-        }
-        #if DEBUG
-        else {
+        } else {
+            #if DEBUG
             std::unique_lock lock(stderrMutex);
             std::cerr << "\tNo message ready yet" << std::endl;
+            #endif
+            return "";
         }
-        #endif
-    }
-    #if DEBUG
-    else {
+    } else {
+        #if DEBUG
         std::unique_lock lock(stderrMutex);
         std::cerr << "No message size ready yet" << std::endl;
+        #endif
+        return "";
     }
-    #endif
     return received;
 }
 
@@ -779,6 +778,9 @@ std::vector<std::shared_ptr<Player>> ClientInavjagaGSPIO::recvPlayers() {
     char identifier = 0;
     recv(socketfd, &identifier, 1, 0);
     Player::localPlayerId = identifier - '0';
+    #if DEBUG
+    std::cerr << "Set the localPlayerId to " << Player::localPlayerId << std::endl;
+    #endif
     while (true) {
         #if DEBUG
         std::cerr << "Waiting for player identifier..." << std::endl;
@@ -791,13 +793,15 @@ std::vector<std::shared_ptr<Player>> ClientInavjagaGSPIO::recvPlayers() {
             break;
         }
         coordinates = this->recvCoordinates();
-        players[identifier - '0'] = std::make_shared<Player>(coordinates);
-        players[identifier - '0']->id = identifier - '0';
-        players[identifier - '0']->respawnCoordinates = coordinates;
-        players[identifier - '0']->mode = Player::Mode::BULLET;
-        if (identifier - '0' == Player::localPlayerId) {
+        if (identifier - '0' != Player::localPlayerId) {
+            players[identifier - '0'] = std::make_shared<Player>(coordinates);
+            players[identifier - '0']->id = identifier - '0';
+            players[identifier - '0']->respawnCoordinates = coordinates;
+            players[identifier - '0']->mode = Player::Mode::BULLET;
+        } else if (identifier - '0' == Player::localPlayerId) {
             Player::localPlayer->setSettings(Player::localPlayerStyle);
             players[identifier - '0'] = Player::localPlayer;
+            players[identifier - '0']->id = Player::localPlayerId;
         }
     }
     return players;

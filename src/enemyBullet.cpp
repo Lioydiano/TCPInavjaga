@@ -11,7 +11,7 @@ extern std::unordered_map<Direction, char> directionSymbol;
 extern std::unordered_map<Direction, sista::Coordinates> directionMap;
 extern std::shared_ptr<sista::SwappableField> field;
 extern bool dead;
-enum EndReason {STARVED, SHOT, EATEN, STABBED, TOUCHDOWN, QUIT};
+enum EndReason {STARVED=0, SHOT=1, EATEN=2, STABBED=3, TOUCHDOWN=4, QUIT=5};
 void printEndInformation(EndReason);
 
 EnemyBullet::EnemyBullet(sista::Coordinates coordinates, Direction direction) :
@@ -75,6 +75,7 @@ void EnemyBullet::move() {
         this->remove(); // Hit something and the situation was not handled
     }
 }
+std::vector<std::shared_ptr<EnemyBullet>>* EnemyBullet::entities = &EnemyBullet::enemyBullets;
 sista::ANSISettings EnemyBullet::enemyBulletStyle = {
     sista::ForegroundColor::GREEN,
     sista::BackgroundColor::BLACK,
