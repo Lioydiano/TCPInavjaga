@@ -233,8 +233,6 @@ int main(int argc, char* argv[]) {
     std::thread remoteInputThread(input<RemoteInavjagaIO>, remoteIO);
     #if CLIENT
     std::thread remoteGameStateThread(recvUpdates, remoteIO);
-    #elif SERVER
-    std::thread remoteGameStateThread(updateClients, remoteIO);
     #endif
 
     auto start = std::chrono::high_resolution_clock::now();
@@ -288,6 +286,9 @@ int main(int argc, char* argv[]) {
                 std::cerr << "gameState stored" << std::endl;
             }
             #endif
+            #if SERVER
+            updateClients(remoteIO);
+            #endif
         }
 
         delta = std::chrono::high_resolution_clock::now() - start;
@@ -305,7 +306,6 @@ int main(int argc, char* argv[]) {
     deallocateAll();
     localInputThread.join();
     remoteInputThread.join();
-    remoteGameStateThread.join();
     field->clear();
     cursor.goTo(72, 0); // Move the cursor to the bottom of the screen, so the terminal is not left in a weird state
     std::this_thread::sleep_for(std::chrono::seconds(1)); // Give the time to see the final screen
@@ -504,24 +504,21 @@ void fullProcessFrame(int i) {
 
 void updateClients(RemoteInavjagaIO* remote_) {
     ServerRemoteInavjagaIO* remote = (ServerRemoteInavjagaIO*)remote_;
-    while (!end) {
-        std::this_thread::sleep_for(std::chrono::milliseconds(100));
-        #if DEBUG
-        {
-            std::unique_lock stderrLock(stderrMutex);
-            std::cerr << "Trying to lock the gameStateMutex" << std::endl;
-        }
-        #endif
-        std::unique_lock lock(gameStateMutex);
-        if (gameState.empty()) continue; // We haven't gone over a frame yet
-        #if DEBUG
-        {
-            std::unique_lock stderrLock(stderrMutex);
-            std::cerr << "\tLocked the gameState and now trying to send it" << std::endl;
-        }
-        #endif
-        remote->sendGameStateToAll(gameState);
+    #if DEBUG
+    {
+        std::unique_lock stderrLock(stderrMutex);
+        std::cerr << "Trying to lock the gameStateMutex" << std::endl;
     }
+    #endif
+    std::unique_lock lock(gameStateMutex);
+    if (gameState.empty()) return; // We haven't gone over a frame yet
+    #if DEBUG
+    {
+        std::unique_lock stderrLock(stderrMutex);
+        std::cerr << "\tLocked the gameState and now trying to send it" << std::endl;
+    }
+    #endif
+    remote->sendGameStateToAll(gameState);
 }
 
 inline void rtrimGameState(std::string &s) {
