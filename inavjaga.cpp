@@ -710,6 +710,15 @@ void restoreGameState(const std::string& serverGameState) {
     deserializeEntities<Player>(entities);
     Player::localPlayer = Player::players[Player::localPlayerId];
     Player::localPlayer->setSettings(Player::localPlayerStyle);
+    #if DEBUG
+    {
+        std::unique_lock lock(stderrMutex);
+        for (auto player : Player::players) {
+            if (player == nullptr) continue;
+            std::cerr << "\tPlayer " << player << " has id=" << player->id << std::endl;
+        }
+    }
+    #endif
     std::getline(state, entities, classTermination[0]);
     deserializeEntities<Portal>(entities);
     std::getline(state, entities, classTermination[0]);

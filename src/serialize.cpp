@@ -186,7 +186,7 @@ template <> std::shared_ptr<Player> deserialize(const std::string& entity) {
     std::getline(is, coordinates, ':');
     player->respawnCoordinates = deserializeCoordinates(coordinates);
     char separator;
-    is >> separator >> player->id >> separator >> player->connected >> separator >> player->dead >> separator;
+    is >> player->id >> separator >> player->connected >> separator >> player->dead >> separator;
     int mode;
     is >> mode >> separator;
     player->mode = (Player::Mode)mode;
