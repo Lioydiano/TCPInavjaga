@@ -288,6 +288,15 @@ int main(int argc, char* argv[]) {
             #elif SERVER
             updateClients(remoteIO);
             #endif
+            delta = std::chrono::high_resolution_clock::now() - start;
+            #if DEBUG
+            {
+                std::unique_lock stderrLock(stderrMutex);
+                std::cerr << "\tWhile sending/receiving the game state on frame " << i << " took " 
+                        << std::chrono::duration_cast<std::chrono::microseconds>(delta).count()
+                        << "µs" << std::endl;
+            }
+            #endif
         }
 
         delta = std::chrono::high_resolution_clock::now() - start;
