@@ -170,7 +170,8 @@ template <> std::shared_ptr<Portal> deserialize(const std::string& entity) {
 
 std::string serialize(std::shared_ptr<Player> player) {
     std::ostringstream os;
-    os << serialize(player->getCoordinates()) << ':' << player->id << ':' << player->connected << ':' << player->dead
+    os << serialize(player->getCoordinates()) << ':' << serialize(player->respawnCoordinates) << ':'
+       << player->id << ':' << player->connected << ':' << player->dead
        << ':' << player->mode << ":" << serialize(player->inventory);
     return os.str();
 }
@@ -181,6 +182,8 @@ template <> std::shared_ptr<Player> deserialize(const std::string& entity) {
     std::shared_ptr<Player> player = std::make_shared<Player>(
         deserializeCoordinates(coordinates)
     );
+    std::getline(is, coordinates, ':');
+    player->respawnCoordinates = deserializeCoordinates(coordinates);
     char separator;
     is >> separator >> player->id >> separator >> player->connected >> separator >> player->dead >> separator;
     int mode;
