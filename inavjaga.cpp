@@ -284,9 +284,9 @@ int main(int argc, char* argv[]) {
             }
             #endif
             #if CLIENT
-            // if (int rc = recvUpdates(remoteIO); rc >= 0) {
-            //     i = rc;
-            // }
+            if (int rc = recvUpdates(remoteIO); rc >= 0) {
+                i = rc;
+            }
             #elif SERVER
             updateClients(remoteIO);
             #endif
@@ -606,6 +606,7 @@ int recvUpdates(RemoteInavjagaIO* remote_) {
         restoreGameState(serverGameState);
         pastGameStates[serverFrame % pastGameStatesBufferSize] = serverGameState;
         gameState = serverGameState;
+        reprint();
         return serverFrame;
     } else if (clientFrame < serverFrame) {
         #if DEBUG
@@ -638,6 +639,7 @@ int recvUpdates(RemoteInavjagaIO* remote_) {
                     + "," + serializeGameState();
             }
             gameState = pastGameStates[clientFrame % pastGameStatesBufferSize];
+            reprint();
             return clientFrame;
         }
     }
@@ -716,7 +718,6 @@ void restoreGameState(const std::string& serverGameState) {
             field->addPawn(wormBody);
         }
     }
-    reprint();
     /// @todo finish this function
 }
 
