@@ -691,12 +691,6 @@ std::string InavjagaGSPIO::recvSyncData(int timeout) {
                 free(buffer);
                 return "";
             }
-            #if DEBUG
-            {
-                std::unique_lock lock(stderrMutex);
-                std::cerr << "The buffer contains: " << buffer << std::endl;
-            }
-            #endif
             received = std::string(buffer);
             free(buffer);
         } else {
