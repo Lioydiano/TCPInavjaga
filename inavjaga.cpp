@@ -302,6 +302,12 @@ int main(int argc, char* argv[]) {
             #elif SERVER
             updateClients(remoteIO);
             #endif
+            #if DEBUG
+            {
+                std::unique_lock lock(stderrMutex);
+                std::cerr << "3The rng state is: " << rng << std::endl;
+            }
+            #endif
             delta = std::chrono::high_resolution_clock::now() - start;
             #if DEBUG
             {
