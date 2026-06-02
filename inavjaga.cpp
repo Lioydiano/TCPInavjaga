@@ -284,7 +284,9 @@ int main(int argc, char* argv[]) {
             }
             #endif
             #if CLIENT
-            recvUpdates(remoteIO);
+            if (int rc = recvUpdates(remoteIO); rc >= 0) {
+                i = rc;
+            }
             #elif SERVER
             updateClients(remoteIO);
             #endif
@@ -534,7 +536,11 @@ inline void rtrimGameState(std::string &s) {
     }).base(), s.end());
 }
 
-void recvUpdates(RemoteInavjagaIO* remote_) {
+/** @brief Receives updates from the server containing a full snapshot of the game state
+ * @retval -1 When the return value should be ignored since the frame number has not be altered
+ * @return The current frame, value to be assigned to i
+ */
+int recvUpdates(RemoteInavjagaIO* remote_) {
     ClientRemoteInavjagaIO* remote = (ClientRemoteInavjagaIO*)remote_;
     #if DEBUG
     {
@@ -557,8 +563,8 @@ void recvUpdates(RemoteInavjagaIO* remote_) {
         std::cerr << "\tThe game state is: " << gameState << std::endl;
     }
     #endif
-    if (serverGameState.empty()) return;
-    if (serverGameState == gameState) return;
+    if (serverGameState.empty()) return -1;
+    if (serverGameState == gameState) return -1;
     #if DEBUG
     {
         std::unique_lock lock(stderrMutex);
@@ -576,7 +582,7 @@ void recvUpdates(RemoteInavjagaIO* remote_) {
             std::cerr << "We received absolute emptiness from the server on the synchronization channel" << std::endl;
         }
         #endif
-        return;
+        return -1;
     }
     int serverFrame = std::stoi(frameString);
     // Parsing the frame number from the client
@@ -590,7 +596,7 @@ void recvUpdates(RemoteInavjagaIO* remote_) {
             std::cerr << gameState << std::endl;
         }
         #endif
-        return;
+        return -1;
     }
     int clientFrame = std::stoi(frameString);
     if (clientFrame == serverFrame) {
@@ -598,6 +604,15 @@ void recvUpdates(RemoteInavjagaIO* remote_) {
         restoreGameState(serverGameState);
         pastGameStates[serverFrame % pastGameStatesBufferSize] = serverGameState;
         gameState = serverGameState;
+        return serverFrame;
+    } else if (clientFrame < serverFrame) {
+        #if DEBUG
+        {
+            std::unique_lock lock(stderrMutex);
+            std::cerr << "Somehow we are " << serverFrame - clientFrame << " frames behind the server" << std::endl;
+        }
+        #endif
+        return -1;
     } else {
         if (pastGameStates[serverFrame % pastGameStatesBufferSize] == serverGameState) {
             // This means we are just some frames ahead, we can keep on going
@@ -607,11 +622,9 @@ void recvUpdates(RemoteInavjagaIO* remote_) {
                 std::cerr << "Because of latency, we are " << clientFrame - serverFrame << " frames ahead of the server" << std::endl;
             }
             #endif
-            return;
+            return -1;
         } else {
             // This means that we lost synchronization some frames ago
-            /// @note we assume that the server cannot be ahead of the client,
-            /// since it would require a clock unsync greater than the latency
             /// @note we assume that latency cannot be greater than 
             /// pastGameStatesBufferSize * FRAME_DURATION milliseconds
             restoreGameState(serverGameState);
@@ -623,6 +636,7 @@ void recvUpdates(RemoteInavjagaIO* remote_) {
                     + "," + serializeGameState();
             }
             gameState = pastGameStates[clientFrame % pastGameStatesBufferSize];
+            return clientFrame;
         }
     }
 }

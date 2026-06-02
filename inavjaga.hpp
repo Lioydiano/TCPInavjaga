@@ -46,7 +46,7 @@ void printSideInstructions(int);
 void printKeys();
 void reprint();
 void updateClients(RemoteInavjagaIO*);
-void recvUpdates(RemoteInavjagaIO*);
+int recvUpdates(RemoteInavjagaIO*);
 void restoreGameState(const std::string&);
 template <class T> void deserializeEntities(const std::string&);
 template<typename IO> void input(IO*);
