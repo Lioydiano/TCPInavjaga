@@ -11,6 +11,8 @@
 #if DEBUG
 #include <iostream>
 #include <ostream>
+#include <mutex>
+extern std::mutex stderrMutex;
 #endif
 
 extern std::unordered_map<Direction, char> directionSymbol;
@@ -208,6 +210,12 @@ void Worm::die() {
         WormBody* tail = tail_ptr.get();
         tail->die(); // removes itself from head->body and wormBodies
     }
+    #if DEBUG
+    {
+        std::unique_lock<std::mutex> lock(stderrMutex); // Lock stays until scope ends
+        std::cerr << "After removing all the pieces of the tail in Worm::die" << std::endl;
+    }
+    #endif
     auto keepAlive = Entity::keepAliveFrom(Worm::worms, this);
     field->erasePawn(this);
     {
@@ -221,6 +229,12 @@ void Worm::die() {
         Chest::chests.push_back(c);
         field->addPrintPawn(c);
     }
+    #if DEBUG
+    {
+        std::unique_lock<std::mutex> lock(stderrMutex); // Lock stays until scope ends
+        std::cerr << "After putting a chest instead of the head" << std::endl;
+    }
+    #endif
     Entity::removeOwner(Worm::worms, this);
 }
 void Worm::remove() {
