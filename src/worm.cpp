@@ -11,6 +11,8 @@
 #if DEBUG
 #include <iostream>
 #include <ostream>
+#include <mutex>
+extern std::mutex stderrMutex;
 #endif
 
 extern std::unordered_map<Direction, char> directionSymbol;
@@ -38,10 +40,9 @@ inline Direction randomTurnDirection() {
 WormBody::WormBody(sista::Coordinates coordinates, Direction direction) : Entity(directionSymbol[direction], coordinates, wormBodyStyle, Type::WORM_BODY), direction(direction) {
     // ownership moved to creator via std::shared_ptr; do not push here
 }
-void WormBody::die() {
+void WormBody::dropLoot() {
     sista::Coordinates drop = this->coordinates;
     // Free the pawn's coordinates first so we can place a chest there
-    [[maybe_unused]] auto keepAlive = Entity::keepAliveFrom(WormBody::wormBodies, this);
     field->erasePawn(this);
     // create chest and keep ownership in Chest::chests to ensure it stays alive
     {
@@ -49,6 +50,10 @@ void WormBody::die() {
         Chest::chests.push_back(c);
         field->addPrintPawn(c);
     }
+}
+void WormBody::die() {
+    this->dropLoot();
+    [[maybe_unused]] auto keepAlive = Entity::keepAliveFrom(WormBody::wormBodies, this);
     Entity::removeOwner(WormBody::wormBodies, this);
     auto head = this->head.lock();
     if (head) {
@@ -198,16 +203,35 @@ void Worm::takeHit() {
     if (--hp <= 0) {
         if (collided) return;
         this->die();
+        /// @warning Should this die() even be here?
+        /// Can we not clean it immediately after in the loop?
     }
 }
 void Worm::die() {
     // Save coordinates early and keep self alive while mutating Worm::worms.
     sista::Coordinates drop = coordinates;
     while (!body.empty()) {
-        auto tail_ptr = body.front();
+        auto tail_ptr = body.back();
         WormBody* tail = tail_ptr.get();
+        body.pop_back();
+        #if DEBUG
+        {
+            std::unique_lock<std::mutex> lock(stderrMutex); // Lock stays until scope ends
+            std::cerr << "After calling WormBody::die on " << tail << std::endl;
+            for (std::weak_ptr<WormBody> wb : Worm::body) {
+                std::cerr << wb.lock() << " ";
+            }
+            std::cerr << std::endl;
+        }
+        #endif
         tail->die(); // removes itself from head->body and wormBodies
     }
+    #if DEBUG
+    {
+        std::unique_lock<std::mutex> lock(stderrMutex); // Lock stays until scope ends
+        std::cerr << "After removing all the pieces of the tail in Worm::die" << std::endl;
+    }
+    #endif
     auto keepAlive = Entity::keepAliveFrom(Worm::worms, this);
     field->erasePawn(this);
     {
@@ -221,6 +245,12 @@ void Worm::die() {
         Chest::chests.push_back(c);
         field->addPrintPawn(c);
     }
+    #if DEBUG
+    {
+        std::unique_lock<std::mutex> lock(stderrMutex); // Lock stays until scope ends
+        std::cerr << "After putting a chest instead of the head" << std::endl;
+    }
+    #endif
     Entity::removeOwner(Worm::worms, this);
 }
 void Worm::remove() {
