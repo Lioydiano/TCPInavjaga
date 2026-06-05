@@ -466,6 +466,12 @@ bool revivePlayers() {
 }
 
 void processDeath(std::shared_ptr<Player> player) {
+    #if DEBUG
+    {
+        std::unique_lock<std::mutex> lock(stderrMutex); // Lock stays until scope ends
+        std::cerr << "Before locking the streamMutex in processDeath" << std::endl;
+    }
+    #endif
     std::unique_lock<std::mutex> lock(streamMutex);
     sista::Coordinates deathCoordinates = player->getCoordinates();
     field->movePawn(player.get(), player->respawnCoordinates);
@@ -494,8 +500,20 @@ void fullProcessFrame(int i) {
         reprint();
     }
 
-    processMoves(); // This has to be done earlier than the lock as act() wants it
+    #if DEBUG
+    {
+        std::unique_lock<std::mutex> lock(stderrMutex); // Lock stays until scope ends
+        std::cerr << "Before locking the streamMutex in fullProcessFrame" << std::endl;
+    }
+    #endif
     std::unique_lock<std::mutex> lock(streamMutex); // Lock stays until scope ends
+    #if DEBUG
+    {
+        std::unique_lock<std::mutex> lock(stderrMutex); // Lock stays until scope ends
+        std::cerr << "After locking the streamMutex in fullprocessFrame" << std::endl;
+    }
+    #endif
+    processMoves();
     processFrame();
     if (i % MEAT_DURATION_PERIOD == MEAT_DURATION_PERIOD - 1) {
         for (std::shared_ptr<Player> player : Player::players) {
@@ -668,7 +686,7 @@ void restoreGameState(const std::string& serverGameState) {
         #if DEBUG
         {
             std::unique_lock lock(stderrMutex);
-            std::cerr << "\t- Waiting to obtain the streamMutex" << std::endl;
+            std::cerr << "\t- Waiting to obtain the streamMutex at restoreGameState" << std::endl;
         }
         #endif
         std::unique_lock lock(streamMutex);
@@ -694,7 +712,19 @@ void restoreGameState(const std::string& serverGameState) {
     state >> rng; // We restore the rng state
     char _;
     state >> _ >> _; // Comma and classTermination
+    #if DEBUG
+    {
+        std::unique_lock<std::mutex> lock(stderrMutex); // Lock stays until scope ends
+        std::cerr << "Before locking the streamMutex in restoreGameState" << std::endl;
+    }
+    #endif
     std::unique_lock lock(streamMutex);
+    #if DEBUG
+    {
+        std::unique_lock<std::mutex> lock(stderrMutex); // Lock stays until scope ends
+        std::cerr << "After locking the streamMutex in restoreGameState" << std::endl;
+    }
+    #endif
     std::string entities;
     std::getline(state, entities, classTermination[0]);
     deserializeEntities<Archer>(entities);
@@ -1162,43 +1192,43 @@ bool act(MoveEvent event) {
     std::shared_ptr<Player> player = Player::players[event.playerId];
     switch (event.move) {
         case 'w': case 'W': {
-            std::scoped_lock<std::mutex> lock(streamMutex);
+            // std::scoped_lock<std::mutex> lock(streamMutex);
             player->move(Direction::UP);
             break;
         }
         case 'a': case 'A': {
-            std::scoped_lock<std::mutex> lock(streamMutex);
+            // std::scoped_lock<std::mutex> lock(streamMutex);
             player->move(Direction::LEFT);
             break;
         }
         case 's': case 'S': {
-            std::scoped_lock<std::mutex> lock(streamMutex);
+            // std::scoped_lock<std::mutex> lock(streamMutex);
             player->move(Direction::DOWN);
             break;
         }
         case 'd': case 'D': {
-            std::scoped_lock<std::mutex> lock(streamMutex);
+            // std::scoped_lock<std::mutex> lock(streamMutex);
             player->move(Direction::RIGHT);
             break;
         }
 
         case 'j': case 'J': {
-            std::scoped_lock<std::mutex> lock(streamMutex);
+            // std::scoped_lock<std::mutex> lock(streamMutex);
             player->shoot(Direction::LEFT);
             break;
         }
         case 'k': case 'K': {
-            std::scoped_lock<std::mutex> lock(streamMutex);
+            // std::scoped_lock<std::mutex> lock(streamMutex);
             player->shoot(Direction::DOWN);
             break;
         }
         case 'l': case 'L': {
-            std::scoped_lock<std::mutex> lock(streamMutex);
+            // std::scoped_lock<std::mutex> lock(streamMutex);
             player->shoot(Direction::RIGHT);
             break;
         }
         case 'i': case 'I': {
-            std::scoped_lock<std::mutex> lock(streamMutex);
+            // std::scoped_lock<std::mutex> lock(streamMutex);
             player->shoot(Direction::UP);
             break;
         }

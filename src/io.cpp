@@ -628,13 +628,13 @@ void InavjagaGSPIO::sendSyncData(const std::string& message) {
     std::unique_lock lock(syncMutex);
     size_t length = message.length();
     int convertedLength = htonl(length);
-    #if DEBUG
-    {
-        std::unique_lock lock(stderrMutex);
-        std::cerr << "We are about to send " << length << " characters" << std::endl;
-        std::cerr << "Our message is " << message << std::endl;
-    }
-    #endif
+    // #if DEBUG
+    // {
+    //     std::unique_lock lock(stderrMutex);
+    //     std::cerr << "We are about to send " << length << " characters" << std::endl;
+    //     std::cerr << "Our message is " << message << std::endl;
+    // }
+    // #endif
     if (ssize_t rc = write(this->syncsocketfd, &convertedLength, sizeof(convertedLength)) < 0) {
         std::unique_lock lock(stderrMutex);
         std::cerr << "Failed to send data with error " << rc << "(" << errno << ")" << std::endl;
