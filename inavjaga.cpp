@@ -346,6 +346,12 @@ void processMoves() {
     std::unique_lock lock(movesBufferMutex);
     while (!movesBuffer.empty()) {
         MoveEvent current = movesBuffer.top();
+        #if DEBUG
+        {
+            std::unique_lock lock(stderrMutex);
+            std::cerr << "{" << current.playerId << ", " << current.move << "}" << std::endl;;
+        }
+        #endif
         movesBuffer.pop();
         act(current);
     }
