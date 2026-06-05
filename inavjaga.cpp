@@ -1214,7 +1214,19 @@ void input(IO* io) {
             #if CLIENT
             if (std::is_same<IO, RemoteInavjagaIO>::value) continue;
             #endif
+            #if DEBUG
+            auto start = std::chrono::high_resolution_clock::now();
+            #endif
             io->sendMove(moveEvent);
+            #if DEBUG
+            {
+                std::unique_lock lock(stderrMutex);
+                std::chrono::duration<double> delta = std::chrono::high_resolution_clock::now() - start;
+                std::cerr << "Sending a move took "
+                          << std::chrono::duration_cast<std::chrono::microseconds>(delta).count()
+                          << "µs" << std::endl;
+            }
+            #endif
         }
     }
 }
