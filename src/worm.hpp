@@ -6,6 +6,8 @@
 
 class Worm; // Forward implicit declaration
 class WormBody : public Entity {
+private:
+    void dropLoot();
 public:
     static sista::ANSISettings wormBodyStyle;
     static std::vector<std::shared_ptr<WormBody>> wormBodies;

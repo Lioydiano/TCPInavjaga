@@ -40,10 +40,9 @@ inline Direction randomTurnDirection() {
 WormBody::WormBody(sista::Coordinates coordinates, Direction direction) : Entity(directionSymbol[direction], coordinates, wormBodyStyle, Type::WORM_BODY), direction(direction) {
     // ownership moved to creator via std::shared_ptr; do not push here
 }
-void WormBody::die() {
+void WormBody::dropLoot() {
     sista::Coordinates drop = this->coordinates;
     // Free the pawn's coordinates first so we can place a chest there
-    [[maybe_unused]] auto keepAlive = Entity::keepAliveFrom(WormBody::wormBodies, this);
     field->erasePawn(this);
     // create chest and keep ownership in Chest::chests to ensure it stays alive
     {
@@ -51,6 +50,10 @@ void WormBody::die() {
         Chest::chests.push_back(c);
         field->addPrintPawn(c);
     }
+}
+void WormBody::die() {
+    this->dropLoot();
+    [[maybe_unused]] auto keepAlive = Entity::keepAliveFrom(WormBody::wormBodies, this);
     Entity::removeOwner(WormBody::wormBodies, this);
     auto head = this->head.lock();
     if (head) {
@@ -208,6 +211,16 @@ void Worm::die() {
     while (!body.empty()) {
         auto tail_ptr = body.front();
         WormBody* tail = tail_ptr.get();
+        #if DEBUG
+        {
+            std::unique_lock<std::mutex> lock(stderrMutex); // Lock stays until scope ends
+            std::cerr << "After calling WormBody::die on " << tail << std::endl;
+            for (std::weak_ptr<WormBody> wb : Worm::body) {
+                std::cerr << wb.lock() << " ";
+            }
+            std::cerr << std::endl;
+        }
+        #endif
         tail->die(); // removes itself from head->body and wormBodies
     }
     #if DEBUG
