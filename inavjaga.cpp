@@ -404,6 +404,12 @@ void processFrame() {
             archer->shoot();
         }
     }
+    #if DEBUG
+    {
+        std::unique_lock<std::mutex> lock(stderrMutex); // Lock stays until scope ends
+        std::cerr << "Before processing all the worms in processFrame" << std::endl;
+    }
+    #endif
     for (unsigned j = 0; j < Worm::worms.size(); j++) {
         Worm* worm = Worm::worms[j].get();
         if (worm == nullptr) continue;
@@ -415,12 +421,24 @@ void processFrame() {
             worm->move();
         }
     }
+    #if DEBUG
+    {
+        std::unique_lock<std::mutex> lock(stderrMutex); // Lock stays until scope ends
+        std::cerr << "After processing all the worms in processFrame" << std::endl;
+    }
+    #endif
     for (auto &wp : Worm::worms) {
         Worm* worm = wp.get();
         if (worm && worm->collided) {
             worm->die();
         }
     }
+    #if DEBUG
+    {
+        std::unique_lock<std::mutex> lock(stderrMutex); // Lock stays until scope ends
+        std::cerr << "After killing all the collided worms in processFrame" << std::endl;
+    }
+    #endif
     for (unsigned j = 0; j < Mine::mines.size(); j++) {
         if (j >= Mine::mines.size()) break;
         Mine* mine = Mine::mines[j].get();
