@@ -627,7 +627,7 @@ bool InavjagaGSPIO::waitYes(int timeout) {
 void InavjagaGSPIO::sendSyncData(const std::string& message) {
     std::unique_lock lock(syncMutex);
     size_t length = message.length();
-    int convertedLength = htonl(length);
+    int32_t convertedLength = htonl(length);
     // #if DEBUG
     // {
     //     std::unique_lock lock(stderrMutex);
@@ -635,11 +635,11 @@ void InavjagaGSPIO::sendSyncData(const std::string& message) {
     //     std::cerr << "Our message is " << message << std::endl;
     // }
     // #endif
-    if (ssize_t rc = write(this->syncsocketfd, &convertedLength, sizeof(convertedLength)) < 0) {
+    if (ssize_t rc = write(this->syncsocketfd, &convertedLength, sizeof(convertedLength)); rc < 0) {
         std::unique_lock lock(stderrMutex);
         std::cerr << "Failed to send data with error " << rc << "(" << errno << ")" << std::endl;
     }
-    if (ssize_t rc = write(this->syncsocketfd, message.c_str(), message.length()) < 0) {
+    if (ssize_t rc = write(this->syncsocketfd, message.c_str(), message.length()); rc < 0) {
         std::unique_lock lock(stderrMutex);
         std::cerr << "Failed to send data with error " << rc << "(" << errno << ")" << std::endl;
     }
@@ -658,7 +658,7 @@ std::string InavjagaGSPIO::recvSyncData(int timeout) {
     std::chrono::duration<double> delta =  std::chrono::high_resolution_clock::now() - start;
     std::string received;
     if (pollFd_.revents & POLLIN) {
-        int convertedSize;
+        int32_t convertedSize;
         if (int rc = read(syncsocketfd, &convertedSize, sizeof(convertedSize)); rc < 0) {
             std::unique_lock lock(stderrMutex);
             std::cerr << "Receiving message length failed with error " << rc
