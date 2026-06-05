@@ -203,14 +203,17 @@ void Worm::takeHit() {
     if (--hp <= 0) {
         if (collided) return;
         this->die();
+        /// @warning Should this die() even be here?
+        /// Can we not clean it immediately after in the loop?
     }
 }
 void Worm::die() {
     // Save coordinates early and keep self alive while mutating Worm::worms.
     sista::Coordinates drop = coordinates;
     while (!body.empty()) {
-        auto tail_ptr = body.front();
+        auto tail_ptr = body.back();
         WormBody* tail = tail_ptr.get();
+        body.pop_back();
         #if DEBUG
         {
             std::unique_lock<std::mutex> lock(stderrMutex); // Lock stays until scope ends
