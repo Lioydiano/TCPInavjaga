@@ -437,6 +437,9 @@ void processFrame() {
     {
         std::unique_lock<std::mutex> lock(stderrMutex); // Lock stays until scope ends
         std::cerr << "After killing all the collided worms in processFrame" << std::endl;
+        for (size_t i = 0; i < Worm::worms.size(); i++) {
+            std::cerr << "\t[" << i << "] " << Worm::worms[i] << std::endl;
+        }
     }
     #endif
     for (unsigned j = 0; j < Mine::mines.size(); j++) {
