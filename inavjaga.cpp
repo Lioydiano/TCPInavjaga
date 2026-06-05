@@ -514,7 +514,19 @@ void fullProcessFrame(int i) {
     }
     #endif
     processMoves();
+    #if DEBUG
+    {
+        std::unique_lock<std::mutex> lock(stderrMutex); // Lock stays until scope ends
+        std::cerr << "After processing all the moves in fullprocessFrame" << std::endl;
+    }
+    #endif
     processFrame();
+    #if DEBUG
+    {
+        std::unique_lock<std::mutex> lock(stderrMutex); // Lock stays until scope ends
+        std::cerr << "After processing all the frame in fullprocessFrame" << std::endl;
+    }
+    #endif
     if (i % MEAT_DURATION_PERIOD == MEAT_DURATION_PERIOD - 1) {
         for (std::shared_ptr<Player> player : Player::players) {
             if (player == nullptr) continue;
@@ -526,6 +538,12 @@ void fullProcessFrame(int i) {
         }
     }
     spawnEnemies();
+    #if DEBUG
+    {
+        std::unique_lock<std::mutex> lock(stderrMutex); // Lock stays until scope ends
+        std::cerr << "After spawning all the enemies in fullprocessFrame" << std::endl;
+    }
+    #endif
     printSideInstructions(i);
     // Check for negative amount of meat
     if (Player::localPlayer->inventory.meat < 0) {
