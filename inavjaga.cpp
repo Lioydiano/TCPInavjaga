@@ -825,7 +825,7 @@ bool restoreGameState(
             }
         }
     }
-    if (mismatchingEntityType.at(Type::PLAYER)) {
+    if (somethingChanged && mismatchingEntityType.at(Type::PLAYER)) {
         deserializeEntities<Player>(serverGameState.at(Type::PLAYER));
         #if DEBUG
         {
