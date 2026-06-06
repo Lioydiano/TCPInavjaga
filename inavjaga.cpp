@@ -776,8 +776,8 @@ bool restoreGameState(
     }
     if (mismatchingEntityType.at(Type::WALL)) {
         somethingChanged = true;
-        removeEntityType(EnemyBullet::enemyBullets);
-        deserializeEntities<EnemyBullet>(serverGameState.at(Type::WALL));
+        removeEntityType(Wall::walls);
+        deserializeEntities<Wall>(serverGameState.at(Type::WALL));
     }
     if (mismatchingEntityType.at(Type::WORM_HEAD)) {
         somethingChanged = true;
