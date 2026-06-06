@@ -712,12 +712,72 @@ int recvUpdates(RemoteInavjagaIO* remote_) {
     }
 }
 
+/** @brief Restores the mismatching entities from a string
+ * @param serverGameState A string in the format output by `splitGameState`
+ * @cite serialize.cpp
+ * @note Refer to serializeGameState for reverse implementation details
+ * @warning We assume the gameStateMutex to be already locked before the function is called
+ * @todo The whole function is still empty
+ */
+void restoreGameState(
+    const std::map<Type, std::string>& serverGameState,
+    const std::map<Type, bool>& mismatchingEntityType
+) {
+    if (mismatchingEntityType.at(Type::ARCHER)) {
+        removeEntityType(Archer::archers);
+        deserializeEntities<Archer>(serverGameState.at(Type::ARCHER));
+    }
+    if (mismatchingEntityType.at(Type::BULLET)) {
+        removeEntityType(Bullet::bullets);
+        deserializeEntities<Bullet>(serverGameState.at(Type::BULLET));
+    }
+    if (mismatchingEntityType.at(Type::CHEST)) {
+        removeEntityType(Chest::chests);
+        deserializeEntities<Chest>(serverGameState.at(Type::CHEST));
+    }
+    if (mismatchingEntityType.at(Type::ENEMY_BULLET)) {
+        removeEntityType(EnemyBullet::enemyBullets);
+        deserializeEntities<EnemyBullet>(serverGameState.at(Type::ENEMY_BULLET));
+    }
+    if (mismatchingEntityType.at(Type::MINE)) {
+        removeEntityType(Mine::mines);
+        deserializeEntities<Mine>(serverGameState.at(Type::MINE));
+    }
+    if (mismatchingEntityType.at(Type::PORTAL)) {
+        removeEntityType(Portal::portals);
+        deserializeEntities<Portal>(serverGameState.at(Type::PORTAL));
+    }
+    if (mismatchingEntityType.at(Type::WALL)) {
+        removeEntityType(EnemyBullet::enemyBullets);
+        deserializeEntities<EnemyBullet>(serverGameState.at(Type::WALL));
+    }
+    if (mismatchingEntityType.at(Type::WORM_HEAD)) {
+        removeEntityType(Worm::worms);
+        deserializeEntities<Worm>(serverGameState.at(Type::WORM_HEAD));
+    }
+    if (mismatchingEntityType.at(Type::PLAYER)) {
+        removeEntityType(EnemyBullet::enemyBullets);
+        deserializeEntities<EnemyBullet>(serverGameState.at(Type::PLAYER));
+    }
+}
+
+template <class T>
+void removeEntityType(std::vector<std::shared_ptr<T>> entities) {
+    for (std::shared_ptr<T> entity : entities) {
+        if (std::is_same<T, Worm>::value) {
+            for (std::shared_ptr<WormBody> wb : std::static_pointer_cast<Worm>(entity)->body) {
+                Entity::remove(wb);
+            }
+        }
+        Entity::remove(entity);
+    }
+}
+
 /** @brief Restores the field and the entities from a string
  * @param serverGameState A string in the format defined by serializeGameState
  * @cite serialize.cpp
  * @note Refer to serializeGameState for reverse implementation details
  * @warning We assume the gameStateMutex to be already locked before the function is called
- * @todo The whole function is still empty
  */
 void restoreGameState(const std::string& serverGameState) {
     std::istringstream state(serverGameState);
