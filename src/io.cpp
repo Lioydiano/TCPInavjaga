@@ -675,6 +675,12 @@ std::string InavjagaGSPIO::recvSyncData(int timeout) {
             timeout = initialTimeout - std::chrono::duration_cast<std::chrono::milliseconds>(
                 std::chrono::high_resolution_clock::now() - start
             ).count();
+            #if DEBUG
+            {
+                std::unique_lock lock(stderrMutex);
+                std::cerr << "\tTime left: " << timeout << "ms" << std::endl;
+            }
+            #endif
             pollFd_ = {0,0,0};
             pollFd_.fd = this->syncsocketfd;
             pollFd_.events = POLLIN;
