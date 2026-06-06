@@ -799,7 +799,19 @@ bool restoreGameState(
         }
         #endif
         removeEntityType(Player::players);
+        #if DEBUG
+        {
+            std::unique_lock lock(stderrMutex);
+            std::cerr << "Removing the players is fine" << std::endl;
+        }
+        #endif
         deserializeEntities<Player>(serverGameState.at(Type::PLAYER));
+        #if DEBUG
+        {
+            std::unique_lock lock(stderrMutex);
+            std::cerr << "Adding the players is fine" << std::endl;
+        }
+        #endif
         Player::localPlayer = Player::players[Player::localPlayerId];
         Player::localPlayer->setSettings(Player::localPlayerStyle);
     }
