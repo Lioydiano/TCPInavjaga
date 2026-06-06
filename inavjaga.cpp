@@ -717,7 +717,7 @@ int recvUpdates(RemoteInavjagaIO* remote_) {
  * @cite serialize.cpp
  * @note Refer to serializeGameState for reverse implementation details
  * @warning We assume the gameStateMutex to be already locked before the function is called
- * @todo The whole function is still empty
+ * @warning Will not restore the Player positions unless there is any other mismatch
  */
 void restoreGameState(
     const std::map<Type, std::string>& serverGameState,
@@ -763,10 +763,18 @@ void restoreGameState(
         somethingChanged = true;
         removeEntityType(Worm::worms);
         deserializeEntities<Worm>(serverGameState.at(Type::WORM_HEAD));
+        for (std::shared_ptr<Worm> worm : Worm::worms) {
+            for (std::shared_ptr<WormBody> wormBody : worm->body) {
+                WormBody::wormBodies.push_back(wormBody);
+                field->addPawn(wormBody);
+            }
+        }
     }
-    if (mismatchingEntityType.at(Type::PLAYER) && somethingChanged) {
-        removeEntityType(EnemyBullet::enemyBullets);
-        deserializeEntities<EnemyBullet>(serverGameState.at(Type::PLAYER));
+    if (somethingChanged && mismatchingEntityType.at(Type::PLAYER)) {
+        removeEntityType(Player::players);
+        deserializeEntities<Player>(serverGameState.at(Type::PLAYER));
+        Player::localPlayer = Player::players[Player::localPlayerId];
+        Player::localPlayer->setSettings(Player::localPlayerStyle);
     }
 }
 
@@ -780,6 +788,20 @@ void removeEntityType(std::vector<std::shared_ptr<T>> entities) {
         }
         Entity::remove(entity);
     }
+}
+
+void restoreGameState(
+    const std::string& serverGameState,
+    const std::string& clientGameState
+) {
+    std::istringstream state(serverGameState);
+    std::string frameString; // We are lk trashing this anyway
+    std::getline(state, frameString, ',');
+    state >> rng; // Restoring the rng state to the server's
+    std::map<Type, std::string> splitServerState = splitGameState(state);
+    std::map<Type, std::string> splitClientState = splitGameState(clientGameState);
+    std::map<Type, bool> mismatches = compareGameStates(splitServerState, splitClientState);
+    restoreGameState(splitServerState, mismatches);
 }
 
 /** @brief Restores the field and the entities from a string

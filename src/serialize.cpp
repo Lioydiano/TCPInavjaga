@@ -106,6 +106,17 @@ std::map<Type, std::string> splitGameState(std::istringstream& gameState) {
     std::getline(gameState, entitySections[Type::WORM_HEAD], classTermination[0]);
     return entitySections;
 }
+/**
+ * @note This overload expects a full game state, including the prefix to discard
+ */
+std::map<Type, std::string> splitGameState(const std::string& gameState) {
+    std::istringstream is(gameState);
+    std::string _;
+    std::getline(is, _, ','); // Toss the frame counter
+    std::getline(is, _, ','); // Toss the random state
+    is.ignore(1); // Ignore the classTermination[0]
+    return splitGameState(is);
+}
 
 std::map<Type, bool> compareGameStates(
     const std::map<Type, std::string>& current,
