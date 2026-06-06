@@ -670,11 +670,14 @@ int recvUpdates(RemoteInavjagaIO* remote_) {
     int clientFrame = std::stoi(frameString);
     if (clientFrame == serverFrame) {
         // This means that there is a mismatch and there will be some work to do
-        restoreGameState(serverGameState, gameState);
-        pastGameStates[serverFrame % pastGameStatesBufferSize] = serverGameState;
-        gameState = serverGameState;
-        reprint();
-        return serverFrame;
+        if (bool changed = restoreGameState(serverGameState, gameState); changed) {
+            pastGameStates[serverFrame % pastGameStatesBufferSize] = serverGameState;
+            gameState = serverGameState;
+            reprint();
+            return serverFrame;
+        } else {
+            return clientFrame;
+        }
     } else if (clientFrame < serverFrame) {
         #if DEBUG
         {
@@ -718,19 +721,37 @@ int recvUpdates(RemoteInavjagaIO* remote_) {
  * @note Refer to serializeGameState for reverse implementation details
  * @warning We assume the gameStateMutex to be already locked before the function is called
  * @warning Will not restore the Player positions unless there is any other mismatch
+ * @return Whether the game state has been restored or ignored
  */
-void restoreGameState(
+bool restoreGameState(
     const std::map<Type, std::string>& serverGameState,
     const std::map<Type, bool>& mismatchingEntityType
 ) {
     bool somethingChanged = false;
+    #if DEBUG
+    std::map<Type, std::string> clientGameState = splitGameState(gameState);
+    #endif
     if (mismatchingEntityType.at(Type::ARCHER)) {
         somethingChanged = true;
+        #if DEBUG
+        {
+            std::unique_lock lock(stderrMutex);
+            std::cerr << "Server archers: " << serverGameState.at(Type::ARCHER) << std::endl;
+            std::cerr << "Client archers: " << clientGameState.at(Type::ARCHER) << std::endl;
+        }
+        #endif
         removeEntityType(Archer::archers);
         deserializeEntities<Archer>(serverGameState.at(Type::ARCHER));
     }
     if (mismatchingEntityType.at(Type::BULLET)) {
         somethingChanged = true;
+        #if DEBUG
+        {
+            std::unique_lock lock(stderrMutex);
+            std::cerr << "Server bullets: " << serverGameState.at(Type::BULLET) << std::endl;
+            std::cerr << "Client bullets: " << clientGameState.at(Type::BULLET) << std::endl;
+        }
+        #endif
         removeEntityType(Bullet::bullets);
         deserializeEntities<Bullet>(serverGameState.at(Type::BULLET));
     }
@@ -771,11 +792,19 @@ void restoreGameState(
         }
     }
     if (somethingChanged && mismatchingEntityType.at(Type::PLAYER)) {
+        #if DEBUG
+        {
+            std::unique_lock lock(stderrMutex);
+            std::cerr << "Server players: " << serverGameState.at(Type::PLAYER) << std::endl;
+            std::cerr << "Client players: " << clientGameState.at(Type::PLAYER) << std::endl;
+        }
+        #endif
         removeEntityType(Player::players);
         deserializeEntities<Player>(serverGameState.at(Type::PLAYER));
         Player::localPlayer = Player::players[Player::localPlayerId];
         Player::localPlayer->setSettings(Player::localPlayerStyle);
     }
+    return somethingChanged;
 }
 
 template <class T>
@@ -792,7 +821,7 @@ void removeEntityType(std::vector<std::shared_ptr<T>> entities) {
     }
 }
 
-void restoreGameState(
+bool restoreGameState(
     const std::string& serverGameState,
     const std::string& clientGameState
 ) {
@@ -803,7 +832,7 @@ void restoreGameState(
     std::map<Type, std::string> splitServerState = splitGameState(state);
     std::map<Type, std::string> splitClientState = splitGameState(clientGameState);
     std::map<Type, bool> mismatches = compareGameStates(splitServerState, splitClientState);
-    restoreGameState(splitServerState, mismatches);
+    return restoreGameState(splitServerState, mismatches);
 }
 
 /** @brief Restores the field and the entities from a string
