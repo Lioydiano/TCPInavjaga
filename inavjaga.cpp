@@ -767,12 +767,10 @@ bool restoreGameState(
     if (mismatchingEntityType.at(Type::PORTAL)) {
         somethingChanged = true;
         removeEntityType(Portal::portals);
-        deserializeEntities<Portal>(serverGameState.at(Type::PORTAL));
     }
     if (mismatchingEntityType.at(Type::WALL)) {
         somethingChanged = true;
         removeEntityType(Wall::walls);
-        deserializeEntities<Wall>(serverGameState.at(Type::WALL));
     }
     if (mismatchingEntityType.at(Type::WORM_HEAD)) {
         somethingChanged = true;
