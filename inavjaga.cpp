@@ -723,39 +723,48 @@ void restoreGameState(
     const std::map<Type, std::string>& serverGameState,
     const std::map<Type, bool>& mismatchingEntityType
 ) {
+    bool somethingChanged = false;
     if (mismatchingEntityType.at(Type::ARCHER)) {
+        somethingChanged = true;
         removeEntityType(Archer::archers);
         deserializeEntities<Archer>(serverGameState.at(Type::ARCHER));
     }
     if (mismatchingEntityType.at(Type::BULLET)) {
+        somethingChanged = true;
         removeEntityType(Bullet::bullets);
         deserializeEntities<Bullet>(serverGameState.at(Type::BULLET));
     }
     if (mismatchingEntityType.at(Type::CHEST)) {
+        somethingChanged = true;
         removeEntityType(Chest::chests);
         deserializeEntities<Chest>(serverGameState.at(Type::CHEST));
     }
     if (mismatchingEntityType.at(Type::ENEMY_BULLET)) {
+        somethingChanged = true;
         removeEntityType(EnemyBullet::enemyBullets);
         deserializeEntities<EnemyBullet>(serverGameState.at(Type::ENEMY_BULLET));
     }
     if (mismatchingEntityType.at(Type::MINE)) {
+        somethingChanged = true;
         removeEntityType(Mine::mines);
         deserializeEntities<Mine>(serverGameState.at(Type::MINE));
     }
     if (mismatchingEntityType.at(Type::PORTAL)) {
+        somethingChanged = true;
         removeEntityType(Portal::portals);
         deserializeEntities<Portal>(serverGameState.at(Type::PORTAL));
     }
     if (mismatchingEntityType.at(Type::WALL)) {
+        somethingChanged = true;
         removeEntityType(EnemyBullet::enemyBullets);
         deserializeEntities<EnemyBullet>(serverGameState.at(Type::WALL));
     }
     if (mismatchingEntityType.at(Type::WORM_HEAD)) {
+        somethingChanged = true;
         removeEntityType(Worm::worms);
         deserializeEntities<Worm>(serverGameState.at(Type::WORM_HEAD));
     }
-    if (mismatchingEntityType.at(Type::PLAYER)) {
+    if (mismatchingEntityType.at(Type::PLAYER) && somethingChanged) {
         removeEntityType(EnemyBullet::enemyBullets);
         deserializeEntities<EnemyBullet>(serverGameState.at(Type::PLAYER));
     }
