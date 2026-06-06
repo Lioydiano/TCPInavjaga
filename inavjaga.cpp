@@ -740,7 +740,6 @@ bool restoreGameState(
         }
         #endif
         removeEntityType(Archer::archers);
-        deserializeEntities<Archer>(serverGameState.at(Type::ARCHER));
     }
     if (mismatchingEntityType.at(Type::BULLET)) {
         somethingChanged = true;
@@ -752,22 +751,18 @@ bool restoreGameState(
         }
         #endif
         removeEntityType(Bullet::bullets);
-        deserializeEntities<Bullet>(serverGameState.at(Type::BULLET));
     }
     if (mismatchingEntityType.at(Type::CHEST)) {
         somethingChanged = true;
         removeEntityType(Chest::chests);
-        deserializeEntities<Chest>(serverGameState.at(Type::CHEST));
     }
     if (mismatchingEntityType.at(Type::ENEMY_BULLET)) {
         somethingChanged = true;
         removeEntityType(EnemyBullet::enemyBullets);
-        deserializeEntities<EnemyBullet>(serverGameState.at(Type::ENEMY_BULLET));
     }
     if (mismatchingEntityType.at(Type::MINE)) {
         somethingChanged = true;
         removeEntityType(Mine::mines);
-        deserializeEntities<Mine>(serverGameState.at(Type::MINE));
     }
     if (mismatchingEntityType.at(Type::PORTAL)) {
         somethingChanged = true;
@@ -782,13 +777,6 @@ bool restoreGameState(
     if (mismatchingEntityType.at(Type::WORM_HEAD)) {
         somethingChanged = true;
         removeEntityType(Worm::worms);
-        deserializeEntities<Worm>(serverGameState.at(Type::WORM_HEAD));
-        for (std::shared_ptr<Worm> worm : Worm::worms) {
-            for (std::shared_ptr<WormBody> wormBody : worm->body) {
-                WormBody::wormBodies.push_back(wormBody);
-                field->addPawn(wormBody);
-            }
-        }
     }
     if (somethingChanged && mismatchingEntityType.at(Type::PLAYER)) {
         #if DEBUG
@@ -805,6 +793,41 @@ bool restoreGameState(
             std::cerr << "Removing the players is fine" << std::endl;
         }
         #endif
+    }
+    if (mismatchingEntityType.at(Type::ARCHER)) {
+        deserializeEntities<Archer>(serverGameState.at(Type::ARCHER));
+    }
+    if (mismatchingEntityType.at(Type::BULLET)) {
+        deserializeEntities<Bullet>(serverGameState.at(Type::BULLET));
+    }
+    if (mismatchingEntityType.at(Type::CHEST)) {
+        deserializeEntities<Chest>(serverGameState.at(Type::CHEST));
+    }
+    if (mismatchingEntityType.at(Type::ENEMY_BULLET)) {
+        deserializeEntities<EnemyBullet>(serverGameState.at(Type::ENEMY_BULLET));
+    }
+    if (mismatchingEntityType.at(Type::MINE)) {
+        deserializeEntities<Mine>(serverGameState.at(Type::MINE));
+    }
+    if (mismatchingEntityType.at(Type::ENEMY_BULLET)) {
+        deserializeEntities<EnemyBullet>(serverGameState.at(Type::ENEMY_BULLET));
+    }
+    if (mismatchingEntityType.at(Type::PORTAL)) {
+        deserializeEntities<Portal>(serverGameState.at(Type::PORTAL));
+    }
+    if (mismatchingEntityType.at(Type::WALL)) {
+        deserializeEntities<Wall>(serverGameState.at(Type::WALL));
+    }
+    if (mismatchingEntityType.at(Type::WORM_HEAD)) {
+        deserializeEntities<Worm>(serverGameState.at(Type::WORM_HEAD));
+        for (std::shared_ptr<Worm> worm : Worm::worms) {
+            for (std::shared_ptr<WormBody> wormBody : worm->body) {
+                WormBody::wormBodies.push_back(wormBody);
+                field->addPawn(wormBody);
+            }
+        }
+    }
+    if (mismatchingEntityType.at(Type::PLAYER)) {
         deserializeEntities<Player>(serverGameState.at(Type::PLAYER));
         #if DEBUG
         {
