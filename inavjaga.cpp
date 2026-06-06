@@ -824,14 +824,23 @@ bool restoreGameState(
     const std::string& serverGameState,
     const std::string& clientGameState
 ) {
-    std::istringstream state(serverGameState);
-    std::string frameString; // We are lk trashing this anyway
-    std::getline(state, frameString, ',');
-    state >> rng; // Restoring the rng state to the server's
-    std::map<Type, std::string> splitServerState = splitGameState(state);
+    std::map<Type, std::string> splitServerState = splitGameState(serverGameState);
     std::map<Type, std::string> splitClientState = splitGameState(clientGameState);
+    #if DEBUG
+    {
+        std::unique_lock lock(stderrMutex);
+        std::cerr << "\tServer: " << serverGameState << "\n\tClient: " << clientGameState << std::endl;
+    }
+    #endif
     std::map<Type, bool> mismatches = compareGameStates(splitServerState, splitClientState);
-    return restoreGameState(splitServerState, mismatches);
+    if (restoreGameState(splitServerState, mismatches)) {
+        std::istringstream state(serverGameState);
+        std::string frameString; // We are lk trashing this anyway
+        std::getline(state, frameString, ',');
+        state >> rng; // Restoring the rng state to the server's, because the overload didn't
+        return true;
+    }
+    return false;
 }
 
 /** @brief Restores the field and the entities from a string

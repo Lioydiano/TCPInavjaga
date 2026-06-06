@@ -114,7 +114,14 @@ std::map<Type, std::string> splitGameState(const std::string& gameState) {
     std::string _;
     std::getline(is, _, ','); // Toss the frame counter
     std::getline(is, _, ','); // Toss the random state
-    is.ignore(1); // Ignore the classTermination[0]
+    char _classTermination;
+    is >> _classTermination; // Ignore the classTermination[0]
+    #if DEBUG
+    {
+        std::unique_lock lock(stderrMutex);
+        std::cerr << "Passing to splitGameState: " << is.str().substr( is.tellg() ) << std::endl;
+    }
+    #endif
     return splitGameState(is);
 }
 
