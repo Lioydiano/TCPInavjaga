@@ -48,6 +48,7 @@ void reprint();
 void updateClients(RemoteInavjagaIO*);
 int recvUpdates(RemoteInavjagaIO*);
 void restoreGameState(const std::string&);
+void restoreGameState(const std::string&, const std::string&);
 template <class T> void deserializeEntities(const std::string&);
 void restoreGameState(
     const std::map<Type, std::string>&,

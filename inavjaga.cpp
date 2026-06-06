@@ -670,7 +670,7 @@ int recvUpdates(RemoteInavjagaIO* remote_) {
     int clientFrame = std::stoi(frameString);
     if (clientFrame == serverFrame) {
         // This means that there is a mismatch and there will be some work to do
-        restoreGameState(serverGameState);
+        restoreGameState(serverGameState, gameState);
         pastGameStates[serverFrame % pastGameStatesBufferSize] = serverGameState;
         gameState = serverGameState;
         reprint();
@@ -780,13 +780,15 @@ void restoreGameState(
 
 template <class T>
 void removeEntityType(std::vector<std::shared_ptr<T>> entities) {
-    for (std::shared_ptr<T> entity : entities) {
+    for (size_t e = 0; e < entities.size(); e++) {
         if (std::is_same<T, Worm>::value) {
-            for (std::shared_ptr<WormBody> wb : std::static_pointer_cast<Worm>(entity)->body) {
-                Entity::remove(wb);
+            std::vector<std::shared_ptr<WormBody>> wormBodies = 
+                std::dynamic_pointer_cast<Worm>(entities[e])->body;
+            for (size_t i = 0; i < wormBodies.size(); i++) {
+                wormBodies[i]->remove();
             }
         }
-        Entity::remove(entity);
+        entities[e]->remove();
     }
 }
 
