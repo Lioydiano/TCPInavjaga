@@ -828,17 +828,9 @@ void removeEntityType(std::vector<std::shared_ptr<T>> entities) {
                 wormBodies[i]->remove();
             }
         }
-        if (std::is_same<T, Player>::value) {
-            #if DEBUG
-            {
-                std::unique_lock lock(stderrMutex);
-                std::cerr << "The player " << entities[e] << " is about to be →removed" << std::endl;
-            }
-            #endif
-            field->erasePawn(entities[e].get());
-        }
-        entities[e]->remove();
+        field->erasePawn(entities[e].get());
     }
+    T::entities->clear();
 }
 
 bool restoreGameState(
