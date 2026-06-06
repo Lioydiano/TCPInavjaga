@@ -87,6 +87,11 @@ std::string serializeGameState() {
 /** @brief Splits the game state into its sections
  * @param gameState The game state without the frame number and the PRNG,
  *                  starting from the first archer
+ * @note The key `Type::WORM_HEAD` represents Worms,
+ *       that are serialized together with WormBody,
+ *       thus there is no key `Type::WORM_BODY`
+ * @return The mapping between category of entities
+ *         and their serialized representation
  */
 std::map<Type, std::string> splitGameState(std::istringstream& gameState) {
     std::map<Type, std::string> entitySections;
