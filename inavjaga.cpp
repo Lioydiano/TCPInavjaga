@@ -828,7 +828,9 @@ void removeEntityType(std::vector<std::shared_ptr<T>> entities) {
                 wormBodies[i]->remove();
             }
         }
-        field->erasePawn(entities[e].get());
+        if (entities[e] != nullptr) {
+            field->erasePawn(entities[e].get());
+        }
     }
     T::entities->clear();
 }
