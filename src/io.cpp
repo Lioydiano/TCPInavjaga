@@ -670,6 +670,7 @@ std::string InavjagaGSPIO::recvSyncData(int timeout) {
             throw std::runtime_error("Receiving message length failed");
         }
         size_t size = ntohl(convertedSize);
+        char* buffer = (char*)calloc(size, sizeof(char));
         do {
             timeout = initialTimeout - std::chrono::duration_cast<std::chrono::milliseconds>(
                 std::chrono::high_resolution_clock::now() - start
@@ -683,14 +684,13 @@ std::string InavjagaGSPIO::recvSyncData(int timeout) {
                 throw std::runtime_error("Polling failed");
             }
             if (pollFd_.revents & POLLIN) {
-                char* buffer = (char*)calloc(size, sizeof(char));
                 #if DEBUG
                 {
                     std::unique_lock lock(stderrMutex);
                     std::cerr << "Time to read " << size << " characters from the server." << std::endl;
                 }
                 #endif
-                if (int rc = read(syncsocketfd, buffer, size); rc < 0) {
+                if (int rc = recv(syncsocketfd, buffer, size, MSG_DONTWAIT); rc < 0) {
                     std::unique_lock lock(stderrMutex);
                     std::cerr << "Receiving message failed with error " << rc
                             << " (" << errno << ")" << std::endl;
@@ -701,14 +701,20 @@ std::string InavjagaGSPIO::recvSyncData(int timeout) {
                             << " (" << errno << ")" << std::endl;
                     free(buffer);
                     return received;
+                } else if (rc > 0) {
+                    size -= rc;
                 }
                 received.append(std::string(buffer));
-                free(buffer);
+                if (size == 0) {
+                    free(buffer);
+                    return received;
+                }
             } else {
                 #if DEBUG
                 std::unique_lock lock(stderrMutex);
                 std::cerr << "\tNo message ready yet" << std::endl;
                 #endif
+                free(buffer);
                 return received;
             }
         } while (timeout > 0);
