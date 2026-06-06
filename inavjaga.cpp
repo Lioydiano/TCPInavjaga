@@ -770,19 +770,13 @@ void restoreGameState(const std::string& serverGameState) {
         std::cerr << "After locking the streamMutex in restoreGameState" << std::endl;
     }
     #endif
-    std::string entities;
-    std::getline(state, entities, classTermination[0]);
-    deserializeEntities<Archer>(entities);
-    std::getline(state, entities, classTermination[0]);
-    deserializeEntities<Bullet>(entities);
-    std::getline(state, entities, classTermination[0]);
-    deserializeEntities<Chest>(entities);
-    std::getline(state, entities, classTermination[0]);
-    deserializeEntities<EnemyBullet>(entities);
-    std::getline(state, entities, classTermination[0]);
-    deserializeEntities<Mine>(entities);
-    std::getline(state, entities, classTermination[0]);
-    deserializeEntities<Player>(entities);
+    std::map<Type, std::string> entities = splitGameState(state);
+    deserializeEntities<Archer>(entities[Type::ARCHER]);
+    deserializeEntities<Bullet>(entities[Type::BULLET]);
+    deserializeEntities<Chest>(entities[Type::CHEST]);
+    deserializeEntities<EnemyBullet>(entities[Type::ENEMY_BULLET]);
+    deserializeEntities<Mine>(entities[Type::MINE]);
+    deserializeEntities<Player>(entities[Type::PLAYER]);
     Player::localPlayer = Player::players[Player::localPlayerId];
     Player::localPlayer->setSettings(Player::localPlayerStyle);
     #if DEBUG
@@ -794,12 +788,9 @@ void restoreGameState(const std::string& serverGameState) {
         }
     }
     #endif
-    std::getline(state, entities, classTermination[0]);
-    deserializeEntities<Portal>(entities);
-    std::getline(state, entities, classTermination[0]);
-    deserializeEntities<Wall>(entities);
-    std::getline(state, entities, classTermination[0]);
-    deserializeEntities<Worm>(entities);
+    deserializeEntities<Portal>(entities[Type::PORTAL]);
+    deserializeEntities<Wall>(entities[Type::WALL]);
+    deserializeEntities<Worm>(entities[Type::WORM_HEAD]);
     for (std::shared_ptr<Worm> worm : Worm::worms) {
         for (std::shared_ptr<WormBody> wormBody : worm->body) {
             WormBody::wormBodies.push_back(wormBody);

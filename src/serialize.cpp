@@ -7,6 +7,7 @@
 #include "portal.hpp"
 #include "wall.hpp"
 #include "worm.hpp"
+#include "entity.hpp"
 #include <sstream>
 #include <memory>
 #if DEBUG
@@ -81,6 +82,24 @@ std::string serializeGameState() {
     }
     serialized.append(classTermination);
     return serialized;
+}
+
+/** @brief Splits the game state into its sections
+ * @param gameState The game state without the frame number and the PRNG,
+ *                  starting from the first archer
+ */
+std::map<Type, std::string> splitGameState(std::istringstream& gameState) {
+    std::map<Type, std::string> entitySections;
+    std::getline(gameState, entitySections[Type::ARCHER], classTermination[0]);
+    std::getline(gameState, entitySections[Type::BULLET], classTermination[0]);
+    std::getline(gameState, entitySections[Type::CHEST], classTermination[0]);
+    std::getline(gameState, entitySections[Type::ENEMY_BULLET], classTermination[0]);
+    std::getline(gameState, entitySections[Type::MINE], classTermination[0]);
+    std::getline(gameState, entitySections[Type::PLAYER], classTermination[0]);
+    std::getline(gameState, entitySections[Type::PORTAL], classTermination[0]);
+    std::getline(gameState, entitySections[Type::WALL], classTermination[0]);
+    std::getline(gameState, entitySections[Type::WORM_HEAD], classTermination[0]);
+    return entitySections;
 }
 
 std::string serialize(std::shared_ptr<Archer> archer) {
