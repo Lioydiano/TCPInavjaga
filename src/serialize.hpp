@@ -36,4 +36,8 @@ std::minstd_rand deserializeRng(const std::string&);
 
 std::string serializeGameState();
 std::map<Type, std::string> splitGameState(std::istringstream&);
+std::map<Type, bool> compareGameStates(
+    const std::map<Type, std::string>&,
+    const std::map<Type, std::string>&
+);
 void sendGameState(std::shared_ptr<ServerInavjagaGSPIO>);

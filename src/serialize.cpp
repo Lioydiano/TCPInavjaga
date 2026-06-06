@@ -102,6 +102,23 @@ std::map<Type, std::string> splitGameState(std::istringstream& gameState) {
     return entitySections;
 }
 
+std::map<Type, bool> compareGameStates(
+    const std::map<Type, std::string>& current,
+    const std::map<Type, std::string>& incoming
+) {
+    std::map<Type, bool> comparison;
+    comparison[Type::ARCHER] = current.at(Type::ARCHER) == incoming.at(Type::ARCHER);
+    comparison[Type::BULLET] = current.at(Type::BULLET) == incoming.at(Type::BULLET);
+    comparison[Type::CHEST] = current.at(Type::CHEST) == incoming.at(Type::CHEST);
+    comparison[Type::ENEMY_BULLET] = current.at(Type::ENEMY_BULLET) == incoming.at(Type::ENEMY_BULLET);
+    comparison[Type::MINE] = current.at(Type::MINE) == incoming.at(Type::MINE);
+    comparison[Type::PLAYER] = current.at(Type::PLAYER) == incoming.at(Type::PLAYER);
+    comparison[Type::PORTAL] = current.at(Type::PORTAL) == incoming.at(Type::PORTAL);
+    comparison[Type::WALL] = current.at(Type::WALL) == incoming.at(Type::WALL);
+    comparison[Type::WORM_HEAD] = current.at(Type::WORM_HEAD) == incoming.at(Type::WORM_HEAD);
+    return comparison;
+}
+
 std::string serialize(std::shared_ptr<Archer> archer) {
     return serialize(archer->getCoordinates());
 }
