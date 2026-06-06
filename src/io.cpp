@@ -19,6 +19,16 @@ bool MoveEvent::operator<(const MoveEvent& moveEvent) const {
     return this->move < moveEvent.move;
 }
 
+void disableNagle(int sockfd) {
+    // https://www.unixguide.net/network/socketfaq/2.16.shtml
+    int flag = 1;
+    int rc = setsockopt(sockfd, IPPROTO_TCP, TCP_NODELAY, &flag, sizeof(int));
+    if (rc < 0) {
+        std::unique_lock lock(stderrMutex);
+        std::cerr << "Setting the TCP_NODELAY to disable Nagle's algorithm failed" << std::endl;
+    }
+}
+
 inline bool isSocketAlive(int descriptor) {
     // Source - https://stackoverflow.com/a/4142038
     // Posted by Simone, modified by community. See post 'Timeline' for change history
@@ -270,13 +280,7 @@ void RemoteInavjagaIO::sendMove(MoveEvent moveEvent) {
 ClientInavjagaGSPIO::ClientInavjagaGSPIO() {}
 
 void ClientInavjagaGSPIO::connectSocket(int sockfd, char* addr, char* portno) {
-    // https://www.unixguide.net/network/socketfaq/2.16.shtml
-    int flag = 1;
-    int rc = setsockopt(sockfd, IPPROTO_TCP, TCP_NODELAY, &flag, sizeof(int));
-    if (rc < 0) {
-        std::unique_lock lock(stderrMutex);
-        std::cerr << "Setting the TCP_NODELAY to disable Nagle's algorithm failed" << std::endl;
-    }
+    disableNagle(sockfd);
     struct sockaddr_in serverAddress;
     bzero((char*)&serverAddress, sizeof(serverAddress)); // Clearing
     inet_pton(AF_INET, addr, &(serverAddress.sin_addr)); // https://stackoverflow.com/a/5328184/15888601

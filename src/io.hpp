@@ -20,6 +20,8 @@ struct MoveEvent {
     bool operator<(const MoveEvent&) const;
 };
 
+void disableNagle(int);
+
 /** @brief InavjagaGSP input/output - 
  * It is the abstraction layer between the struct MoveEvent to be sent/received and a socket
  * @note the socket is typically TCP, but subclasses can override it to be transport layer agnostic
