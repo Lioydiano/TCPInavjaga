@@ -807,9 +807,6 @@ bool restoreGameState(
     if (mismatchingEntityType.at(Type::MINE)) {
         deserializeEntities<Mine>(serverGameState.at(Type::MINE));
     }
-    if (mismatchingEntityType.at(Type::ENEMY_BULLET)) {
-        deserializeEntities<EnemyBullet>(serverGameState.at(Type::ENEMY_BULLET));
-    }
     if (mismatchingEntityType.at(Type::PORTAL)) {
         deserializeEntities<Portal>(serverGameState.at(Type::PORTAL));
     }
