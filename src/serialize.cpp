@@ -132,6 +132,17 @@ std::map<Type, bool> compareGameStates(
     comparison[Type::PORTAL] = current.at(Type::PORTAL) == incoming.at(Type::PORTAL);
     comparison[Type::WALL] = current.at(Type::WALL) == incoming.at(Type::WALL);
     comparison[Type::WORM_HEAD] = current.at(Type::WORM_HEAD) == incoming.at(Type::WORM_HEAD);
+    #if DEBUG
+    {
+        std::unique_lock lock(stderrMutex);
+        for (auto const& [type, value] : comparison) {
+            std::cerr << "\t\tIncoming: " << incoming.at(type) << "\n";
+            std::cerr << "\t\tCurrent: " << current.at(type) << "\n";
+            std::cerr << "\t" << type << ": " << value << "\n";
+        }
+        std::flush(std::cerr);
+    }
+    #endif
     return comparison;
 }
 

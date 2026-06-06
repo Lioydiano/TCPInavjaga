@@ -675,9 +675,8 @@ int recvUpdates(RemoteInavjagaIO* remote_) {
             gameState = serverGameState;
             reprint();
             return serverFrame;
-        } else {
-            return clientFrame;
         }
+        return -1;
     } else if (clientFrame < serverFrame) {
         #if DEBUG
         {
@@ -700,7 +699,7 @@ int recvUpdates(RemoteInavjagaIO* remote_) {
             // This means that we lost synchronization some frames ago
             /// @note we assume that latency cannot be greater than 
             /// pastGameStatesBufferSize * FRAME_DURATION milliseconds
-            restoreGameState(serverGameState);
+            restoreGameState(serverGameState, gameState);
             pastGameStates[serverFrame % pastGameStatesBufferSize] = serverGameState;
             for (int i = serverFrame + 1; i <= clientFrame; i++) {
                 fullProcessFrame(i);
