@@ -21,10 +21,10 @@
 
 extern std::set<char> movementKeys;
 extern std::random_device randomDevice;
-extern std::mt19937 rng;
+extern std::minstd_rand rng;
 extern std::map<int, std::vector<int>> passages; // {y, {x1, x2, x3...}}
 extern std::map<int, std::vector<int>> breaches; // {y, {x1, x2, x3...}}
-enum EndReason {STARVED, SHOT, EATEN, STABBED, TOUCHDOWN, QUIT};
+enum EndReason {STARVED=0, SHOT=1, EATEN=2, STABBED=3, TOUCHDOWN=4, QUIT=5};
 
 void setConstantsToReceivedValues(const std::map<std::string, std::variant<int, float>>&);
 void placeClientPlayer(std::shared_ptr<ClientInavjagaGSPIO>);
@@ -35,7 +35,9 @@ void generateTunnels();
 void intro();
 void tutorial();
 void spawnInitialEnemies();
+void processMoves();
 void processFrame();
+void fullProcessFrame(int);
 bool revivePlayers();
 void processDeath(std::shared_ptr<Player>);
 void spawnEnemies();
@@ -43,7 +45,18 @@ bool endConditions();
 void printSideInstructions(int);
 void printKeys();
 void reprint();
+void updateClients(RemoteInavjagaIO*);
+int recvUpdates(RemoteInavjagaIO*);
+void restoreGameState(const std::string&);
+bool restoreGameState(const std::string&, const std::string&);
+bool restoreGameState(
+    const std::map<Type, std::string>&,
+    const std::map<Type, bool>&
+);
+template <class T> void deserializeEntities(const std::string&);
+template <class T> void removeEntityType(std::vector<std::shared_ptr<T>>);
 template<typename IO> void input(IO*);
+bool isAct(MoveEvent);
 bool act(char);
 bool act(MoveEvent);
 void printEndInformation(EndReason);

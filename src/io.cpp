@@ -2,6 +2,7 @@
 #include "io.hpp"
 #include <netinet/tcp.h>
 #include <arpa/inet.h>
+#include <sys/ioctl.h>
 #include <exception>
 #include <string.h>
 #include <iostream>
@@ -10,7 +11,23 @@
 #include <poll.h>
 
 std::mutex InavjagaGSPIO::outputMutex = std::mutex();
+std::mutex InavjagaGSPIO::syncMutex = std::mutex();
 extern std::mutex stderrMutex;
+
+bool MoveEvent::operator<(const MoveEvent& moveEvent) const {
+    if (this->playerId < moveEvent.playerId) return true;
+    return this->move < moveEvent.move;
+}
+
+void disableNagle(int sockfd) {
+    // https://www.unixguide.net/network/socketfaq/2.16.shtml
+    int flag = 1;
+    int rc = setsockopt(sockfd, IPPROTO_TCP, TCP_NODELAY, &flag, sizeof(int));
+    if (rc < 0) {
+        std::unique_lock lock(stderrMutex);
+        std::cerr << "Setting the TCP_NODELAY to disable Nagle's algorithm failed" << std::endl;
+    }
+}
 
 inline bool isSocketAlive(int descriptor) {
     // Source - https://stackoverflow.com/a/4142038
@@ -61,7 +78,7 @@ uint32_t InavjagaGSPIO::recvRandomSeed(int timeout) {
     struct pollfd pollFd_ = {0,0,0};
     pollFd_.fd = this->socketfd;
     pollFd_.events = POLLIN;
-    if (int rc = poll(&pollFd_, 1, timeout) < 0) {
+    if (int rc = poll(&pollFd_, 1, timeout); rc < 0) {
         std::unique_lock lock(stderrMutex);
         std::cerr << "Polling failed with error " << rc << " (" << errno << ")" << std::endl;
         throw std::runtime_error("Polling failed");
@@ -145,7 +162,7 @@ std::pair<size_t, MoveEvent> InavjagaGSPIO::pollMany(
         errno = 0;
         int rc = poll(&(pollFds[1]), iosLen - 1, timeout);
         #if DEBUG
-        std::cerr << &(pollFds[1]) << " for a __nfds=" << iosLen - 1 << std::endl;
+        // std::cerr << &(pollFds[1]) << " for a __nfds=" << iosLen - 1 << std::endl;
         #endif
         if (rc <= 0) {
             if (rc < 0) {
@@ -263,20 +280,14 @@ void RemoteInavjagaIO::sendMove(MoveEvent moveEvent) {
 ClientInavjagaGSPIO::ClientInavjagaGSPIO() {}
 
 void ClientInavjagaGSPIO::connectSocket(int sockfd, char* addr, char* portno) {
-    // https://www.unixguide.net/network/socketfaq/2.16.shtml
-    int flag = 1;
-    int rc = setsockopt(sockfd, IPPROTO_TCP, TCP_NODELAY, &flag, sizeof(int));
-    if (rc < 0) {
-        std::unique_lock lock(stderrMutex);
-        std::cerr << "Setting the TCP_NODELAY to disable Nagle's algorithm failed" << std::endl;
-    }
+    disableNagle(sockfd);
     struct sockaddr_in serverAddress;
     bzero((char*)&serverAddress, sizeof(serverAddress)); // Clearing
     inet_pton(AF_INET, addr, &(serverAddress.sin_addr)); // https://stackoverflow.com/a/5328184/15888601
     // inet_aton(AF_INET, addr, &(serverAddress.sin_addr)); // man inet_pton (does it accept less than 3 digits?)
     serverAddress.sin_port = htons(atoi(portno));
     serverAddress.sin_family = AF_INET;
-    if (int rc = connect(sockfd, (struct sockaddr*)&serverAddress, sizeof(serverAddress)) < 0) {
+    if (int rc = connect(sockfd, (struct sockaddr*)&serverAddress, sizeof(serverAddress)); rc < 0) {
         std::unique_lock lock(stderrMutex);
         std::cerr << "Could not connect to " << serverAddress.sin_addr.s_addr << ":" << serverAddress.sin_port << '\n';
         std::cerr << "\tError was " << rc << " (" << errno << ")" << std::endl;
@@ -458,7 +469,7 @@ std::map<std::string, std::variant<int, float>> InavjagaGSPIO::recvConstants() {
         insertionIndex = 0;
         do {
             errno = 0;
-            if (int rc = recv(this->socketfd, &current, 1, 0) < 0) {
+            if (int rc = recv(this->socketfd, &current, 1, 0); rc < 0) {
                 std::cerr << "Receiving failed with error " << rc << " (" << errno << ")" << std::endl;
                 throw std::runtime_error("Error receiving constants from the server");
             }
@@ -476,7 +487,7 @@ std::map<std::string, std::variant<int, float>> InavjagaGSPIO::recvConstants() {
         insertionIndex = 0;
         do {
             errno = 0;
-            if (int rc = recv(this->socketfd, &current, 1, 0) < 0) {
+            if (int rc = recv(this->socketfd, &current, 1, 0); rc < 0) {
                 std::cerr << "Receiving failed with error " << rc << " (" << errno << ")" << std::endl;
                 throw std::runtime_error("Error receiving constants from the server");
             }
@@ -526,13 +537,13 @@ bool ServerInavjagaGSPIO::recvReady(int timeout) {
     pollFd.events = POLLIN;
     pollFd.revents = 0;
     errno = 0;
-    if (int rc = poll(&pollFd, 1, timeout) < 0) {
+    if (int rc = poll(&pollFd, 1, timeout); rc < 0) {
         std::cerr << "Polling failed with error " << rc << " (" << errno << ")" << std::endl;
         return false;
     }
     if (pollFd.revents & POLLIN) {
         errno = 0;
-        if (int rc = recv(socketfd, inputBuffer, (size_t)2, 0) < 0) {
+        if (int rc = recv(socketfd, inputBuffer, (size_t)2, 0); rc < 0) {
             std::cerr << "Receiving failed with error " << rc << " (" << errno << ")" << std::endl;
             return false;
         }
@@ -568,13 +579,13 @@ bool InavjagaGSPIO::recvBool(int timeout) const {
     pollFd.events = POLLIN;
     pollFd.revents = 0;
     errno = 0;
-    if (int rc = poll(&pollFd, 1, timeout) < 0) {
+    if (int rc = poll(&pollFd, 1, timeout); rc < 0) {
         std::cerr << "Polling failed with error " << rc << " (" << errno << ")" << std::endl;
         throw std::runtime_error("Did not receive a boolean answer within the specified timeout");
     }
     if (pollFd.revents & POLLIN) {
         errno = 0;
-        if (int rc = recv(socketfd, inputBuffer, (size_t)2, 0) < 0) {
+        if (int rc = recv(socketfd, inputBuffer, (size_t)2, 0); rc < 0) {
             std::cerr << "Receiving failed with error " << rc << " (" << errno << ")" << std::endl;
         }
         #if DEBUG
@@ -615,6 +626,112 @@ bool InavjagaGSPIO::waitYes(int timeout) {
         }
     }
     return false;
+}
+
+void InavjagaGSPIO::sendSyncData(const std::string& message) {
+    std::unique_lock lock(syncMutex);
+    size_t length = message.length();
+    int32_t convertedLength = htonl(length);
+    // #if DEBUG
+    // {
+    //     std::unique_lock lock(stderrMutex);
+    //     std::cerr << "We are about to send " << length << " characters" << std::endl;
+    //     std::cerr << "Our message is " << message << std::endl;
+    // }
+    // #endif
+    if (ssize_t rc = write(this->syncsocketfd, &convertedLength, sizeof(convertedLength)); rc < 0) {
+        std::unique_lock lock(stderrMutex);
+        std::cerr << "Failed to send data with error " << rc << "(" << errno << ")" << std::endl;
+    }
+    if (ssize_t rc = write(this->syncsocketfd, message.c_str(), message.length()); rc < 0) {
+        std::unique_lock lock(stderrMutex);
+        std::cerr << "Failed to send data with error " << rc << "(" << errno << ")" << std::endl;
+    }
+}
+
+std::string InavjagaGSPIO::recvSyncData(int timeout) {
+    int initialTimeout = timeout;
+    auto start = std::chrono::high_resolution_clock::now();
+    struct pollfd pollFd_ = {0,0,0};
+    pollFd_.fd = this->syncsocketfd;
+    pollFd_.events = POLLIN;
+    if (int rc = poll(&pollFd_, 1, timeout); rc < 0) {
+        std::unique_lock lock(stderrMutex);
+        std::cerr << "Polling failed with error " << rc << " (" << errno << ")" << std::endl;
+        throw std::runtime_error("Polling failed");
+    }
+    std::string received;
+    if (pollFd_.revents & POLLIN) {
+        int32_t convertedSize;
+        if (int rc = read(syncsocketfd, &convertedSize, sizeof(convertedSize)); rc < 0) {
+            std::unique_lock lock(stderrMutex);
+            std::cerr << "Receiving message length failed with error " << rc
+                      << " (" << errno << ")" << std::endl;
+            throw std::runtime_error("Receiving message length failed");
+        }
+        size_t size = ntohl(convertedSize);
+        char* buffer = (char*)calloc(size, sizeof(char));
+        do {
+            timeout = initialTimeout - std::chrono::duration_cast<std::chrono::milliseconds>(
+                std::chrono::high_resolution_clock::now() - start
+            ).count();
+            #if DEBUG
+            {
+                std::unique_lock lock(stderrMutex);
+                std::cerr << "\tTime left: " << timeout << "ms" << std::endl;
+            }
+            #endif
+            pollFd_ = {0,0,0};
+            pollFd_.fd = this->syncsocketfd;
+            pollFd_.events = POLLIN;
+            if (int rc = poll(&pollFd_, 1, timeout); rc < 0) {
+                std::unique_lock lock(stderrMutex);
+                std::cerr << "Polling failed with error " << rc << " (" << errno << ")" << std::endl;
+                throw std::runtime_error("Polling failed");
+            }
+            if (pollFd_.revents & POLLIN) {
+                #if DEBUG
+                {
+                    std::unique_lock lock(stderrMutex);
+                    std::cerr << "Time to read " << size << " characters from the server." << std::endl;
+                }
+                #endif
+                if (int rc = recv(syncsocketfd, buffer, size, MSG_WAITALL); rc < 0) {
+                    std::unique_lock lock(stderrMutex);
+                    std::cerr << "Receiving message failed with error " << rc
+                            << " (" << errno << ")" << std::endl;
+                    throw std::runtime_error("Receiving message failed");
+                } else if (rc == 0) {
+                    std::unique_lock lock(stderrMutex);
+                    std::cerr << "Receiving message enountered EOF, since rc=" << rc
+                            << " (" << errno << ")" << std::endl;
+                    free(buffer);
+                    return received;
+                } else if (rc > 0) {
+                    size -= rc;
+                }
+                received.append(std::string(buffer));
+                if (size == 0) {
+                    free(buffer);
+                    return received;
+                }
+            } else {
+                #if DEBUG
+                std::unique_lock lock(stderrMutex);
+                std::cerr << "\tNo message ready yet" << std::endl;
+                #endif
+                free(buffer);
+                return received;
+            }
+        } while (timeout > 0);
+    } else {
+        #if DEBUG
+        std::unique_lock lock(stderrMutex);
+        std::cerr << "No message size ready yet" << std::endl;
+        #endif
+        return "";
+    }
+    return received;
 }
 
 bool ServerInavjagaGSPIO::offerCoordinates(const sista::Coordinates& coordinates) const {
@@ -680,6 +797,9 @@ std::vector<std::shared_ptr<Player>> ClientInavjagaGSPIO::recvPlayers() {
     char identifier = 0;
     recv(socketfd, &identifier, 1, 0);
     Player::localPlayerId = identifier - '0';
+    #if DEBUG
+    std::cerr << "Set the localPlayerId to " << Player::localPlayerId << std::endl;
+    #endif
     while (true) {
         #if DEBUG
         std::cerr << "Waiting for player identifier..." << std::endl;
@@ -692,13 +812,15 @@ std::vector<std::shared_ptr<Player>> ClientInavjagaGSPIO::recvPlayers() {
             break;
         }
         coordinates = this->recvCoordinates();
-        players[identifier - '0'] = std::make_shared<Player>(coordinates);
-        players[identifier - '0']->id = identifier - '0';
-        players[identifier - '0']->respawnCoordinates = coordinates;
-        players[identifier - '0']->mode = Player::Mode::BULLET;
-        if (identifier - '0' == Player::localPlayerId) {
+        if (identifier - '0' != Player::localPlayerId) {
+            players[identifier - '0'] = std::make_shared<Player>(coordinates);
+            players[identifier - '0']->id = identifier - '0';
+            players[identifier - '0']->respawnCoordinates = coordinates;
+            players[identifier - '0']->mode = Player::Mode::BULLET;
+        } else if (identifier - '0' == Player::localPlayerId) {
             Player::localPlayer->setSettings(Player::localPlayerStyle);
             players[identifier - '0'] = Player::localPlayer;
+            players[identifier - '0']->id = Player::localPlayerId;
         }
     }
     return players;
@@ -750,7 +872,25 @@ ServerRemoteInavjagaIO::ServerRemoteInavjagaIO(
     std::vector<std::shared_ptr<ServerInavjagaGSPIO>>& connectionsToClients
 ): RemoteInavjagaIO(connectionsToClients) {}
 
+void ServerRemoteInavjagaIO::sendGameStateToAll(const std::string& gameState) {
+    for (std::shared_ptr<InavjagaGSPIO> client_ : neighbors) {
+        if (client_ == nullptr) continue;
+        std::shared_ptr<ServerInavjagaGSPIO> client = std::static_pointer_cast<ServerInavjagaGSPIO>(client_);
+        #if DEBUG
+        {
+            std::unique_lock lock(stderrMutex);
+            std::cerr << "We are about to send the game state to " << client << " client" << std::endl;
+        }
+        #endif
+        client->sendSyncData(gameState);
+    }
+}
+
 ClientRemoteInavjagaIO::ClientRemoteInavjagaIO() {}
 ClientRemoteInavjagaIO::ClientRemoteInavjagaIO(
     std::shared_ptr<ClientInavjagaGSPIO> connectionToServer
 ): RemoteInavjagaIO({nullptr, connectionToServer}) {}
+
+std::string ClientRemoteInavjagaIO::recvGameState(int timeout) {
+    return this->neighbors[1]->recvSyncData(timeout);
+}

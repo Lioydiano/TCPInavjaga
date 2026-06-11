@@ -11,6 +11,7 @@ void Chest::remove() {
     field->erasePawn(this);
     Entity::removeOwner(Chest::chests, this);
 }
+std::vector<std::shared_ptr<Chest>>* Chest::entities = &Chest::chests;
 sista::ANSISettings Chest::chestStyle = {
     sista::RGBColor(193, 201, 104),
     RGB_BLACK,

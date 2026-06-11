@@ -43,7 +43,7 @@ SRC = inavjaga.cpp $(wildcard src/*.cpp)
 endif
 
 # Set STATIC=0 to prefer dynamic linking, otherwise static linking is used
-STATIC ?= 1
+STATIC ?= 0
 
 OBJ = $(SRC:.cpp=.o)
 DEP = $(OBJ:.o=.d)

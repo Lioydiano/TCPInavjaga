@@ -1,5 +1,7 @@
 #include "include/cross_platform.hpp"
 #include "inavjaga.hpp"
+#include "src/serialize.hpp"
+#include <sstream>
 #include <algorithm>
 #include <memory>
 #include <future>
@@ -9,6 +11,7 @@
 #include <stack>
 #include <iostream>
 #include <random>
+#include <queue>
 #include <map>
 
 std::shared_ptr<Player> Player::localPlayer;
@@ -34,8 +37,14 @@ sista::Border border(
         sista::Attribute::BRIGHT
     }
 );
+std::priority_queue<MoveEvent> movesBuffer = std::priority_queue<MoveEvent>();
+std::string gameState = std::string();
+const size_t pastGameStatesBufferSize = 20; // Supporting up to 2s of latency
+std::string pastGameStates[pastGameStatesBufferSize] = {std::string()};
+std::mutex movesBufferMutex = std::mutex();
 std::mutex streamMutex = std::mutex();
 std::mutex stderrMutex = std::mutex();
+std::mutex gameStateMutex = std::mutex();
 bool speedup = false;
 int lastDeathFrame = 0;
 bool end = false;
@@ -135,6 +144,7 @@ int main(int argc, char* argv[]) {
             Player::players.push_back(std::make_shared<Player>(spawn_client));
             Player::players.back()->id = Player::players.size() - 1;
             Player::players.back()->respawnCoordinates = spawn_client;
+            Player::players.back()->mode = Player::Mode::BULLET;
             field->addPawn(Player::players.back());
         }
     }
@@ -240,30 +250,57 @@ int main(int argc, char* argv[]) {
         #endif
         start = std::chrono::high_resolution_clock::now();
 
-        if (revivePlayers()) {
-            lastDeathFrame = i;
-        }
-        if (lastDeathFrame && i - lastDeathFrame == 20) {
-            // After 20 frames it deletes the death reason
-            std::lock_guard<std::mutex> lock(streamMutex); // Lock stays until scope ends
-            reprint();
+        fullProcessFrame(i);
+        std::flush(std::cout);
+
+        {
+            std::unique_lock lockGameState(gameStateMutex);
+            delta = std::chrono::high_resolution_clock::now() - start;
+            #if DEBUG
+            {
+                std::unique_lock stderrLock(stderrMutex);
+                std::cerr << "\tObtaining the lock on gameStateMutex on frame " << i << " took " 
+                        << std::chrono::duration_cast<std::chrono::microseconds>(delta).count()
+                        << "µs" << std::endl;
+            }
+            #endif
+            gameState = std::to_string(i) + "," + serialize(rng) + "," + serializeGameState();
+            delta = std::chrono::high_resolution_clock::now() - start;
+            #if DEBUG
+            {
+                std::unique_lock stderrLock(stderrMutex);
+                std::cerr << "\tWhile getting to the serialized game state on frame " << i << " took " 
+                        << std::chrono::duration_cast<std::chrono::microseconds>(delta).count()
+                        << "µs" << std::endl;
+            }
+            #endif
+            #if CLIENT
+            pastGameStates[i % pastGameStatesBufferSize] = gameState;
+            #endif
+            #if DEBUG
+            {
+                std::unique_lock stderrLock(stderrMutex);
+                std::cerr << "gameState stored" << std::endl;
+            }
+            #endif
+            #if CLIENT
+            if (int rc = recvUpdates(remoteIO); rc >= 0) {
+                i = rc;
+            }
+            #elif SERVER
+            updateClients(remoteIO);
+            #endif
+            delta = std::chrono::high_resolution_clock::now() - start;
+            #if DEBUG
+            {
+                std::unique_lock stderrLock(stderrMutex);
+                std::cerr << "\tWhile sending/receiving the game state on frame " << i << " took " 
+                        << std::chrono::duration_cast<std::chrono::microseconds>(delta).count()
+                        << "µs" << std::endl;
+            }
+            #endif
         }
 
-        std::lock_guard<std::mutex> lock(streamMutex); // Lock stays until scope ends
-        processFrame();
-        if (i % MEAT_DURATION_PERIOD == MEAT_DURATION_PERIOD - 1) {
-            Player::localPlayer->inventory.meat--;
-        }
-        spawnEnemies();
-        printSideInstructions(i);
-        // Check for negative amount of meat
-        if (Player::localPlayer->inventory.meat < 0) {
-            printEndInformation(EndReason::STARVED);
-            Player::localPlayer->dead = true;
-            end = true;
-        }
-        end = endConditions();
-        std::flush(std::cout);
         delta = std::chrono::high_resolution_clock::now() - start;
         #if DEBUG
         {
@@ -303,6 +340,21 @@ bool endConditions() {
         }
     }
     return false;
+}
+
+void processMoves() {
+    std::unique_lock lock(movesBufferMutex);
+    while (!movesBuffer.empty()) {
+        MoveEvent current = movesBuffer.top();
+        #if DEBUG
+        {
+            std::unique_lock lock(stderrMutex);
+            std::cerr << "{" << current.playerId << ", " << current.move << "}" << std::endl;;
+        }
+        #endif
+        movesBuffer.pop();
+        act(current);
+    }
 }
 
 void processFrame() {
@@ -358,6 +410,12 @@ void processFrame() {
             archer->shoot();
         }
     }
+    #if DEBUG
+    {
+        std::unique_lock<std::mutex> lock(stderrMutex); // Lock stays until scope ends
+        std::cerr << "Before processing all the worms in processFrame" << std::endl;
+    }
+    #endif
     for (unsigned j = 0; j < Worm::worms.size(); j++) {
         Worm* worm = Worm::worms[j].get();
         if (worm == nullptr) continue;
@@ -369,12 +427,27 @@ void processFrame() {
             worm->move();
         }
     }
+    #if DEBUG
+    {
+        std::unique_lock<std::mutex> lock(stderrMutex); // Lock stays until scope ends
+        std::cerr << "After processing all the worms in processFrame" << std::endl;
+    }
+    #endif
     for (auto &wp : Worm::worms) {
         Worm* worm = wp.get();
         if (worm && worm->collided) {
             worm->die();
         }
     }
+    #if DEBUG
+    {
+        std::unique_lock<std::mutex> lock(stderrMutex); // Lock stays until scope ends
+        std::cerr << "After killing all the collided worms in processFrame" << std::endl;
+        for (size_t i = 0; i < Worm::worms.size(); i++) {
+            std::cerr << "\t[" << i << "] " << Worm::worms[i] << std::endl;
+        }
+    }
+    #endif
     for (unsigned j = 0; j < Mine::mines.size(); j++) {
         if (j >= Mine::mines.size()) break;
         Mine* mine = Mine::mines[j].get();
@@ -420,7 +493,13 @@ bool revivePlayers() {
 }
 
 void processDeath(std::shared_ptr<Player> player) {
-    std::lock_guard<std::mutex> lock(streamMutex);
+    #if DEBUG
+    {
+        std::unique_lock<std::mutex> lock(stderrMutex); // Lock stays until scope ends
+        std::cerr << "Before locking the streamMutex in processDeath" << std::endl;
+    }
+    #endif
+    std::unique_lock<std::mutex> lock(streamMutex);
     sista::Coordinates deathCoordinates = player->getCoordinates();
     field->movePawn(player.get(), player->respawnCoordinates);
     if (DROP_INVENTORY_ON_DEATH) {
@@ -436,6 +515,468 @@ void processDeath(std::shared_ptr<Player> player) {
     }
     player->inventory.clay = 0;
     player->inventory.bullets = 0;
+}
+
+void fullProcessFrame(int i) {
+    if (revivePlayers()) {
+        lastDeathFrame = i;
+    }
+    if (lastDeathFrame && i - lastDeathFrame == 20) {
+        // After 20 frames it deletes the death reason
+        std::unique_lock<std::mutex> lock(streamMutex); // Lock stays until scope ends
+        reprint();
+    }
+
+    #if DEBUG
+    {
+        std::unique_lock<std::mutex> lock(stderrMutex); // Lock stays until scope ends
+        std::cerr << "Before locking the streamMutex in fullProcessFrame" << std::endl;
+    }
+    #endif
+    std::unique_lock<std::mutex> lock(streamMutex); // Lock stays until scope ends
+    #if DEBUG
+    {
+        std::unique_lock<std::mutex> lock(stderrMutex); // Lock stays until scope ends
+        std::cerr << "After locking the streamMutex in fullprocessFrame" << std::endl;
+    }
+    #endif
+    processMoves();
+    #if DEBUG
+    {
+        std::unique_lock<std::mutex> lock(stderrMutex); // Lock stays until scope ends
+        std::cerr << "After processing all the moves in fullprocessFrame" << std::endl;
+    }
+    #endif
+    processFrame();
+    #if DEBUG
+    {
+        std::unique_lock<std::mutex> lock(stderrMutex); // Lock stays until scope ends
+        std::cerr << "After processing all the frame in fullprocessFrame" << std::endl;
+    }
+    #endif
+    if (i % MEAT_DURATION_PERIOD == MEAT_DURATION_PERIOD - 1) {
+        for (std::shared_ptr<Player> player : Player::players) {
+            if (player == nullptr) continue;
+            #if DEBUG
+            std::unique_lock stderrLock(stderrMutex);
+            std::cerr << "Decreasing the meat of " << player << " to " << player->inventory.meat - 1 << std::endl; 
+            #endif
+            player->inventory.meat--;
+        }
+    }
+    spawnEnemies();
+    #if DEBUG
+    {
+        std::unique_lock<std::mutex> lock(stderrMutex); // Lock stays until scope ends
+        std::cerr << "After spawning all the enemies in fullprocessFrame" << std::endl;
+    }
+    #endif
+    printSideInstructions(i);
+    // Check for negative amount of meat
+    if (Player::localPlayer->inventory.meat < 0) {
+        printEndInformation(EndReason::STARVED);
+        Player::localPlayer->dead = true;
+        end = true;
+    }
+    end = endConditions();
+}
+
+void updateClients(RemoteInavjagaIO* remote_) {
+    ServerRemoteInavjagaIO* remote = (ServerRemoteInavjagaIO*)remote_;
+    #if DEBUG
+    {
+        std::unique_lock stderrLock(stderrMutex);
+        std::cerr << "Trying to lock the gameStateMutex" << std::endl;
+    }
+    #endif
+    if (gameState.empty()) return; // We haven't gone over a frame yet
+    #if DEBUG
+    {
+        std::unique_lock stderrLock(stderrMutex);
+        std::cerr << "\tLocked the gameState and now trying to send it" << std::endl;
+    }
+    #endif
+    remote->sendGameStateToAll(gameState);
+}
+
+inline void rtrimGameState(std::string &s) {
+    s.erase(std::find_if(s.rbegin(), s.rend(), [](unsigned char ch) {
+        return ch == classTermination[0];
+    }).base(), s.end());
+}
+
+/** @brief Receives updates from the server containing a full snapshot of the game state
+ * @retval -1 When the return value should be ignored since the frame number has not be altered
+ * @return The current frame, value to be assigned to i
+ */
+int recvUpdates(RemoteInavjagaIO* remote_) {
+    ClientRemoteInavjagaIO* remote = (ClientRemoteInavjagaIO*)remote_;
+    #if DEBUG
+    {
+        std::unique_lock stderrLock(stderrMutex);
+        std::cerr << "Trying to lock the gameStateMutex in recvUpdates" << std::endl;
+    }
+    #endif
+    std::string serverGameState;
+    serverGameState = remote->recvGameState();
+    rtrimGameState(serverGameState); // To cut out garbage in the string
+    #if DEBUG
+    {
+        std::unique_lock lock(stderrMutex);
+        std::cerr << "The srv game state is: " << serverGameState << std::endl;
+    }
+    #endif
+    #if DEBUG
+    {
+        std::unique_lock lock(stderrMutex);
+        std::cerr << "\tThe game state is: " << gameState << std::endl;
+    }
+    #endif
+    if (serverGameState.empty()) return -1;
+    if (serverGameState == gameState) return -1;
+    #if DEBUG
+    {
+        std::unique_lock lock(stderrMutex);
+        std::cerr << "The game state did not match with the server, latency might be there" << std::endl;
+    }
+    #endif
+    // Parsing the frame number from the server
+    std::istringstream isServer(serverGameState);
+    std::string frameString;
+    std::getline(isServer, frameString, ',');
+    if (std::empty(frameString) || !std::isalnum(frameString[0])) {
+        #if DEBUG
+        {
+            std::unique_lock lock(stderrMutex);
+            std::cerr << "We received absolute emptiness from the server on the synchronization channel" << std::endl;
+        }
+        #endif
+        return -1;
+    }
+    int serverFrame = std::stoi(frameString);
+    // Parsing the frame number from the client
+    std::istringstream isClient(gameState);
+    std::getline(isClient, frameString, ',');
+    if (std::empty(frameString) || !std::isalnum(frameString[0])) {
+        #if DEBUG
+        {
+            std::unique_lock lock(stderrMutex);
+            std::cerr << "The client has an absolutely empty or malformed game state" << std::endl;
+            std::cerr << gameState << std::endl;
+        }
+        #endif
+        return -1;
+    }
+    int clientFrame = std::stoi(frameString);
+    if (clientFrame == serverFrame) {
+        // This means that there is a mismatch and there will be some work to do
+        if (bool changed = restoreGameState(serverGameState, gameState); changed) {
+            pastGameStates[serverFrame % pastGameStatesBufferSize] = serverGameState;
+            gameState = serverGameState;
+            reprint();
+            return serverFrame;
+        }
+        return -1;
+    } else if (clientFrame < serverFrame) {
+        #if DEBUG
+        {
+            std::unique_lock lock(stderrMutex);
+            std::cerr << "Somehow we are " << serverFrame - clientFrame << " frames behind the server" << std::endl;
+        }
+        #endif
+        return -1;
+    } else {
+        if (pastGameStates[serverFrame % pastGameStatesBufferSize] == serverGameState) {
+            // This means we are just some frames ahead, we can keep on going
+            #if DEBUG
+            {
+                std::unique_lock lock(stderrMutex);
+                std::cerr << "Because of latency, we are " << clientFrame - serverFrame << " frames ahead of the server" << std::endl;
+            }
+            #endif
+            return -1;
+        } else {
+            // This means that we lost synchronization some frames ago
+            /// @note we assume that latency cannot be greater than 
+            /// pastGameStatesBufferSize * FRAME_DURATION milliseconds
+            restoreGameState(serverGameState, gameState);
+            pastGameStates[serverFrame % pastGameStatesBufferSize] = serverGameState;
+            for (int i = serverFrame + 1; i <= clientFrame; i++) {
+                fullProcessFrame(i);
+                pastGameStates[i % pastGameStatesBufferSize] = std::to_string(i)
+                    + "," + serialize(rng)
+                    + "," + serializeGameState();
+            }
+            gameState = pastGameStates[clientFrame % pastGameStatesBufferSize];
+            reprint();
+            return clientFrame;
+        }
+    }
+}
+
+/** @brief Restores the mismatching entities from a string
+ * @param serverGameState A string in the format output by `splitGameState`
+ * @cite serialize.cpp
+ * @note Refer to serializeGameState for reverse implementation details
+ * @warning We assume the gameStateMutex to be already locked before the function is called
+ * @warning Will not restore the Player positions unless there is any other mismatch
+ * @return Whether the game state has been restored or ignored
+ */
+bool restoreGameState(
+    const std::map<Type, std::string>& serverGameState,
+    const std::map<Type, bool>& mismatchingEntityType
+) {
+    bool somethingChanged = false;
+    #if DEBUG
+    std::map<Type, std::string> clientGameState = splitGameState(gameState);
+    #endif
+    if (mismatchingEntityType.at(Type::ARCHER)) {
+        somethingChanged = true;
+        #if DEBUG
+        {
+            std::unique_lock lock(stderrMutex);
+            std::cerr << "Server archers: " << serverGameState.at(Type::ARCHER) << std::endl;
+            std::cerr << "Client archers: " << clientGameState.at(Type::ARCHER) << std::endl;
+        }
+        #endif
+        removeEntityType(Archer::archers);
+    }
+    if (mismatchingEntityType.at(Type::BULLET)) {
+        somethingChanged = true;
+        #if DEBUG
+        {
+            std::unique_lock lock(stderrMutex);
+            std::cerr << "Server bullets: " << serverGameState.at(Type::BULLET) << std::endl;
+            std::cerr << "Client bullets: " << clientGameState.at(Type::BULLET) << std::endl;
+        }
+        #endif
+        removeEntityType(Bullet::bullets);
+    }
+    if (mismatchingEntityType.at(Type::CHEST)) {
+        somethingChanged = true;
+        removeEntityType(Chest::chests);
+    }
+    if (mismatchingEntityType.at(Type::ENEMY_BULLET)) {
+        somethingChanged = true;
+        removeEntityType(EnemyBullet::enemyBullets);
+    }
+    if (mismatchingEntityType.at(Type::MINE)) {
+        somethingChanged = true;
+        removeEntityType(Mine::mines);
+    }
+    if (mismatchingEntityType.at(Type::PORTAL)) {
+        somethingChanged = true;
+        removeEntityType(Portal::portals);
+    }
+    if (mismatchingEntityType.at(Type::WALL)) {
+        somethingChanged = true;
+        removeEntityType(Wall::walls);
+    }
+    if (mismatchingEntityType.at(Type::WORM_HEAD)) {
+        somethingChanged = true;
+        removeEntityType(Worm::worms);
+    }
+    if (somethingChanged && mismatchingEntityType.at(Type::PLAYER)) {
+        #if DEBUG
+        {
+            std::unique_lock lock(stderrMutex);
+            std::cerr << "Server players: " << serverGameState.at(Type::PLAYER) << std::endl;
+            std::cerr << "Client players: " << clientGameState.at(Type::PLAYER) << std::endl;
+        }
+        #endif
+        removeEntityType(Player::players);
+        #if DEBUG
+        {
+            std::unique_lock lock(stderrMutex);
+            std::cerr << "Removing the players is fine" << std::endl;
+        }
+        #endif
+    }
+    if (mismatchingEntityType.at(Type::ARCHER)) {
+        deserializeEntities<Archer>(serverGameState.at(Type::ARCHER));
+    }
+    if (mismatchingEntityType.at(Type::BULLET)) {
+        deserializeEntities<Bullet>(serverGameState.at(Type::BULLET));
+    }
+    if (mismatchingEntityType.at(Type::CHEST)) {
+        deserializeEntities<Chest>(serverGameState.at(Type::CHEST));
+    }
+    if (mismatchingEntityType.at(Type::ENEMY_BULLET)) {
+        deserializeEntities<EnemyBullet>(serverGameState.at(Type::ENEMY_BULLET));
+    }
+    if (mismatchingEntityType.at(Type::MINE)) {
+        deserializeEntities<Mine>(serverGameState.at(Type::MINE));
+    }
+    if (mismatchingEntityType.at(Type::PORTAL)) {
+        deserializeEntities<Portal>(serverGameState.at(Type::PORTAL));
+    }
+    if (mismatchingEntityType.at(Type::WALL)) {
+        deserializeEntities<Wall>(serverGameState.at(Type::WALL));
+    }
+    if (mismatchingEntityType.at(Type::WORM_HEAD)) {
+        deserializeEntities<Worm>(serverGameState.at(Type::WORM_HEAD));
+        for (std::shared_ptr<Worm> worm : Worm::worms) {
+            for (std::shared_ptr<WormBody> wormBody : worm->body) {
+                WormBody::wormBodies.push_back(wormBody);
+                field->addPawn(wormBody);
+            }
+        }
+    }
+    if (somethingChanged && mismatchingEntityType.at(Type::PLAYER)) {
+        deserializeEntities<Player>(serverGameState.at(Type::PLAYER));
+        #if DEBUG
+        {
+            std::unique_lock lock(stderrMutex);
+            std::cerr << "Adding the players is fine" << std::endl;
+        }
+        #endif
+        Player::localPlayer = Player::players[Player::localPlayerId];
+        Player::localPlayer->setSettings(Player::localPlayerStyle);
+    }
+    return somethingChanged;
+}
+
+template <class T>
+void removeEntityType(std::vector<std::shared_ptr<T>> entities) {
+    for (size_t e = 0; e < entities.size(); e++) {
+        if (std::is_same<T, Worm>::value) {
+            std::vector<std::shared_ptr<WormBody>> wormBodies = 
+                std::dynamic_pointer_cast<Worm>(entities[e])->body;
+            for (size_t i = 0; i < wormBodies.size(); i++) {
+                wormBodies[i]->remove();
+            }
+        }
+        if (entities[e] != nullptr) {
+            field->erasePawn(entities[e].get());
+        }
+    }
+    T::entities->clear();
+}
+
+bool restoreGameState(
+    const std::string& serverGameState,
+    const std::string& clientGameState
+) {
+    std::map<Type, std::string> splitServerState = splitGameState(serverGameState);
+    std::map<Type, std::string> splitClientState = splitGameState(clientGameState);
+    #if DEBUG
+    {
+        std::unique_lock lock(stderrMutex);
+        std::cerr << "\tServer: " << serverGameState << "\n\tClient: " << clientGameState << std::endl;
+    }
+    #endif
+    std::map<Type, bool> mismatches = compareGameStates(splitServerState, splitClientState);
+    if (restoreGameState(splitServerState, mismatches)) {
+        std::istringstream state(serverGameState);
+        std::string frameString; // We are lk trashing this anyway
+        std::getline(state, frameString, ',');
+        state >> rng; // Restoring the rng state to the server's, because the overload didn't
+        return true;
+    }
+    return false;
+}
+
+/** @brief Restores the field and the entities from a string
+ * @param serverGameState A string in the format defined by serializeGameState
+ * @cite serialize.cpp
+ * @note Refer to serializeGameState for reverse implementation details
+ * @warning We assume the gameStateMutex to be already locked before the function is called
+ */
+void restoreGameState(const std::string& serverGameState) {
+    std::istringstream state(serverGameState);
+    #if DEBUG
+    {
+        std::unique_lock lock(stderrMutex);
+        std::cerr << "Restoring the game state to \n\t" << serverGameState << std::endl;
+    }
+    #endif
+    {
+        #if DEBUG
+        {
+            std::unique_lock lock(stderrMutex);
+            std::cerr << "\t- Waiting to obtain the streamMutex at restoreGameState" << std::endl;
+        }
+        #endif
+        std::unique_lock lock(streamMutex);
+        deallocateAll();
+        #if DEBUG
+        {
+            std::unique_lock lock(stderrMutex);
+            std::cerr << "\t- Cleared the vectors" << std::endl;
+        }
+        #endif
+        field->clear();
+        #if DEBUG
+        {
+            std::unique_lock lock(stderrMutex);
+            std::cerr << "\t- Cleared the field" << std::endl;
+        }
+        #endif
+    }
+
+    std::string frameString; // We are lk trashing this anyway
+    std::getline(state, frameString, ',');
+
+    state >> rng; // We restore the rng state
+    char _;
+    state >> _ >> _; // Comma and classTermination
+    #if DEBUG
+    {
+        std::unique_lock<std::mutex> lock(stderrMutex); // Lock stays until scope ends
+        std::cerr << "Before locking the streamMutex in restoreGameState" << std::endl;
+    }
+    #endif
+    std::unique_lock lock(streamMutex);
+    #if DEBUG
+    {
+        std::unique_lock<std::mutex> lock(stderrMutex); // Lock stays until scope ends
+        std::cerr << "After locking the streamMutex in restoreGameState" << std::endl;
+    }
+    #endif
+    std::map<Type, std::string> entities = splitGameState(state);
+    deserializeEntities<Archer>(entities[Type::ARCHER]);
+    deserializeEntities<Bullet>(entities[Type::BULLET]);
+    deserializeEntities<Chest>(entities[Type::CHEST]);
+    deserializeEntities<EnemyBullet>(entities[Type::ENEMY_BULLET]);
+    deserializeEntities<Mine>(entities[Type::MINE]);
+    deserializeEntities<Player>(entities[Type::PLAYER]);
+    Player::localPlayer = Player::players[Player::localPlayerId];
+    Player::localPlayer->setSettings(Player::localPlayerStyle);
+    #if DEBUG
+    {
+        std::unique_lock lock(stderrMutex);
+        for (auto player : Player::players) {
+            if (player == nullptr) continue;
+            std::cerr << "\tPlayer " << player << " has id=" << player->id << std::endl;
+        }
+    }
+    #endif
+    deserializeEntities<Portal>(entities[Type::PORTAL]);
+    deserializeEntities<Wall>(entities[Type::WALL]);
+    deserializeEntities<Worm>(entities[Type::WORM_HEAD]);
+    for (std::shared_ptr<Worm> worm : Worm::worms) {
+        for (std::shared_ptr<WormBody> wormBody : worm->body) {
+            WormBody::wormBodies.push_back(wormBody);
+            field->addPawn(wormBody);
+        }
+    }
+}
+
+template <class T>
+void deserializeEntities(const std::string& entities) {
+    std::istringstream entitiesStream(entities);
+    std::string entity;
+    for (int counter = 0; std::getline(entitiesStream, entity, ';'); counter++) {
+        std::shared_ptr<T> entityObject = deserialize<T>(entity);
+        T::entities->push_back(entityObject);
+        field->addPawn(entityObject);
+        if (std::is_same<T, Portal>::value) {
+            if (counter % 2 == 1) {
+                (*Portal::entities)[counter - 1]->exit = (*Portal::entities)[counter];
+                (*Portal::entities)[counter]->exit = (*Portal::entities)[counter - 1];
+            }
+        }
+    }
 }
 
 void intro() {
@@ -821,13 +1362,37 @@ void input(IO* io) {
         if (moveEvent.move == INAVJAGA_CHAR_MOVE_IGNORE) {
             continue;
         }
-        if (act(moveEvent)) {
+        if (isAct(moveEvent)) {
+            std::unique_lock lock(movesBufferMutex);
+            movesBuffer.push(moveEvent);
             #if CLIENT
             if (std::is_same<IO, RemoteInavjagaIO>::value) continue;
             #endif
+            #if DEBUG
+            auto start = std::chrono::high_resolution_clock::now();
+            #endif
             io->sendMove(moveEvent);
+            #if DEBUG
+            {
+                std::unique_lock lock(stderrMutex);
+                std::chrono::duration<double> delta = std::chrono::high_resolution_clock::now() - start;
+                std::cerr << "Sending a move took "
+                          << std::chrono::duration_cast<std::chrono::microseconds>(delta).count()
+                          << "µs" << std::endl;
+            }
+            #endif
         }
     }
+}
+
+bool isAct(MoveEvent event) {
+    static std::set<char> moves = std::set<char>({
+        'w', 'a', 's', 'd',
+        'j', 'k', 'l', 'i',
+        'c', 'b', 'e', 'm', 'q'
+    });
+    char move = std::tolower(event.move);
+    return moves.count(move) > 0;
 }
 
 /** Process an action to the field from a Player
@@ -838,43 +1403,43 @@ bool act(MoveEvent event) {
     std::shared_ptr<Player> player = Player::players[event.playerId];
     switch (event.move) {
         case 'w': case 'W': {
-            std::scoped_lock<std::mutex> lock(streamMutex);
+            // std::scoped_lock<std::mutex> lock(streamMutex);
             player->move(Direction::UP);
             break;
         }
         case 'a': case 'A': {
-            std::scoped_lock<std::mutex> lock(streamMutex);
+            // std::scoped_lock<std::mutex> lock(streamMutex);
             player->move(Direction::LEFT);
             break;
         }
         case 's': case 'S': {
-            std::scoped_lock<std::mutex> lock(streamMutex);
+            // std::scoped_lock<std::mutex> lock(streamMutex);
             player->move(Direction::DOWN);
             break;
         }
         case 'd': case 'D': {
-            std::scoped_lock<std::mutex> lock(streamMutex);
+            // std::scoped_lock<std::mutex> lock(streamMutex);
             player->move(Direction::RIGHT);
             break;
         }
 
         case 'j': case 'J': {
-            std::scoped_lock<std::mutex> lock(streamMutex);
+            // std::scoped_lock<std::mutex> lock(streamMutex);
             player->shoot(Direction::LEFT);
             break;
         }
         case 'k': case 'K': {
-            std::scoped_lock<std::mutex> lock(streamMutex);
+            // std::scoped_lock<std::mutex> lock(streamMutex);
             player->shoot(Direction::DOWN);
             break;
         }
         case 'l': case 'L': {
-            std::scoped_lock<std::mutex> lock(streamMutex);
+            // std::scoped_lock<std::mutex> lock(streamMutex);
             player->shoot(Direction::RIGHT);
             break;
         }
         case 'i': case 'I': {
-            std::scoped_lock<std::mutex> lock(streamMutex);
+            // std::scoped_lock<std::mutex> lock(streamMutex);
             player->shoot(Direction::UP);
             break;
         }
@@ -904,7 +1469,7 @@ bool act(MoveEvent event) {
         default:
             return false;
     }
-    return true;
+    return isAct(event);
 }
 
 bool act(char input_) {
@@ -1085,15 +1650,16 @@ sista::Coordinates negotiateCoordinates(std::weak_ptr<sista::SwappableField> fie
 }
 
 void deallocateAll() {
-    Wall::walls.clear();
+    Archer::archers.clear();
     Bullet::bullets.clear();
     Chest::chests.clear();
+    EnemyBullet::enemyBullets.clear();
+    Player::players.clear();
     Portal::portals.clear();
     Mine::mines.clear();
-    EnemyBullet::enemyBullets.clear();
-    Archer::archers.clear();
-    WormBody::wormBodies.clear();
+    Wall::walls.clear();
     Worm::worms.clear();
+    WormBody::wormBodies.clear();
 }
 
 std::unordered_map<Direction, sista::Coordinates> directionMap = {
@@ -1112,6 +1678,6 @@ std::set<char> movementKeys = {
     'w', 'W', 'd', 'D', 's', 'S', 'a', 'A'
 };
 std::random_device randomDevice;
-std::mt19937 rng;
+std::minstd_rand rng;
 std::map<int, std::vector<int>> passages; // Lateral passages, "main tunnel" tresholds
 std::map<int, std::vector<int>> breaches; // Central breaches, "holes"

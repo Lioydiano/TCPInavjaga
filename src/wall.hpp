@@ -7,6 +7,7 @@ class Wall : public Entity {
 public:
     static sista::ANSISettings wallStyle;
     static std::vector<std::shared_ptr<Wall>> walls;
+    static std::vector<std::shared_ptr<Wall>>* entities;
     static std::bernoulli_distribution wearing;
     short int strength;
 

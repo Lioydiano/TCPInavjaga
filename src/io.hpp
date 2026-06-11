@@ -16,7 +16,11 @@
 struct MoveEvent {
     player_id_t playerId;
     char move;
+
+    bool operator<(const MoveEvent&) const;
 };
+
+void disableNagle(int);
 
 /** @brief InavjagaGSP input/output - 
  * It is the abstraction layer between the struct MoveEvent to be sent/received and a socket
@@ -31,6 +35,7 @@ private:
     static struct pollfd pollFds[10];
 protected:
     static std::mutex outputMutex;
+    static std::mutex syncMutex;
     static const char acceptMessage[2];
     static const char yesMessage[2];
     static const char noMessage[2];
@@ -41,6 +46,8 @@ protected:
     bool recvBool(int timeout = 1000) const;
     void sendCoordinates(const sista::Coordinates& coordinates) const;
 public:
+    void sendSyncData(const std::string&);
+    std::string recvSyncData(int timeout=1000);
     void sendNo();
     void sendYes();
     bool waitYes(int timeout=1000);
@@ -72,6 +79,7 @@ public:
     bool recvReady(int timeout=1000);
     void acceptMoveConnection(int);
     void acceptSyncConnection(int);
+    void sendGameState(std::string, uint32_t, int);
 };
 
 /**
@@ -163,6 +171,7 @@ protected:
     ServerRemoteInavjagaIO();
 public:
     ServerRemoteInavjagaIO(std::vector<std::shared_ptr<ServerInavjagaGSPIO>>&);
+    void sendGameStateToAll(const std::string&);
 };
 class ClientRemoteInavjagaIO: public RemoteInavjagaIO {
 protected:
@@ -170,4 +179,5 @@ protected:
 public:
     ClientRemoteInavjagaIO(std::shared_ptr<ClientInavjagaGSPIO>);
     bool isChannelAlive() override;
+    std::string recvGameState(int timeout=100);
 };
