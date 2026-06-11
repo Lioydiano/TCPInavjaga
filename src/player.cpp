@@ -133,6 +133,10 @@ sista::ANSISettings Player::localPlayerStyle = {
 player_id_t Player::localPlayerId = 0;
 
 void Player::disconnectPlayer(player_id_t playerId) {
+    if (playerId >= players.size() || players[playerId] == nullptr) {
+        return;
+    }
     std::shared_ptr<Player> victim = players[playerId];
     victim->remove();
+    players[playerId] = nullptr;
 }

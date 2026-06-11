@@ -1400,6 +1400,9 @@ bool isAct(MoveEvent event) {
  * \return whether the event was a valid one
  */
 bool act(MoveEvent event) {
+    if (event.playerId >= Player::players.size() || Player::players[event.playerId] == nullptr) {
+        return false;
+    }
     std::shared_ptr<Player> player = Player::players[event.playerId];
     switch (event.move) {
         case 'w': case 'W': {
