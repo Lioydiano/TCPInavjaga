@@ -9,5 +9,6 @@ core
 *.out
 *.log
 .gdb_history
+.build-flags
 .deps/
 include/sista/

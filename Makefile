@@ -47,6 +47,7 @@ STATIC ?= 0
 
 OBJ = $(SRC:.cpp=.o)
 DEP = $(OBJ:.o=.d)
+BUILD_CONFIG = .build-flags
 
 ifeq ($(SERVER),1)
 all: inavjagaServer
@@ -78,7 +79,11 @@ endif
 
 $(SISTA_LOCAL_SRC): | prepare-local-sista
 
-%.o: %.cpp Makefile
+$(BUILD_CONFIG): FORCE
+	@printf '%s\n' "$(CXXFLAGS) $(DEFINEFLAGS) $(LDFLAGS)" | cmp -s $@ - || \
+	  printf '%s\n' "$(CXXFLAGS) $(DEFINEFLAGS) $(LDFLAGS)" > $@
+
+%.o: %.cpp Makefile $(BUILD_CONFIG)
 	$(CXX) $(CXXFLAGS) $(DEFINEFLAGS) $(DEPFLAGS) -c $< -o $@
 
 ifeq ($(USE_LOCAL_SISTA),1)
@@ -113,5 +118,6 @@ clean:
 	rm -f *.d
 	rm -f src/*.d
 	rm -f include/sista/*.d
+	rm -f $(BUILD_CONFIG)
 
-.PHONY: all clean prepare-local-sista
+.PHONY: all clean prepare-local-sista FORCE
