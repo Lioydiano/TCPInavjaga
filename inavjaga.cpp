@@ -58,7 +58,7 @@ int main(int argc, char* argv[]) {
     std::ios_base::sync_with_stdio(true);
     sista::resetAnsi(); // Reset the settings
 
-    if (argc < 3) {
+    if (argc < 4) {
         std::cerr << "The correct format is: ./inavjaga[Server] <ip-address> <moves-tcp-port> <sync-tcp-port>" << std::endl;
         return 1;
     }
