@@ -10,7 +10,6 @@
 #include <chrono>
 #include <poll.h>
 #include <cerrno>
-#include <vector>
 
 std::mutex InavjagaGSPIO::outputMutex = std::mutex();
 std::mutex InavjagaGSPIO::syncMutex = std::mutex();
@@ -47,41 +46,6 @@ bool readExact(int fd, void* data, size_t size) {
     return true;
 }
 
-bool readExact(int fd, void* data, size_t size, int timeout) {
-    char* cursor = static_cast<char*>(data);
-    auto start = std::chrono::high_resolution_clock::now();
-    while (size > 0) {
-        int remainingTimeout = timeout - std::chrono::duration_cast<std::chrono::milliseconds>(
-            std::chrono::high_resolution_clock::now() - start
-        ).count();
-        if (remainingTimeout <= 0) {
-            return false;
-        }
-
-        struct pollfd pollFd = {0,0,0};
-        pollFd.fd = fd;
-        pollFd.events = POLLIN;
-        if (poll(&pollFd, 1, remainingTimeout) < 0) {
-            if (errno == EINTR) continue;
-            return false;
-        }
-        if (!(pollFd.revents & POLLIN)) {
-            return false;
-        }
-
-        ssize_t received = recv(fd, cursor, size, 0);
-        if (received < 0) {
-            if (errno == EINTR) continue;
-            return false;
-        }
-        if (received == 0) {
-            return false;
-        }
-        cursor += received;
-        size -= received;
-    }
-    return true;
-}
 }
 
 bool MoveEvent::operator<(const MoveEvent& moveEvent) const {
@@ -721,8 +685,6 @@ void InavjagaGSPIO::sendSyncData(const std::string& message) {
 }
 
 std::string InavjagaGSPIO::recvSyncData(int timeout) {
-    int initialTimeout = timeout;
-    auto start = std::chrono::high_resolution_clock::now();
     struct pollfd pollFd_ = {0,0,0};
     pollFd_.fd = this->syncsocketfd;
     pollFd_.events = POLLIN;
@@ -733,22 +695,43 @@ std::string InavjagaGSPIO::recvSyncData(int timeout) {
     }
     std::string received;
     if (pollFd_.revents & POLLIN) {
+        int available = 0;
+        if (ioctl(syncsocketfd, FIONREAD, &available) < 0) {
+            std::unique_lock lock(stderrMutex);
+            std::cerr << "Checking available sync data failed with error " << errno << std::endl;
+            throw std::runtime_error("Checking available sync data failed");
+        }
+        if (available < static_cast<int>(sizeof(uint32_t))) {
+            return "";
+        }
+
         uint32_t convertedSize;
+        if (recv(syncsocketfd, &convertedSize, sizeof(convertedSize), MSG_PEEK) < static_cast<ssize_t>(sizeof(convertedSize))) {
+            #if DEBUG
+            std::unique_lock lock(stderrMutex);
+            std::cerr << "Could not peek the sync message length yet" << std::endl;
+            #endif
+            return "";
+        }
+        size_t size = ntohl(convertedSize);
+        size_t framedSize = sizeof(uint32_t) + size;
+        if (static_cast<size_t>(available) < framedSize) {
+            #if DEBUG
+            std::unique_lock lock(stderrMutex);
+            std::cerr << "\tSync message incomplete: " << available << "/" << framedSize << " bytes ready" << std::endl;
+            #endif
+            return "";
+        }
+
         if (!readExact(syncsocketfd, &convertedSize, sizeof(convertedSize))) {
             std::unique_lock lock(stderrMutex);
             std::cerr << "Receiving message length failed with error " << errno << std::endl;
             throw std::runtime_error("Receiving message length failed");
         }
-        size_t size = ntohl(convertedSize);
         received.resize(size);
-        timeout = initialTimeout - std::chrono::duration_cast<std::chrono::milliseconds>(
-            std::chrono::high_resolution_clock::now() - start
-        ).count();
-        if (timeout <= 0 || !readExact(syncsocketfd, received.data(), received.size(), timeout)) {
-            #if DEBUG
+        if (!readExact(syncsocketfd, received.data(), received.size())) {
             std::unique_lock lock(stderrMutex);
-            std::cerr << "\tCould not read the complete sync message in time" << std::endl;
-            #endif
+            std::cerr << "Receiving sync message failed with error " << errno << std::endl;
             return "";
         }
         return received;
