@@ -7,6 +7,7 @@
 #include "portal.hpp"
 #include "wall.hpp"
 #include "worm.hpp"
+#include "entity.hpp"
 #include <sstream>
 #include <memory>
 #if DEBUG
@@ -81,6 +82,78 @@ std::string serializeGameState() {
     }
     serialized.append(classTermination);
     return serialized;
+}
+
+/** @brief Splits the game state into its sections
+ * @param gameState The game state without the frame number and the PRNG,
+ *                  starting from the first archer
+ * @note The key `Type::WORM_HEAD` represents Worms,
+ *       that are serialized together with WormBody,
+ *       thus there is no key `Type::WORM_BODY`
+ * @return The mapping between category of entities
+ *         and their serialized representation
+ */
+std::map<Type, std::string> splitGameState(std::istringstream& gameState) {
+    std::map<Type, std::string> entitySections;
+    std::getline(gameState, entitySections[Type::ARCHER], classTermination[0]);
+    std::getline(gameState, entitySections[Type::BULLET], classTermination[0]);
+    std::getline(gameState, entitySections[Type::CHEST], classTermination[0]);
+    std::getline(gameState, entitySections[Type::ENEMY_BULLET], classTermination[0]);
+    std::getline(gameState, entitySections[Type::MINE], classTermination[0]);
+    std::getline(gameState, entitySections[Type::PLAYER], classTermination[0]);
+    std::getline(gameState, entitySections[Type::PORTAL], classTermination[0]);
+    std::getline(gameState, entitySections[Type::WALL], classTermination[0]);
+    std::getline(gameState, entitySections[Type::WORM_HEAD], classTermination[0]);
+    return entitySections;
+}
+/**
+ * @note This overload expects a full game state, including the prefix to discard
+ */
+std::map<Type, std::string> splitGameState(const std::string& gameState) {
+    std::istringstream is(gameState);
+    std::string _;
+    std::getline(is, _, ','); // Toss the frame counter
+    std::getline(is, _, ','); // Toss the random state
+    char _classTermination;
+    is >> _classTermination; // Ignore the classTermination[0]
+    #if DEBUG
+    {
+        std::unique_lock lock(stderrMutex);
+        std::cerr << "Passing to splitGameState: " << is.str().substr( is.tellg() ) << std::endl;
+    }
+    #endif
+    return splitGameState(is);
+}
+
+/**
+ * @return Map where each changed entity type is associated to whether it mismatches
+ */
+std::map<Type, bool> compareGameStates(
+    const std::map<Type, std::string>& current,
+    const std::map<Type, std::string>& incoming
+) {
+    std::map<Type, bool> comparison;
+    comparison[Type::ARCHER] = current.at(Type::ARCHER) != incoming.at(Type::ARCHER);
+    comparison[Type::BULLET] = current.at(Type::BULLET) != incoming.at(Type::BULLET);
+    comparison[Type::CHEST] = current.at(Type::CHEST) != incoming.at(Type::CHEST);
+    comparison[Type::ENEMY_BULLET] = current.at(Type::ENEMY_BULLET) != incoming.at(Type::ENEMY_BULLET);
+    comparison[Type::MINE] = current.at(Type::MINE) != incoming.at(Type::MINE);
+    comparison[Type::PLAYER] = current.at(Type::PLAYER) != incoming.at(Type::PLAYER);
+    comparison[Type::PORTAL] = current.at(Type::PORTAL) != incoming.at(Type::PORTAL);
+    comparison[Type::WALL] = current.at(Type::WALL) != incoming.at(Type::WALL);
+    comparison[Type::WORM_HEAD] = current.at(Type::WORM_HEAD) != incoming.at(Type::WORM_HEAD);
+    #if DEBUG
+    {
+        std::unique_lock lock(stderrMutex);
+        for (auto const& [type, value] : comparison) {
+            std::cerr << "\t\tIncoming: " << incoming.at(type) << "\n";
+            std::cerr << "\t\tCurrent: " << current.at(type) << "\n";
+            std::cerr << "\t" << type << ": " << value << "\n";
+        }
+        std::flush(std::cerr);
+    }
+    #endif
+    return comparison;
 }
 
 std::string serialize(std::shared_ptr<Archer> archer) {

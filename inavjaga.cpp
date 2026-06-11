@@ -670,11 +670,13 @@ int recvUpdates(RemoteInavjagaIO* remote_) {
     int clientFrame = std::stoi(frameString);
     if (clientFrame == serverFrame) {
         // This means that there is a mismatch and there will be some work to do
-        restoreGameState(serverGameState);
-        pastGameStates[serverFrame % pastGameStatesBufferSize] = serverGameState;
-        gameState = serverGameState;
-        reprint();
-        return serverFrame;
+        if (bool changed = restoreGameState(serverGameState, gameState); changed) {
+            pastGameStates[serverFrame % pastGameStatesBufferSize] = serverGameState;
+            gameState = serverGameState;
+            reprint();
+            return serverFrame;
+        }
+        return -1;
     } else if (clientFrame < serverFrame) {
         #if DEBUG
         {
@@ -697,7 +699,7 @@ int recvUpdates(RemoteInavjagaIO* remote_) {
             // This means that we lost synchronization some frames ago
             /// @note we assume that latency cannot be greater than 
             /// pastGameStatesBufferSize * FRAME_DURATION milliseconds
-            restoreGameState(serverGameState);
+            restoreGameState(serverGameState, gameState);
             pastGameStates[serverFrame % pastGameStatesBufferSize] = serverGameState;
             for (int i = serverFrame + 1; i <= clientFrame; i++) {
                 fullProcessFrame(i);
@@ -712,12 +714,173 @@ int recvUpdates(RemoteInavjagaIO* remote_) {
     }
 }
 
+/** @brief Restores the mismatching entities from a string
+ * @param serverGameState A string in the format output by `splitGameState`
+ * @cite serialize.cpp
+ * @note Refer to serializeGameState for reverse implementation details
+ * @warning We assume the gameStateMutex to be already locked before the function is called
+ * @warning Will not restore the Player positions unless there is any other mismatch
+ * @return Whether the game state has been restored or ignored
+ */
+bool restoreGameState(
+    const std::map<Type, std::string>& serverGameState,
+    const std::map<Type, bool>& mismatchingEntityType
+) {
+    bool somethingChanged = false;
+    #if DEBUG
+    std::map<Type, std::string> clientGameState = splitGameState(gameState);
+    #endif
+    if (mismatchingEntityType.at(Type::ARCHER)) {
+        somethingChanged = true;
+        #if DEBUG
+        {
+            std::unique_lock lock(stderrMutex);
+            std::cerr << "Server archers: " << serverGameState.at(Type::ARCHER) << std::endl;
+            std::cerr << "Client archers: " << clientGameState.at(Type::ARCHER) << std::endl;
+        }
+        #endif
+        removeEntityType(Archer::archers);
+    }
+    if (mismatchingEntityType.at(Type::BULLET)) {
+        somethingChanged = true;
+        #if DEBUG
+        {
+            std::unique_lock lock(stderrMutex);
+            std::cerr << "Server bullets: " << serverGameState.at(Type::BULLET) << std::endl;
+            std::cerr << "Client bullets: " << clientGameState.at(Type::BULLET) << std::endl;
+        }
+        #endif
+        removeEntityType(Bullet::bullets);
+    }
+    if (mismatchingEntityType.at(Type::CHEST)) {
+        somethingChanged = true;
+        removeEntityType(Chest::chests);
+    }
+    if (mismatchingEntityType.at(Type::ENEMY_BULLET)) {
+        somethingChanged = true;
+        removeEntityType(EnemyBullet::enemyBullets);
+    }
+    if (mismatchingEntityType.at(Type::MINE)) {
+        somethingChanged = true;
+        removeEntityType(Mine::mines);
+    }
+    if (mismatchingEntityType.at(Type::PORTAL)) {
+        somethingChanged = true;
+        removeEntityType(Portal::portals);
+    }
+    if (mismatchingEntityType.at(Type::WALL)) {
+        somethingChanged = true;
+        removeEntityType(Wall::walls);
+    }
+    if (mismatchingEntityType.at(Type::WORM_HEAD)) {
+        somethingChanged = true;
+        removeEntityType(Worm::worms);
+    }
+    if (somethingChanged && mismatchingEntityType.at(Type::PLAYER)) {
+        #if DEBUG
+        {
+            std::unique_lock lock(stderrMutex);
+            std::cerr << "Server players: " << serverGameState.at(Type::PLAYER) << std::endl;
+            std::cerr << "Client players: " << clientGameState.at(Type::PLAYER) << std::endl;
+        }
+        #endif
+        removeEntityType(Player::players);
+        #if DEBUG
+        {
+            std::unique_lock lock(stderrMutex);
+            std::cerr << "Removing the players is fine" << std::endl;
+        }
+        #endif
+    }
+    if (mismatchingEntityType.at(Type::ARCHER)) {
+        deserializeEntities<Archer>(serverGameState.at(Type::ARCHER));
+    }
+    if (mismatchingEntityType.at(Type::BULLET)) {
+        deserializeEntities<Bullet>(serverGameState.at(Type::BULLET));
+    }
+    if (mismatchingEntityType.at(Type::CHEST)) {
+        deserializeEntities<Chest>(serverGameState.at(Type::CHEST));
+    }
+    if (mismatchingEntityType.at(Type::ENEMY_BULLET)) {
+        deserializeEntities<EnemyBullet>(serverGameState.at(Type::ENEMY_BULLET));
+    }
+    if (mismatchingEntityType.at(Type::MINE)) {
+        deserializeEntities<Mine>(serverGameState.at(Type::MINE));
+    }
+    if (mismatchingEntityType.at(Type::PORTAL)) {
+        deserializeEntities<Portal>(serverGameState.at(Type::PORTAL));
+    }
+    if (mismatchingEntityType.at(Type::WALL)) {
+        deserializeEntities<Wall>(serverGameState.at(Type::WALL));
+    }
+    if (mismatchingEntityType.at(Type::WORM_HEAD)) {
+        deserializeEntities<Worm>(serverGameState.at(Type::WORM_HEAD));
+        for (std::shared_ptr<Worm> worm : Worm::worms) {
+            for (std::shared_ptr<WormBody> wormBody : worm->body) {
+                WormBody::wormBodies.push_back(wormBody);
+                field->addPawn(wormBody);
+            }
+        }
+    }
+    if (somethingChanged && mismatchingEntityType.at(Type::PLAYER)) {
+        deserializeEntities<Player>(serverGameState.at(Type::PLAYER));
+        #if DEBUG
+        {
+            std::unique_lock lock(stderrMutex);
+            std::cerr << "Adding the players is fine" << std::endl;
+        }
+        #endif
+        Player::localPlayer = Player::players[Player::localPlayerId];
+        Player::localPlayer->setSettings(Player::localPlayerStyle);
+    }
+    return somethingChanged;
+}
+
+template <class T>
+void removeEntityType(std::vector<std::shared_ptr<T>> entities) {
+    for (size_t e = 0; e < entities.size(); e++) {
+        if (std::is_same<T, Worm>::value) {
+            std::vector<std::shared_ptr<WormBody>> wormBodies = 
+                std::dynamic_pointer_cast<Worm>(entities[e])->body;
+            for (size_t i = 0; i < wormBodies.size(); i++) {
+                wormBodies[i]->remove();
+            }
+        }
+        if (entities[e] != nullptr) {
+            field->erasePawn(entities[e].get());
+        }
+    }
+    T::entities->clear();
+}
+
+bool restoreGameState(
+    const std::string& serverGameState,
+    const std::string& clientGameState
+) {
+    std::map<Type, std::string> splitServerState = splitGameState(serverGameState);
+    std::map<Type, std::string> splitClientState = splitGameState(clientGameState);
+    #if DEBUG
+    {
+        std::unique_lock lock(stderrMutex);
+        std::cerr << "\tServer: " << serverGameState << "\n\tClient: " << clientGameState << std::endl;
+    }
+    #endif
+    std::map<Type, bool> mismatches = compareGameStates(splitServerState, splitClientState);
+    if (restoreGameState(splitServerState, mismatches)) {
+        std::istringstream state(serverGameState);
+        std::string frameString; // We are lk trashing this anyway
+        std::getline(state, frameString, ',');
+        state >> rng; // Restoring the rng state to the server's, because the overload didn't
+        return true;
+    }
+    return false;
+}
+
 /** @brief Restores the field and the entities from a string
  * @param serverGameState A string in the format defined by serializeGameState
  * @cite serialize.cpp
  * @note Refer to serializeGameState for reverse implementation details
  * @warning We assume the gameStateMutex to be already locked before the function is called
- * @todo The whole function is still empty
  */
 void restoreGameState(const std::string& serverGameState) {
     std::istringstream state(serverGameState);
@@ -770,19 +933,13 @@ void restoreGameState(const std::string& serverGameState) {
         std::cerr << "After locking the streamMutex in restoreGameState" << std::endl;
     }
     #endif
-    std::string entities;
-    std::getline(state, entities, classTermination[0]);
-    deserializeEntities<Archer>(entities);
-    std::getline(state, entities, classTermination[0]);
-    deserializeEntities<Bullet>(entities);
-    std::getline(state, entities, classTermination[0]);
-    deserializeEntities<Chest>(entities);
-    std::getline(state, entities, classTermination[0]);
-    deserializeEntities<EnemyBullet>(entities);
-    std::getline(state, entities, classTermination[0]);
-    deserializeEntities<Mine>(entities);
-    std::getline(state, entities, classTermination[0]);
-    deserializeEntities<Player>(entities);
+    std::map<Type, std::string> entities = splitGameState(state);
+    deserializeEntities<Archer>(entities[Type::ARCHER]);
+    deserializeEntities<Bullet>(entities[Type::BULLET]);
+    deserializeEntities<Chest>(entities[Type::CHEST]);
+    deserializeEntities<EnemyBullet>(entities[Type::ENEMY_BULLET]);
+    deserializeEntities<Mine>(entities[Type::MINE]);
+    deserializeEntities<Player>(entities[Type::PLAYER]);
     Player::localPlayer = Player::players[Player::localPlayerId];
     Player::localPlayer->setSettings(Player::localPlayerStyle);
     #if DEBUG
@@ -794,12 +951,9 @@ void restoreGameState(const std::string& serverGameState) {
         }
     }
     #endif
-    std::getline(state, entities, classTermination[0]);
-    deserializeEntities<Portal>(entities);
-    std::getline(state, entities, classTermination[0]);
-    deserializeEntities<Wall>(entities);
-    std::getline(state, entities, classTermination[0]);
-    deserializeEntities<Worm>(entities);
+    deserializeEntities<Portal>(entities[Type::PORTAL]);
+    deserializeEntities<Wall>(entities[Type::WALL]);
+    deserializeEntities<Worm>(entities[Type::WORM_HEAD]);
     for (std::shared_ptr<Worm> worm : Worm::worms) {
         for (std::shared_ptr<WormBody> wormBody : worm->body) {
             WormBody::wormBodies.push_back(wormBody);

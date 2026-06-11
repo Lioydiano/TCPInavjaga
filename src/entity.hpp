@@ -5,20 +5,20 @@
 #pragma once
 
 enum Type {
-    PLAYER,
-    BULLET,
-    WALL, // #
-    PORTAL, // =
-    CHEST, // C, can be collected by the player
-    TRAP, // T, will act when stepped on
-    MINE, // *, will be triggered when passing by
+    PLAYER=0,
+    BULLET=1,
+    WALL=2, // #
+    PORTAL=3, // &
+    CHEST=4, // C, can be collected by the player
+    TRAP=5, // T, will act when stepped on
+    MINE=6, // *, will be triggered when passing by
 
     // Inspired from https://github.com/Lioydiano/Dune
-    WORM_HEAD, // H
-    WORM_BODY, // <^v>
+    WORM_HEAD=7, // H
+    WORM_BODY=8, // <^v>
 
-    ARCHER, // A
-    ENEMY_BULLET,
+    ARCHER=9, // A
+    ENEMY_BULLET=10,
 };
 
 class Entity : public sista::Pawn {

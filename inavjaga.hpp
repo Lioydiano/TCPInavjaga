@@ -48,7 +48,13 @@ void reprint();
 void updateClients(RemoteInavjagaIO*);
 int recvUpdates(RemoteInavjagaIO*);
 void restoreGameState(const std::string&);
+bool restoreGameState(const std::string&, const std::string&);
+bool restoreGameState(
+    const std::map<Type, std::string>&,
+    const std::map<Type, bool>&
+);
 template <class T> void deserializeEntities(const std::string&);
+template <class T> void removeEntityType(std::vector<std::shared_ptr<T>>);
 template<typename IO> void input(IO*);
 bool isAct(MoveEvent);
 bool act(char);
