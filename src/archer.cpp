@@ -138,8 +138,8 @@ void Archer::move() {
     }
     int delta_y = next_passage_y - row;
     int delta_x = next_passage_x - column;
-    float ratio = (std::min(std::abs(delta_y), std::abs(delta_x)) + 1)
-                / (std::max(std::abs(delta_y), std::abs(delta_x)) + 1);
+    float ratio = static_cast<float>(std::min(std::abs(delta_y), std::abs(delta_x)) + 1)
+                / static_cast<float>(std::max(std::abs(delta_y), std::abs(delta_x)) + 1);
     std::bernoulli_distribution verticalNotHorizontalDistribution(ratio);
     if (verticalNotHorizontalDistribution(rng)) {
         this->move(Direction::UP);
@@ -179,7 +179,7 @@ void Archer::shoot() {
         // Roughly vertically aligned with the player
         if (coordinates.y / (TUNNEL_UNIT * 3) != Player::localPlayer->getCoordinates().y / (TUNNEL_UNIT * 3)) {
             // They was a wall between them so the archer cannot see
-            int next_breaches_y = (coordinates.y % (TUNNEL_UNIT * 3)) - 1;
+            int next_breaches_y = coordinates.y - (coordinates.y % (TUNNEL_UNIT * 3)) - 1;
             if (!breaches[next_breaches_y].empty()) {
                 if (std::find(breaches[next_breaches_y].begin(), breaches[next_breaches_y].end(), coordinates.x) != breaches[next_breaches_y].end()) {
                     // ...unless there is a breach right above that allows the archer to hear the player moving behind the wall
