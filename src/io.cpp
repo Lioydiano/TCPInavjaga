@@ -9,10 +9,80 @@
 #include <future>
 #include <chrono>
 #include <poll.h>
+#include <cerrno>
+#include <vector>
 
 std::mutex InavjagaGSPIO::outputMutex = std::mutex();
 std::mutex InavjagaGSPIO::syncMutex = std::mutex();
 extern std::mutex stderrMutex;
+
+namespace {
+bool writeAll(int fd, const void* data, size_t size) {
+    const char* cursor = static_cast<const char*>(data);
+    while (size > 0) {
+        ssize_t written = write(fd, cursor, size);
+        if (written < 0) {
+            if (errno == EINTR) continue;
+            return false;
+        }
+        if (written == 0) return false;
+        cursor += written;
+        size -= written;
+    }
+    return true;
+}
+
+bool readExact(int fd, void* data, size_t size) {
+    char* cursor = static_cast<char*>(data);
+    while (size > 0) {
+        ssize_t received = recv(fd, cursor, size, 0);
+        if (received < 0) {
+            if (errno == EINTR) continue;
+            return false;
+        }
+        if (received == 0) return false;
+        cursor += received;
+        size -= received;
+    }
+    return true;
+}
+
+bool readExact(int fd, void* data, size_t size, int timeout) {
+    char* cursor = static_cast<char*>(data);
+    auto start = std::chrono::high_resolution_clock::now();
+    while (size > 0) {
+        int remainingTimeout = timeout - std::chrono::duration_cast<std::chrono::milliseconds>(
+            std::chrono::high_resolution_clock::now() - start
+        ).count();
+        if (remainingTimeout <= 0) {
+            return false;
+        }
+
+        struct pollfd pollFd = {0,0,0};
+        pollFd.fd = fd;
+        pollFd.events = POLLIN;
+        if (poll(&pollFd, 1, remainingTimeout) < 0) {
+            if (errno == EINTR) continue;
+            return false;
+        }
+        if (!(pollFd.revents & POLLIN)) {
+            return false;
+        }
+
+        ssize_t received = recv(fd, cursor, size, 0);
+        if (received < 0) {
+            if (errno == EINTR) continue;
+            return false;
+        }
+        if (received == 0) {
+            return false;
+        }
+        cursor += received;
+        size -= received;
+    }
+    return true;
+}
+}
 
 bool MoveEvent::operator<(const MoveEvent& moveEvent) const {
     if (this->playerId < moveEvent.playerId) return true;
@@ -84,7 +154,9 @@ uint32_t InavjagaGSPIO::recvRandomSeed(int timeout) {
         throw std::runtime_error("Polling failed");
     }
     if (pollFd_.revents & POLLIN) {
-        read(socketfd, &seed, sizeof(uint32_t));
+        if (!readExact(socketfd, &seed, sizeof(uint32_t))) {
+            throw std::runtime_error("Reading random seed failed");
+        }
         return ntohl(seed);
     }
     {
@@ -102,9 +174,9 @@ void InavjagaGSPIO::sendRandomSeed(uint32_t seed) {
         std::cerr << converted << " is our integer and its size is " << sizeof(uint32_t) << std::endl;
     }
     std::unique_lock lock(outputMutex);
-    if (ssize_t rc = write(this->socketfd, &converted, sizeof(uint32_t)) < 0) {
+    if (!writeAll(this->socketfd, &converted, sizeof(uint32_t))) {
         std::unique_lock lock(stderrMutex);
-        std::cerr << "Failed to send random seed with error " << rc << "(" << errno << ")" << std::endl;
+        std::cerr << "Failed to send random seed with error " << errno << std::endl;
     }
 }
 
@@ -113,7 +185,7 @@ void InavjagaGSPIO::sendRandomSeed(uint32_t seed) {
  * @return A move event representing the received move
  */
 MoveEvent InavjagaGSPIO::recvMove() {
-    static char buffer[4] = {0};
+    char buffer[4] = {0};
     /** Messages are in the form "ID;MOVE"
      * @note the ID has a variable length, that we can fix by padding
      * @warning for the moment we are capping it to 9 clients
@@ -121,11 +193,9 @@ MoveEvent InavjagaGSPIO::recvMove() {
      * @note every move is made of one character
      */
     // https://stackoverflow.com/questions/71744538/why-would-one-need-to-use-msg-waitall-flag-instead-of-0-flag-why-to-use-it
-    int rc = recv(this->socketfd, &buffer, 1+1+1+1, MSG_WAITALL);
     MoveEvent moveEvent = {INAVJAGA_PLAYER_ID_IGNORE, INAVJAGA_CHAR_MOVE_IGNORE};
-    if (rc < 0) {
-        std::string errorBuffer = "Scanning a socket that was expected to be empty gave error code " + std::to_string(rc);
-        throw std::runtime_error(errorBuffer);
+    if (!readExact(this->socketfd, buffer, sizeof(buffer))) {
+        throw std::runtime_error("Reading a move event failed");
     }
     sscanf(buffer, "%hu;%c", &moveEvent.playerId, &moveEvent.move);
     return moveEvent;
@@ -135,10 +205,10 @@ MoveEvent InavjagaGSPIO::recvMove() {
  * @param moveEvent The move event to transmit
  */
 void InavjagaGSPIO::sendMove(MoveEvent moveEvent) {
-    static char buffer[4] = {0};
+    char buffer[4] = {0};
     snprintf(buffer, 4, "%hu;%c", moveEvent.playerId, moveEvent.move);
     std::unique_lock lock(outputMutex);
-    send(socketfd, buffer, 4, 0);
+    writeAll(socketfd, buffer, sizeof(buffer));
 }
 
 struct pollfd InavjagaGSPIO::pollFds[10] = {{0,0,0}};
@@ -154,10 +224,11 @@ struct pollfd InavjagaGSPIO::pollFds[10] = {{0,0,0}};
  */
 std::pair<size_t, MoveEvent> InavjagaGSPIO::pollMany(
     const std::vector<std::shared_ptr<InavjagaGSPIO>>& ios, int timeout = 1000) {
-        const size_t iosLen = ios.size();
+        const size_t iosLen = std::min(ios.size(), static_cast<size_t>(10));
         for (size_t i = 1; i < iosLen; i++) {
-            pollFds[i].fd = ios[i]->socketfd;
+            pollFds[i].fd = ios[i] ? ios[i]->socketfd : -1;
             pollFds[i].events = POLLIN;
+            pollFds[i].revents = 0;
         }
         errno = 0;
         int rc = poll(&(pollFds[1]), iosLen - 1, timeout);
@@ -631,7 +702,7 @@ bool InavjagaGSPIO::waitYes(int timeout) {
 void InavjagaGSPIO::sendSyncData(const std::string& message) {
     std::unique_lock lock(syncMutex);
     size_t length = message.length();
-    int32_t convertedLength = htonl(length);
+    uint32_t convertedLength = htonl(static_cast<uint32_t>(length));
     // #if DEBUG
     // {
     //     std::unique_lock lock(stderrMutex);
@@ -639,13 +710,13 @@ void InavjagaGSPIO::sendSyncData(const std::string& message) {
     //     std::cerr << "Our message is " << message << std::endl;
     // }
     // #endif
-    if (ssize_t rc = write(this->syncsocketfd, &convertedLength, sizeof(convertedLength)); rc < 0) {
+    if (!writeAll(this->syncsocketfd, &convertedLength, sizeof(convertedLength))) {
         std::unique_lock lock(stderrMutex);
-        std::cerr << "Failed to send data with error " << rc << "(" << errno << ")" << std::endl;
+        std::cerr << "Failed to send data length with error " << errno << std::endl;
     }
-    if (ssize_t rc = write(this->syncsocketfd, message.c_str(), message.length()); rc < 0) {
+    if (!writeAll(this->syncsocketfd, message.c_str(), message.length())) {
         std::unique_lock lock(stderrMutex);
-        std::cerr << "Failed to send data with error " << rc << "(" << errno << ")" << std::endl;
+        std::cerr << "Failed to send data with error " << errno << std::endl;
     }
 }
 
@@ -662,68 +733,25 @@ std::string InavjagaGSPIO::recvSyncData(int timeout) {
     }
     std::string received;
     if (pollFd_.revents & POLLIN) {
-        int32_t convertedSize;
-        if (int rc = read(syncsocketfd, &convertedSize, sizeof(convertedSize)); rc < 0) {
+        uint32_t convertedSize;
+        if (!readExact(syncsocketfd, &convertedSize, sizeof(convertedSize))) {
             std::unique_lock lock(stderrMutex);
-            std::cerr << "Receiving message length failed with error " << rc
-                      << " (" << errno << ")" << std::endl;
+            std::cerr << "Receiving message length failed with error " << errno << std::endl;
             throw std::runtime_error("Receiving message length failed");
         }
         size_t size = ntohl(convertedSize);
-        char* buffer = (char*)calloc(size, sizeof(char));
-        do {
-            timeout = initialTimeout - std::chrono::duration_cast<std::chrono::milliseconds>(
-                std::chrono::high_resolution_clock::now() - start
-            ).count();
+        received.resize(size);
+        timeout = initialTimeout - std::chrono::duration_cast<std::chrono::milliseconds>(
+            std::chrono::high_resolution_clock::now() - start
+        ).count();
+        if (timeout <= 0 || !readExact(syncsocketfd, received.data(), received.size(), timeout)) {
             #if DEBUG
-            {
-                std::unique_lock lock(stderrMutex);
-                std::cerr << "\tTime left: " << timeout << "ms" << std::endl;
-            }
+            std::unique_lock lock(stderrMutex);
+            std::cerr << "\tCould not read the complete sync message in time" << std::endl;
             #endif
-            pollFd_ = {0,0,0};
-            pollFd_.fd = this->syncsocketfd;
-            pollFd_.events = POLLIN;
-            if (int rc = poll(&pollFd_, 1, timeout); rc < 0) {
-                std::unique_lock lock(stderrMutex);
-                std::cerr << "Polling failed with error " << rc << " (" << errno << ")" << std::endl;
-                throw std::runtime_error("Polling failed");
-            }
-            if (pollFd_.revents & POLLIN) {
-                #if DEBUG
-                {
-                    std::unique_lock lock(stderrMutex);
-                    std::cerr << "Time to read " << size << " characters from the server." << std::endl;
-                }
-                #endif
-                if (int rc = recv(syncsocketfd, buffer, size, MSG_WAITALL); rc < 0) {
-                    std::unique_lock lock(stderrMutex);
-                    std::cerr << "Receiving message failed with error " << rc
-                            << " (" << errno << ")" << std::endl;
-                    throw std::runtime_error("Receiving message failed");
-                } else if (rc == 0) {
-                    std::unique_lock lock(stderrMutex);
-                    std::cerr << "Receiving message enountered EOF, since rc=" << rc
-                            << " (" << errno << ")" << std::endl;
-                    free(buffer);
-                    return received;
-                } else if (rc > 0) {
-                    size -= rc;
-                }
-                received.append(std::string(buffer));
-                if (size == 0) {
-                    free(buffer);
-                    return received;
-                }
-            } else {
-                #if DEBUG
-                std::unique_lock lock(stderrMutex);
-                std::cerr << "\tNo message ready yet" << std::endl;
-                #endif
-                free(buffer);
-                return received;
-            }
-        } while (timeout > 0);
+            return "";
+        }
+        return received;
     } else {
         #if DEBUG
         std::unique_lock lock(stderrMutex);
