@@ -964,9 +964,15 @@ void restoreGameState(const std::string& serverGameState) {
 
 template <class T>
 void deserializeEntities(const std::string& entities) {
+    if (entities.empty()) {
+        return;
+    }
     std::istringstream entitiesStream(entities);
     std::string entity;
     for (int counter = 0; std::getline(entitiesStream, entity, ';'); counter++) {
+        if (entity.empty()) {
+            continue;
+        }
         std::shared_ptr<T> entityObject = deserialize<T>(entity);
         T::entities->push_back(entityObject);
         field->addPawn(entityObject);
