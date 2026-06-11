@@ -693,48 +693,50 @@ std::string InavjagaGSPIO::recvSyncData(int timeout) {
         std::cerr << "Polling failed with error " << rc << " (" << errno << ")" << std::endl;
         throw std::runtime_error("Polling failed");
     }
-    std::string received;
+    std::string latest;
     if (pollFd_.revents & POLLIN) {
-        int available = 0;
-        if (ioctl(syncsocketfd, FIONREAD, &available) < 0) {
-            std::unique_lock lock(stderrMutex);
-            std::cerr << "Checking available sync data failed with error " << errno << std::endl;
-            throw std::runtime_error("Checking available sync data failed");
-        }
-        if (available < static_cast<int>(sizeof(uint32_t))) {
-            return "";
-        }
+        while (true) {
+            int available = 0;
+            if (ioctl(syncsocketfd, FIONREAD, &available) < 0) {
+                std::unique_lock lock(stderrMutex);
+                std::cerr << "Checking available sync data failed with error " << errno << std::endl;
+                throw std::runtime_error("Checking available sync data failed");
+            }
+            if (available < static_cast<int>(sizeof(uint32_t))) {
+                return latest;
+            }
 
-        uint32_t convertedSize;
-        if (recv(syncsocketfd, &convertedSize, sizeof(convertedSize), MSG_PEEK) < static_cast<ssize_t>(sizeof(convertedSize))) {
-            #if DEBUG
-            std::unique_lock lock(stderrMutex);
-            std::cerr << "Could not peek the sync message length yet" << std::endl;
-            #endif
-            return "";
-        }
-        size_t size = ntohl(convertedSize);
-        size_t framedSize = sizeof(uint32_t) + size;
-        if (static_cast<size_t>(available) < framedSize) {
-            #if DEBUG
-            std::unique_lock lock(stderrMutex);
-            std::cerr << "\tSync message incomplete: " << available << "/" << framedSize << " bytes ready" << std::endl;
-            #endif
-            return "";
-        }
+            uint32_t convertedSize;
+            if (recv(syncsocketfd, &convertedSize, sizeof(convertedSize), MSG_PEEK) < static_cast<ssize_t>(sizeof(convertedSize))) {
+                #if DEBUG
+                std::unique_lock lock(stderrMutex);
+                std::cerr << "Could not peek the sync message length yet" << std::endl;
+                #endif
+                return latest;
+            }
+            size_t size = ntohl(convertedSize);
+            size_t framedSize = sizeof(uint32_t) + size;
+            if (static_cast<size_t>(available) < framedSize) {
+                #if DEBUG
+                std::unique_lock lock(stderrMutex);
+                std::cerr << "\tSync message incomplete: " << available << "/" << framedSize << " bytes ready" << std::endl;
+                #endif
+                return latest;
+            }
 
-        if (!readExact(syncsocketfd, &convertedSize, sizeof(convertedSize))) {
-            std::unique_lock lock(stderrMutex);
-            std::cerr << "Receiving message length failed with error " << errno << std::endl;
-            throw std::runtime_error("Receiving message length failed");
+            if (!readExact(syncsocketfd, &convertedSize, sizeof(convertedSize))) {
+                std::unique_lock lock(stderrMutex);
+                std::cerr << "Receiving message length failed with error " << errno << std::endl;
+                throw std::runtime_error("Receiving message length failed");
+            }
+            std::string received(size, '\0');
+            if (!readExact(syncsocketfd, received.data(), received.size())) {
+                std::unique_lock lock(stderrMutex);
+                std::cerr << "Receiving sync message failed with error " << errno << std::endl;
+                return latest;
+            }
+            latest = std::move(received);
         }
-        received.resize(size);
-        if (!readExact(syncsocketfd, received.data(), received.size())) {
-            std::unique_lock lock(stderrMutex);
-            std::cerr << "Receiving sync message failed with error " << errno << std::endl;
-            return "";
-        }
-        return received;
     } else {
         #if DEBUG
         std::unique_lock lock(stderrMutex);
@@ -742,7 +744,7 @@ std::string InavjagaGSPIO::recvSyncData(int timeout) {
         #endif
         return "";
     }
-    return received;
+    return latest;
 }
 
 bool ServerInavjagaGSPIO::offerCoordinates(const sista::Coordinates& coordinates) const {

@@ -684,7 +684,11 @@ int recvUpdates(RemoteInavjagaIO* remote_) {
             std::cerr << "Somehow we are " << serverFrame - clientFrame << " frames behind the server" << std::endl;
         }
         #endif
-        return -1;
+        restoreGameState(serverGameState);
+        pastGameStates[serverFrame % pastGameStatesBufferSize] = serverGameState;
+        gameState = serverGameState;
+        reprint();
+        return serverFrame;
     } else {
         if (pastGameStates[serverFrame % pastGameStatesBufferSize] == serverGameState) {
             // This means we are just some frames ahead, we can keep on going
