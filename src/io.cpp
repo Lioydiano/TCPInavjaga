@@ -22,8 +22,9 @@ bool MoveEvent::operator<(const MoveEvent& moveEvent) const {
 
 bool writeAll(int sockfd, const void* buffer, size_t size) {
     size_t total = 0;
+    const char* buffer_ = (const char*)buffer;
     while (total < size) {
-        int written = write(sockfd, buffer + total, size - total);
+        int written = write(sockfd, buffer_ + total, size - total);
         if (written < 0) {
             {
                 std::unique_lock lock(stderrMutex);
