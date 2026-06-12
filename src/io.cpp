@@ -20,10 +20,10 @@ bool MoveEvent::operator<(const MoveEvent& moveEvent) const {
     return this->move < moveEvent.move;
 }
 
-bool writeAll(int sockfd, char* buffer, size_t size) {
+bool writeAll(int sockfd, const void* buffer, size_t size) {
     size_t total = 0;
     while (total < size) {
-        size_t written = write(sockfd, buffer + total, size - total);
+        int written = write(sockfd, buffer + total, size - total);
         if (written < 0) {
             {
                 std::unique_lock lock(stderrMutex);
@@ -32,7 +32,7 @@ bool writeAll(int sockfd, char* buffer, size_t size) {
             }
             return false;
         } else if (written > 0) {
-            total += written;
+            total += (size_t)written;
         } else { // Didn't write anything but no error was detected
             return false;
         }
@@ -142,8 +142,9 @@ MoveEvent InavjagaGSPIO::recvMove() {
     int rc = recv(this->socketfd, &buffer, 1+1+1+1, MSG_WAITALL);
     MoveEvent moveEvent = {INAVJAGA_PLAYER_ID_IGNORE, INAVJAGA_CHAR_MOVE_IGNORE};
     if (rc < 0) {
-        std::string errorBuffer.append("Scanning a socket that was expected to be empty gave error code " + std::to_string(rc);
-        thr)ow std::runtime_error(errorBuffer);
+        std::string errorBuffer = "Scanning a socket that was expected to be empty gave error code " + std::to_string(rc);
+        throw std::runtime_error(errorBuffer);
+    }
     sscanf(buffer, "%hu;%c", &moveEvent.playerId, &moveEvent.move);
     return moveEvent;
 }
