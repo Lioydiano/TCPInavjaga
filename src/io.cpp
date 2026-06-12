@@ -869,26 +869,26 @@ ClientRemoteInavjagaIO::ClientRemoteInavjagaIO(
  * @return The game state in its standard raw format
  */
 std::string ClientRemoteInavjagaIO::recvGameState(int timeout) {
-    auto start = std::chrono::high_resolution_clock::now();
-    std::string data = this->neighbors[1]->recvSyncData(timeout);
-    int delta = std::chrono::duration_cast<std::chrono::milliseconds>(
-        std::chrono::high_resolution_clock::now() - start
-    ).count();
-    #if DEBUG
-    {
-        std::unique_lock lock(stderrMutex);
-        std::cerr << "It took us " << delta << "ms to recvSyncData, " << std::flush;
-    }
-    #endif
-    std::string newData = "";
-    if (delta < timeout / 10) { // Maybe we can catch up with one more frame
-        #if DEBUG
-        {
-            std::unique_lock lock(stderrMutex);
-            std::cerr << "thus we will be trying to wait " << timeout - delta << "ms" << std::endl;
-        }
-        #endif
-        newData = this->neighbors[1]->recvSyncData(timeout - delta);
-    }
-    return newData.empty() ? data : newData;
+    // auto start = std::chrono::high_resolution_clock::now();
+    return this->neighbors[1]->recvSyncData(timeout);
+    // int delta = std::chrono::duration_cast<std::chrono::milliseconds>(
+    //     std::chrono::high_resolution_clock::now() - start
+    // ).count();
+    // #if DEBUG
+    // {
+    //     std::unique_lock lock(stderrMutex);
+    //     std::cerr << "It took us " << delta << "ms to recvSyncData, " << std::flush;
+    // }
+    // #endif
+    // std::string newData = "";
+    // if (delta < timeout / 10) { // Maybe we can catch up with one more frame
+    //     #if DEBUG
+    //     {
+    //         std::unique_lock lock(stderrMutex);
+    //         std::cerr << "thus we will be trying to wait " << timeout - delta << "ms" << std::endl;
+    //     }
+    //     #endif
+    //     newData = this->neighbors[1]->recvSyncData(timeout - delta);
+    // }
+    // return newData.empty() ? data : newData;
 }
