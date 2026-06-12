@@ -234,11 +234,17 @@ int main(int argc, char* argv[]) {
 
     auto start = std::chrono::high_resolution_clock::now();
     std::chrono::duration<double> delta;
+    bool catchupMode = false;
     for (int i=0; !end; i++) {
-        std::this_thread::sleep_for(std::chrono::milliseconds(
+        int sleepMs =
             ((int)(FRAME_DURATION / (std::pow(1 + (int)speedup, 2))))
-            - std::chrono::duration_cast<std::chrono::milliseconds>(delta).count()
-        )); // If there is speedup, the waiting time is reduced by a factor of 4
+            - std::chrono::duration_cast<std::chrono::milliseconds>(delta).count();
+
+        if (!catchupMode && sleepMs > 0) {
+            std::this_thread::sleep_for(std::chrono::milliseconds(sleepMs));
+        }
+        catchupMode = false;
+
         #if DEBUG
         {
             delta = std::chrono::high_resolution_clock::now() - start;
@@ -285,6 +291,9 @@ int main(int argc, char* argv[]) {
             #endif
             #if CLIENT
             if (int rc = recvUpdates(remoteIO); rc >= 0) {
+                if (rc > i) {
+                    catchupMode = true;
+                }
                 i = rc;
             }
             #elif SERVER
