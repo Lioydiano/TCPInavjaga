@@ -857,7 +857,8 @@ void restoreGameState(const std::string& serverGameState) {
     #if DEBUG
     {
         std::unique_lock lock(stderrMutex);
-        std::cerr << "Restoring the game state to \n\t" << serverGameState << std::endl;
+        std::cerr << "Restoring the game state to \n\t"
+            << serverGameState.substr(0, 20) << "..." << std::endl;
     }
     #endif
     {
