@@ -111,7 +111,7 @@ uint32_t InavjagaGSPIO::recvRandomSeed(int timeout) {
         throw std::runtime_error("Polling failed");
     }
     if (pollFd_.revents & POLLIN) {
-        read(socketfd, &seed, sizeof(uint32_t));
+        read(socketfd, &seed, sizeof(uint32_t), MSG_WAITALL);
         return ntohl(seed);
     }
     {
@@ -162,7 +162,7 @@ void InavjagaGSPIO::sendMove(MoveEvent moveEvent) {
     static char buffer[4] = {0};
     snprintf(buffer, 4, "%hu;%c", moveEvent.playerId, moveEvent.move);
     std::unique_lock lock(outputMutex);
-    writeAll(socketfd, buffer, 4);
+    writeAll(socketfd, buffer, sizeof(buffer));
 }
 
 struct pollfd InavjagaGSPIO::pollFds[10] = {{0,0,0}};
@@ -178,10 +178,17 @@ struct pollfd InavjagaGSPIO::pollFds[10] = {{0,0,0}};
  */
 std::pair<size_t, MoveEvent> InavjagaGSPIO::pollMany(
     const std::vector<std::shared_ptr<InavjagaGSPIO>>& ios, int timeout = 1000) {
+        if (ios.size() > 10) {
+            std::unique_lock lock(stderrMutex);
+            std::cerr << "You passed ios.size()=" << ios.size()
+                    << " but the limit is 10" << std::endl;
+        }
         const size_t iosLen = ios.size();
         for (size_t i = 1; i < iosLen; i++) {
+            // pollFds[i].fd = ios[i] ? ios[i]->socketfd : -1;
             pollFds[i].fd = ios[i]->socketfd;
             pollFds[i].events = POLLIN;
+            pollFds[i].revents = 0;
         }
         errno = 0;
         int rc = poll(&(pollFds[1]), iosLen - 1, timeout);
