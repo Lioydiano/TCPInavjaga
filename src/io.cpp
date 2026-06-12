@@ -643,7 +643,8 @@ std::string InavjagaGSPIO::recvSyncData(int timeout) {
             throw std::runtime_error("Receiving message length failed");
         }
         size_t size = ntohl(convertedSize);
-        char* buffer = (char*)calloc(size, sizeof(char));
+        // char* buffer = (char*)calloc(size, sizeof(char));
+        std::vector<char> buffer(size);
         do {
             timeout = initialTimeout - std::chrono::duration_cast<std::chrono::milliseconds>(
                 std::chrono::high_resolution_clock::now() - start
@@ -669,7 +670,7 @@ std::string InavjagaGSPIO::recvSyncData(int timeout) {
                     std::cerr << "Time to read " << size << " characters from the server." << std::endl;
                 }
                 #endif
-                if (int rc = recv(syncsocketfd, buffer, size, MSG_WAITALL); rc < 0) {
+                if (int rc = recv(syncsocketfd, buffer.data(), size, MSG_WAITALL); rc < 0) {
                     std::unique_lock lock(stderrMutex);
                     std::cerr << "Receiving message failed with error " << rc
                             << " (" << errno << ")" << std::endl;
@@ -678,14 +679,12 @@ std::string InavjagaGSPIO::recvSyncData(int timeout) {
                     std::unique_lock lock(stderrMutex);
                     std::cerr << "Receiving message enountered EOF, since rc=" << rc
                             << " (" << errno << ")" << std::endl;
-                    free(buffer);
                     return received;
                 } else if (rc > 0) {
                     size -= rc;
                 }
-                received.append(std::string(buffer));
+                received.append(std::string(buffer.data()));
                 if (size == 0) {
-                    free(buffer);
                     return received;
                 }
             } else {
@@ -693,7 +692,6 @@ std::string InavjagaGSPIO::recvSyncData(int timeout) {
                 std::unique_lock lock(stderrMutex);
                 std::cerr << "\tNo message ready yet" << std::endl;
                 #endif
-                free(buffer);
                 return received;
             }
         } while (timeout > 0);
