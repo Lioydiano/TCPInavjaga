@@ -874,8 +874,20 @@ std::string ClientRemoteInavjagaIO::recvGameState(int timeout) {
     int delta = std::chrono::duration_cast<std::chrono::milliseconds>(
         start - std::chrono::high_resolution_clock::now()
     ).count();
+    #if DEBUG
+    {
+        std::unique_lock lock(stderrMutex);
+        std::cerr << "It took us " << delta << "ms to recvSyncData, " << std::flush;
+    }
+    #endif
     std::string newData = "";
     if (delta < timeout / 10) { // Maybe we can catch up with one more frame
+        #if DEBUG
+        {
+            std::unique_lock lock(stderrMutex);
+            std::cerr << "thus we will be trying to wait " << timeout - delta << "ms" << std::endl;
+        }
+        #endif
         newData = this->neighbors[1]->recvSyncData(timeout - delta);
     }
     return newData.empty() ? data : newData;
