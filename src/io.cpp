@@ -862,6 +862,21 @@ ClientRemoteInavjagaIO::ClientRemoteInavjagaIO(
     std::shared_ptr<ClientInavjagaGSPIO> connectionToServer
 ): RemoteInavjagaIO({nullptr, connectionToServer}) {}
 
+/** @brief Receives the game state from the server within a specified timeout
+ * @note It may consume multiple frames and only return the most recent.
+ * @param timeout The time in milliseconds after which to return regardless
+ * @retval "" When the timeout has passed without anything being received
+ * @return The game state in its standard raw format
+ */
 std::string ClientRemoteInavjagaIO::recvGameState(int timeout) {
-    return this->neighbors[1]->recvSyncData(timeout);
+    auto start = std::chrono::high_resolution_clock::now();
+    std::string data = this->neighbors[1]->recvSyncData(timeout);
+    int delta = std::chrono::duration_cast<std::chrono::milliseconds>(
+        start - std::chrono::high_resolution_clock::now()
+    ).count();
+    std::string newData = "";
+    if (delta < timeout / 10) { // Maybe we can catch up with one more frame
+        newData = this->neighbors[1]->recvSyncData(timeout - delta);
+    }
+    return newData.empty() ? data : newData;
 }

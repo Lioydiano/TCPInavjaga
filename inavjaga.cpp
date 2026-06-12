@@ -300,6 +300,7 @@ int main(int argc, char* argv[]) {
                       << "µs" << std::endl;
         }
         #endif
+        delta = std::chrono::high_resolution_clock::now() - start;
     }
 
     end = true; // Needed to ensure the input function returns and the thread localInputThread gets joined
