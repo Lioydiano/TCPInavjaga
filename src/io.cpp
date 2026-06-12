@@ -35,6 +35,11 @@ bool writeAll(int sockfd, const void* buffer, size_t size) {
         } else if (written > 0) {
             total += (size_t)written;
         } else { // Didn't write anything but no error was detected
+            {
+                std::unique_lock lock(stderrMutex);
+                std::cerr << "Writing " << size << " bytes to "
+                        << sockfd << " produced no error, but- " << std::endl;
+            }
             return false;
         }
     }
@@ -707,7 +712,7 @@ bool ServerInavjagaGSPIO::offerCoordinates(const sista::Coordinates& coordinates
 
 sista::Coordinates ClientInavjagaGSPIO::recvCoordinates() const {
     char buffer[10] = {0};
-    int rc = recv(socketfd, &buffer, 10, 0);
+    int rc = recv(socketfd, &buffer, 10, MSG_WAITALL);
     if (rc < 0) {
         std::cerr << "Failed to receive coordinates from the server" << std::endl;
         throw std::runtime_error("Failed to receive coordinates from the server");
