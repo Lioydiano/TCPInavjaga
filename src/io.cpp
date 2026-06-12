@@ -111,7 +111,7 @@ uint32_t InavjagaGSPIO::recvRandomSeed(int timeout) {
         throw std::runtime_error("Polling failed");
     }
     if (pollFd_.revents & POLLIN) {
-        read(socketfd, &seed, sizeof(uint32_t), MSG_WAITALL);
+        recv(socketfd, &seed, sizeof(uint32_t), MSG_WAITALL);
         return ntohl(seed);
     }
     {
