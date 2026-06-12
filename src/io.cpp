@@ -9,6 +9,7 @@
 #include <future>
 #include <chrono>
 #include <poll.h>
+#include <errno.h>
 
 std::mutex InavjagaGSPIO::outputMutex = std::mutex();
 std::mutex InavjagaGSPIO::syncMutex = std::mutex();
@@ -17,6 +18,26 @@ extern std::mutex stderrMutex;
 bool MoveEvent::operator<(const MoveEvent& moveEvent) const {
     if (this->playerId < moveEvent.playerId) return true;
     return this->move < moveEvent.move;
+}
+
+bool writeAll(int sockfd, char* buffer, size_t size) {
+    size_t total = 0;
+    while (total < size) {
+        size_t written = write(sockfd, buffer + total, size - total);
+        if (written < 0) {
+            {
+                std::unique_lock lock(stderrMutex);
+                std::cerr << "Writing " << size << " bytes to "
+                        << sockfd << " failed with " << errno << std::endl;
+            }
+            return false;
+        } else if (written > 0) {
+            total += written;
+        } else { // Didn't write anything but no error was detected
+            return false;
+        }
+    }
+    return true;
 }
 
 void disableNagle(int sockfd) {
@@ -102,10 +123,7 @@ void InavjagaGSPIO::sendRandomSeed(uint32_t seed) {
         std::cerr << converted << " is our integer and its size is " << sizeof(uint32_t) << std::endl;
     }
     std::unique_lock lock(outputMutex);
-    if (ssize_t rc = write(this->socketfd, &converted, sizeof(uint32_t)) < 0) {
-        std::unique_lock lock(stderrMutex);
-        std::cerr << "Failed to send random seed with error " << rc << "(" << errno << ")" << std::endl;
-    }
+    writeAll(this->socketfd, &converted, sizeof(uint32_t));
 }
 
 /** @brief Waits for a message from the other end of the channel
@@ -124,9 +142,8 @@ MoveEvent InavjagaGSPIO::recvMove() {
     int rc = recv(this->socketfd, &buffer, 1+1+1+1, MSG_WAITALL);
     MoveEvent moveEvent = {INAVJAGA_PLAYER_ID_IGNORE, INAVJAGA_CHAR_MOVE_IGNORE};
     if (rc < 0) {
-        std::string errorBuffer = "Scanning a socket that was expected to be empty gave error code " + std::to_string(rc);
-        throw std::runtime_error(errorBuffer);
-    }
+        std::string errorBuffer.append("Scanning a socket that was expected to be empty gave error code " + std::to_string(rc);
+        thr)ow std::runtime_error(errorBuffer);
     sscanf(buffer, "%hu;%c", &moveEvent.playerId, &moveEvent.move);
     return moveEvent;
 }
@@ -138,7 +155,7 @@ void InavjagaGSPIO::sendMove(MoveEvent moveEvent) {
     static char buffer[4] = {0};
     snprintf(buffer, 4, "%hu;%c", moveEvent.playerId, moveEvent.move);
     std::unique_lock lock(outputMutex);
-    send(socketfd, buffer, 4, 0);
+    writeAll(socketfd, buffer, 4);
 }
 
 struct pollfd InavjagaGSPIO::pollFds[10] = {{0,0,0}};
@@ -350,100 +367,56 @@ const char InavjagaGSPIO::constantsTermination[3] = "-:";
 bool InavjagaGSPIO::sendConstants() {
     std::string buffer;
     std::unique_lock lock(outputMutex);
-    buffer = "WIDTH:" + std::to_string(WIDTH) + ";";
-    send(socketfd, buffer.c_str(), buffer.length(), 0);
-    buffer = "HEIGHT:" + std::to_string(HEIGHT) + ";";
-    send(socketfd, buffer.c_str(), buffer.length(), 0);
-    buffer = "TUNNEL_UNIT:" + std::to_string(TUNNEL_UNIT) + ";";
-    send(socketfd, buffer.c_str(), buffer.length(), 0);
-    buffer = "PORTALS_PER_LINE:" + std::to_string(PORTALS_PER_LINE) + ";";
-    send(socketfd, buffer.c_str(), buffer.length(), 0);
-    buffer = "FRAME_DURATION:" + std::to_string(FRAME_DURATION) + ";";
-    send(socketfd, buffer.c_str(), buffer.length(), 0);
-    buffer = "BULLET_SPEED:" + std::to_string(BULLET_SPEED) + ";";
-    send(socketfd, buffer.c_str(), buffer.length(), 0);
-    buffer = "DROP_INVENTORY_ON_DEATH:" + std::to_string(DROP_INVENTORY_ON_DEATH) + ";";
-    send(socketfd, buffer.c_str(), buffer.length(), 0);
-    buffer = "INITIAL_CLAY:" + std::to_string(INITIAL_CLAY) + ";";
-    send(socketfd, buffer.c_str(), buffer.length(), 0);
-    buffer = "INITIAL_BULLETS:" + std::to_string(INITIAL_BULLETS) + ";";
-    send(socketfd, buffer.c_str(), buffer.length(), 0);
-    buffer = "INITIAL_MEAT:" + std::to_string(INITIAL_MEAT) + ";";
-    send(socketfd, buffer.c_str(), buffer.length(), 0);
-    buffer = "LOOT_ARCHER_CLAY:" + std::to_string(LOOT_ARCHER_CLAY) + ";";
-    send(socketfd, buffer.c_str(), buffer.length(), 0);
-    buffer = "LOOT_ARCHER_BULLETS:" + std::to_string(LOOT_ARCHER_BULLETS) + ";";
-    send(socketfd, buffer.c_str(), buffer.length(), 0);
-    buffer = "LOOT_ARCHER_MEAT:" + std::to_string(LOOT_ARCHER_MEAT) + ";";
-    send(socketfd, buffer.c_str(), buffer.length(), 0);
-    buffer = "LOOT_WORM_HEAD_CLAY:" + std::to_string(LOOT_WORM_HEAD_CLAY) + ";";
-    send(socketfd, buffer.c_str(), buffer.length(), 0);
-    buffer = "LOOT_WORM_HEAD_BULLETS:" + std::to_string(LOOT_WORM_HEAD_BULLETS) + ";";
-    send(socketfd, buffer.c_str(), buffer.length(), 0);
-    buffer = "LOOT_WORM_HEAD_MEAT:" + std::to_string(LOOT_WORM_HEAD_MEAT) + ";";
-    send(socketfd, buffer.c_str(), buffer.length(), 0);
-    buffer = "COST_OF_MINE_CLAY:" + std::to_string(COST_OF_MINE_CLAY) + ";";
-    send(socketfd, buffer.c_str(), buffer.length(), 0);
-    buffer = "COST_OF_MINE_BULLETS:" + std::to_string(COST_OF_MINE_BULLETS) + ";";
-    send(socketfd, buffer.c_str(), buffer.length(), 0);
-    buffer = "COST_OF_MINE_MEAT:" + std::to_string(COST_OF_MINE_MEAT) + ";";
-    send(socketfd, buffer.c_str(), buffer.length(), 0);
-    buffer = "MEAT_DURATION_PERIOD:" + std::to_string(MEAT_DURATION_PERIOD) + ";";
-    send(socketfd, buffer.c_str(), buffer.length(), 0);
-    buffer = "SPAWN_COORDINATES_Y:" + std::to_string(SPAWN_COORDINATES_Y) + ";";
-    send(socketfd, buffer.c_str(), buffer.length(), 0);
-    buffer = "SPAWN_COORDINATES_X:" + std::to_string(SPAWN_COORDINATES_X) + ";";
-    send(socketfd, buffer.c_str(), buffer.length(), 0);
-    buffer = "RESPAWN_COORDINATES_Y:" + std::to_string(RESPAWN_COORDINATES_Y) + ";";
-    send(socketfd, buffer.c_str(), buffer.length(), 0);
-    buffer = "RESPAWN_COORDINATES_X:" + std::to_string(RESPAWN_COORDINATES_X) + ";";
-    send(socketfd, buffer.c_str(), buffer.length(), 0);
-    buffer = "MINE_MINIMUM_DAMAGE:" + std::to_string(MINE_MINIMUM_DAMAGE) + ";";
-    send(socketfd, buffer.c_str(), buffer.length(), 0);
-    buffer = "MINE_MAXIMUM_DAMAGE:" + std::to_string(MINE_MAXIMUM_DAMAGE) + ";";
-    send(socketfd, buffer.c_str(), buffer.length(), 0);
-    buffer = "MINE_SENSITIVITY_RADIUS:" + std::to_string(MINE_SENSITIVITY_RADIUS) + ";";
-    send(socketfd, buffer.c_str(), buffer.length(), 0);
-    buffer = "MINE_DAMAGE_RADIUS:" + std::to_string(MINE_DAMAGE_RADIUS) + ";";
-    send(socketfd, buffer.c_str(), buffer.length(), 0);
-    buffer = "INITIAL_WALL_STRENGTH:" + std::to_string(INITIAL_WALL_STRENGTH) + ";";
-    send(socketfd, buffer.c_str(), buffer.length(), 0);
-    buffer = "WORM_HEALTH_POINTS:" + std::to_string(WORM_HEALTH_POINTS) + ";";
-    send(socketfd, buffer.c_str(), buffer.length(), 0);
-    buffer = "WALL_WEARING_PROBABILITY:" + std::to_string(WALL_WEARING_PROBABILITY) + ";";
-    send(socketfd, buffer.c_str(), buffer.length(), 0);
-    buffer = "DAMAGED_WALLS_COUNT:" + std::to_string(DAMAGED_WALLS_COUNT) + ";";
-    send(socketfd, buffer.c_str(), buffer.length(), 0);
-    buffer = "MINE_EXPLOSION_IN_FRAME_PROBABILITY:" + std::to_string(MINE_EXPLOSION_IN_FRAME_PROBABILITY) + ";";
-    send(socketfd, buffer.c_str(), buffer.length(), 0);
-    buffer = "DUMB_MOVE_PROBABILITY:" + std::to_string(DUMB_MOVE_PROBABILITY) + ";";
-    send(socketfd, buffer.c_str(), buffer.length(), 0);
-    buffer = "ARCHER_SPAWNING_PROBABILITY:" + std::to_string(ARCHER_SPAWNING_PROBABILITY) + ";";
-    send(socketfd, buffer.c_str(), buffer.length(), 0);
-    buffer = "ARCHER_MOVING_PROBABILITY:" + std::to_string(ARCHER_MOVING_PROBABILITY) + ";";
-    send(socketfd, buffer.c_str(), buffer.length(), 0);
-    buffer = "ARCHER_SHOOTING_PROBABILITY:" + std::to_string(ARCHER_SHOOTING_PROBABILITY) + ";";
-    send(socketfd, buffer.c_str(), buffer.length(), 0);
-    buffer = "WORM_TURNING_PROBABILITY:" + std::to_string(WORM_TURNING_PROBABILITY) + ";";
-    send(socketfd, buffer.c_str(), buffer.length(), 0);
-    buffer = "WORM_SPAWNING_PROBABILITY:" + std::to_string(WORM_SPAWNING_PROBABILITY) + ";";
-    send(socketfd, buffer.c_str(), buffer.length(), 0);
-    buffer = "WORM_EATING_ARCHER_PROBABILITY:" + std::to_string(WORM_EATING_ARCHER_PROBABILITY) + ";";
-    send(socketfd, buffer.c_str(), buffer.length(), 0);
-    buffer = "WORM_EATING_TAIL_PROBABILITY:" + std::to_string(WORM_EATING_TAIL_PROBABILITY) + ";";
-    send(socketfd, buffer.c_str(), buffer.length(), 0);
-    buffer = "WORM_MOVING_PROBABILITY:" + std::to_string(WORM_MOVING_PROBABILITY) + ";";
-    send(socketfd, buffer.c_str(), buffer.length(), 0);
-    buffer = "CLAY_RELEASE_PROBABILITY:" + std::to_string(CLAY_RELEASE_PROBABILITY) + ";";
-    send(socketfd, buffer.c_str(), buffer.length(), 0);
-    buffer = "INITIAL_ARCHERS:" + std::to_string(INITIAL_ARCHERS) + ";";
-    send(socketfd, buffer.c_str(), buffer.length(), 0);
-    buffer = "INITIAL_WORMS:" + std::to_string(INITIAL_WORMS) + ";";
-    send(socketfd, buffer.c_str(), buffer.length(), 0);
-    buffer = "WORM_LENGTH:" + std::to_string(WORM_LENGTH) + ";";
-    send(socketfd, buffer.c_str(), buffer.length(), 0);
+    buffer.append("WIDTH:" + std::to_string(WIDTH) + ";");
+    buffer.append("HEIGHT:" + std::to_string(HEIGHT) + ";");
+    buffer.append("TUNNEL_UNIT:" + std::to_string(TUNNEL_UNIT) + ";");
+    buffer.append("PORTALS_PER_LINE:" + std::to_string(PORTALS_PER_LINE) + ";");
+    buffer.append("FRAME_DURATION:" + std::to_string(FRAME_DURATION) + ";");
+    buffer.append("BULLET_SPEED:" + std::to_string(BULLET_SPEED) + ";");
+    buffer.append("DROP_INVENTORY_ON_DEATH:" + std::to_string(DROP_INVENTORY_ON_DEATH) + ";");
+    buffer.append("INITIAL_CLAY:" + std::to_string(INITIAL_CLAY) + ";");
+    buffer.append("INITIAL_BULLETS:" + std::to_string(INITIAL_BULLETS) + ";");
+    buffer.append("INITIAL_MEAT:" + std::to_string(INITIAL_MEAT) + ";");
+    buffer.append("LOOT_ARCHER_CLAY:" + std::to_string(LOOT_ARCHER_CLAY) + ";");
+    buffer.append("LOOT_ARCHER_BULLETS:" + std::to_string(LOOT_ARCHER_BULLETS) + ";");
+    buffer.append("LOOT_ARCHER_MEAT:" + std::to_string(LOOT_ARCHER_MEAT) + ";");
+    buffer.append("LOOT_WORM_HEAD_CLAY:" + std::to_string(LOOT_WORM_HEAD_CLAY) + ";");
+    buffer.append("LOOT_WORM_HEAD_BULLETS:" + std::to_string(LOOT_WORM_HEAD_BULLETS) + ";");
+    buffer.append("LOOT_WORM_HEAD_MEAT:" + std::to_string(LOOT_WORM_HEAD_MEAT) + ";");
+    buffer.append("COST_OF_MINE_CLAY:" + std::to_string(COST_OF_MINE_CLAY) + ";");
+    buffer.append("COST_OF_MINE_BULLETS:" + std::to_string(COST_OF_MINE_BULLETS) + ";");
+    buffer.append("COST_OF_MINE_MEAT:" + std::to_string(COST_OF_MINE_MEAT) + ";");
+    buffer.append("MEAT_DURATION_PERIOD:" + std::to_string(MEAT_DURATION_PERIOD) + ";");
+    buffer.append("SPAWN_COORDINATES_Y:" + std::to_string(SPAWN_COORDINATES_Y) + ";");
+    buffer.append("SPAWN_COORDINATES_X:" + std::to_string(SPAWN_COORDINATES_X) + ";");
+    buffer.append("RESPAWN_COORDINATES_Y:" + std::to_string(RESPAWN_COORDINATES_Y) + ";");
+    buffer.append("RESPAWN_COORDINATES_X:" + std::to_string(RESPAWN_COORDINATES_X) + ";");
+    buffer.append("MINE_MINIMUM_DAMAGE:" + std::to_string(MINE_MINIMUM_DAMAGE) + ";");
+    buffer.append("MINE_MAXIMUM_DAMAGE:" + std::to_string(MINE_MAXIMUM_DAMAGE) + ";");
+    buffer.append("MINE_SENSITIVITY_RADIUS:" + std::to_string(MINE_SENSITIVITY_RADIUS) + ";");
+    buffer.append("MINE_DAMAGE_RADIUS:" + std::to_string(MINE_DAMAGE_RADIUS) + ";");
+    buffer.append("INITIAL_WALL_STRENGTH:" + std::to_string(INITIAL_WALL_STRENGTH) + ";");
+    buffer.append("WORM_HEALTH_POINTS:" + std::to_string(WORM_HEALTH_POINTS) + ";");
+    buffer.append("WALL_WEARING_PROBABILITY:" + std::to_string(WALL_WEARING_PROBABILITY) + ";");
+    buffer.append("DAMAGED_WALLS_COUNT:" + std::to_string(DAMAGED_WALLS_COUNT) + ";");
+    buffer.append("MINE_EXPLOSION_IN_FRAME_PROBABILITY:" + std::to_string(MINE_EXPLOSION_IN_FRAME_PROBABILITY) + ";");
+    buffer.append("DUMB_MOVE_PROBABILITY:" + std::to_string(DUMB_MOVE_PROBABILITY) + ";");
+    buffer.append("ARCHER_SPAWNING_PROBABILITY:" + std::to_string(ARCHER_SPAWNING_PROBABILITY) + ";");
+    buffer.append("ARCHER_MOVING_PROBABILITY:" + std::to_string(ARCHER_MOVING_PROBABILITY) + ";");
+    buffer.append("ARCHER_SHOOTING_PROBABILITY:" + std::to_string(ARCHER_SHOOTING_PROBABILITY) + ";");
+    buffer.append("WORM_TURNING_PROBABILITY:" + std::to_string(WORM_TURNING_PROBABILITY) + ";");
+    buffer.append("WORM_SPAWNING_PROBABILITY:" + std::to_string(WORM_SPAWNING_PROBABILITY) + ";");
+    buffer.append("WORM_EATING_ARCHER_PROBABILITY:" + std::to_string(WORM_EATING_ARCHER_PROBABILITY) + ";");
+    buffer.append("WORM_EATING_TAIL_PROBABILITY:" + std::to_string(WORM_EATING_TAIL_PROBABILITY) + ";");
+    buffer.append("WORM_MOVING_PROBABILITY:" + std::to_string(WORM_MOVING_PROBABILITY) + ";");
+    buffer.append("CLAY_RELEASE_PROBABILITY:" + std::to_string(CLAY_RELEASE_PROBABILITY) + ";");
+    buffer.append("INITIAL_ARCHERS:" + std::to_string(INITIAL_ARCHERS) + ";");
+    buffer.append("INITIAL_WORMS:" + std::to_string(INITIAL_WORMS) + ";");
+    buffer.append("WORM_LENGTH:" + std::to_string(WORM_LENGTH) + ";");
 
-    send(socketfd, InavjagaGSPIO::constantsTermination, sizeof(InavjagaGSPIO::constantsTermination), 0);
+    buffer.append(InavjagaGSPIO::constantsTermination);
+    /// @warning There may be an off by one as the client expects '\0'
+    writeAll(socketfd, buffer.c_str(), buffer.size());
     return this->recvBool(3000);
 }
 
@@ -480,7 +453,6 @@ std::map<std::string, std::variant<int, float>> InavjagaGSPIO::recvConstants() {
         } while(current != ':');
         buffer[insertionIndex] = '\0';
         if (buffer[0] == InavjagaGSPIO::constantsTermination[0]) {
-            recv(this->socketfd, &current, 1, 0); // We throw away a '\0' terminator
             break;
         }
 
@@ -561,7 +533,7 @@ bool ServerInavjagaGSPIO::recvReady(int timeout) {
  */
 void ClientInavjagaGSPIO::sendReady() {
     std::unique_lock lock(outputMutex);
-    send(socketfd, acceptMessage, 2, 0);
+    writeAll(socketfd, acceptMessage, 2);
 }
 
 void InavjagaGSPIO::sendCoordinates(const sista::Coordinates& coordinates) const {
@@ -569,7 +541,7 @@ void InavjagaGSPIO::sendCoordinates(const sista::Coordinates& coordinates) const
     char buffer[10] = {0};
     std::copy(str.c_str(), str.c_str() + str.length(), buffer);
     std::unique_lock lock(outputMutex);
-    send(socketfd, buffer, 10, 0);
+    writeAll(socketfd, buffer, 10);
 }
 
 bool InavjagaGSPIO::recvBool(int timeout) const {
@@ -603,12 +575,12 @@ bool InavjagaGSPIO::recvBool(int timeout) const {
 
 void InavjagaGSPIO::sendYes() {
     std::unique_lock lock(outputMutex);
-    send(socketfd, InavjagaGSPIO::yesMessage, 2, 0);
+    writeAll(socketfd, InavjagaGSPIO::yesMessage, 2);
 }
 
 void InavjagaGSPIO::sendNo() {
     std::unique_lock lock(outputMutex);
-    send(socketfd, InavjagaGSPIO::noMessage, 2, 0);
+    writeAll(socketfd, InavjagaGSPIO::noMessage, 2);
 }
 
 bool InavjagaGSPIO::waitYes(int timeout) {
@@ -632,21 +604,8 @@ void InavjagaGSPIO::sendSyncData(const std::string& message) {
     std::unique_lock lock(syncMutex);
     size_t length = message.length();
     int32_t convertedLength = htonl(length);
-    // #if DEBUG
-    // {
-    //     std::unique_lock lock(stderrMutex);
-    //     std::cerr << "We are about to send " << length << " characters" << std::endl;
-    //     std::cerr << "Our message is " << message << std::endl;
-    // }
-    // #endif
-    if (ssize_t rc = write(this->syncsocketfd, &convertedLength, sizeof(convertedLength)); rc < 0) {
-        std::unique_lock lock(stderrMutex);
-        std::cerr << "Failed to send data with error " << rc << "(" << errno << ")" << std::endl;
-    }
-    if (ssize_t rc = write(this->syncsocketfd, message.c_str(), message.length()); rc < 0) {
-        std::unique_lock lock(stderrMutex);
-        std::cerr << "Failed to send data with error " << rc << "(" << errno << ")" << std::endl;
-    }
+    writeAll(this->syncsocketfd, &convertedLength, sizeof(convertedLength));
+    writeAll(this->syncsocketfd, message.c_str(), message.length());
 }
 
 std::string InavjagaGSPIO::recvSyncData(int timeout) {
@@ -767,14 +726,14 @@ void ServerInavjagaGSPIO::sendPlayers(std::vector<std::shared_ptr<Player>>& play
     char playerIdConverted = '0' + current;
     {
         std::unique_lock lock(outputMutex);
-        send(socketfd, &playerIdConverted, 1, 0);
+        writeAll(socketfd, &playerIdConverted, 1);
     }
     char identifier = '0';
     for (size_t i = 0; i < players.size(); i++) {
         if (players[i] == nullptr) continue;
         {
             std::unique_lock lock(outputMutex);
-            send(socketfd, &identifier, 1, 0);
+            writeAll(socketfd, &identifier, 1);
         }
         this->sendCoordinates(players[i]->getCoordinates());
         identifier++;
@@ -782,7 +741,7 @@ void ServerInavjagaGSPIO::sendPlayers(std::vector<std::shared_ptr<Player>>& play
     {
         identifier = InavjagaGSPIO::constantsTermination[0];
         std::unique_lock lock(outputMutex);
-        send(socketfd, &identifier, 1, 0);
+        writeAll(socketfd, &identifier, 1);
     }
 }
 
