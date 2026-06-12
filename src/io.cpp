@@ -872,7 +872,7 @@ std::string ClientRemoteInavjagaIO::recvGameState(int timeout) {
     auto start = std::chrono::high_resolution_clock::now();
     std::string data = this->neighbors[1]->recvSyncData(timeout);
     int delta = std::chrono::duration_cast<std::chrono::milliseconds>(
-        start - std::chrono::high_resolution_clock::now()
+        std::chrono::high_resolution_clock::now() - start
     ).count();
     #if DEBUG
     {
