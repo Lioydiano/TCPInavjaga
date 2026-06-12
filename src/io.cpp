@@ -670,7 +670,7 @@ std::string InavjagaGSPIO::recvSyncData(int timeout) {
                     std::cerr << "Time to read " << size << " characters from the server." << std::endl;
                 }
                 #endif
-                if (int rc = recv(syncsocketfd, buffer.data(), size, MSG_WAITALL); rc < 0) {
+                if (int rc = recv(syncsocketfd, buffer.data(), size, 0); rc < 0) {
                     std::unique_lock lock(stderrMutex);
                     std::cerr << "Receiving message failed with error " << rc
                             << " (" << errno << ")" << std::endl;
