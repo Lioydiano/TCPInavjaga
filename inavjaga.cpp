@@ -44,7 +44,6 @@ std::string pastGameStates[pastGameStatesBufferSize] = {std::string()};
 std::mutex movesBufferMutex = std::mutex();
 std::mutex streamMutex = std::mutex();
 std::mutex stderrMutex = std::mutex();
-std::mutex gameStateMutex = std::mutex();
 bool speedup = false;
 int lastDeathFrame = 0;
 bool end = false;
@@ -254,16 +253,7 @@ int main(int argc, char* argv[]) {
         std::flush(std::cout);
 
         {
-            std::unique_lock lockGameState(gameStateMutex);
             delta = std::chrono::high_resolution_clock::now() - start;
-            #if DEBUG
-            {
-                std::unique_lock stderrLock(stderrMutex);
-                std::cerr << "\tObtaining the lock on gameStateMutex on frame " << i << " took " 
-                        << std::chrono::duration_cast<std::chrono::microseconds>(delta).count()
-                        << "µs" << std::endl;
-            }
-            #endif
             gameState = std::to_string(i) + "," + serialize(rng) + "," + serializeGameState();
             delta = std::chrono::high_resolution_clock::now() - start;
             #if DEBUG
@@ -583,19 +573,7 @@ void fullProcessFrame(int i) {
 
 void updateClients(RemoteInavjagaIO* remote_) {
     ServerRemoteInavjagaIO* remote = (ServerRemoteInavjagaIO*)remote_;
-    #if DEBUG
-    {
-        std::unique_lock stderrLock(stderrMutex);
-        std::cerr << "Trying to lock the gameStateMutex" << std::endl;
-    }
-    #endif
     if (gameState.empty()) return; // We haven't gone over a frame yet
-    #if DEBUG
-    {
-        std::unique_lock stderrLock(stderrMutex);
-        std::cerr << "\tLocked the gameState and now trying to send it" << std::endl;
-    }
-    #endif
     remote->sendGameStateToAll(gameState);
 }
 
@@ -611,12 +589,6 @@ inline void rtrimGameState(std::string &s) {
  */
 int recvUpdates(RemoteInavjagaIO* remote_) {
     ClientRemoteInavjagaIO* remote = (ClientRemoteInavjagaIO*)remote_;
-    #if DEBUG
-    {
-        std::unique_lock stderrLock(stderrMutex);
-        std::cerr << "Trying to lock the gameStateMutex in recvUpdates" << std::endl;
-    }
-    #endif
     std::string serverGameState;
     serverGameState = remote->recvGameState();
     rtrimGameState(serverGameState); // To cut out garbage in the string
@@ -718,7 +690,6 @@ int recvUpdates(RemoteInavjagaIO* remote_) {
  * @param serverGameState A string in the format output by `splitGameState`
  * @cite serialize.cpp
  * @note Refer to serializeGameState for reverse implementation details
- * @warning We assume the gameStateMutex to be already locked before the function is called
  * @warning Will not restore the Player positions unless there is any other mismatch
  * @return Whether the game state has been restored or ignored
  */
@@ -859,12 +830,12 @@ bool restoreGameState(
 ) {
     std::map<Type, std::string> splitServerState = splitGameState(serverGameState);
     std::map<Type, std::string> splitClientState = splitGameState(clientGameState);
-    #if DEBUG
-    {
-        std::unique_lock lock(stderrMutex);
-        std::cerr << "\tServer: " << serverGameState << "\n\tClient: " << clientGameState << std::endl;
-    }
-    #endif
+    // #if DEBUG
+    // {
+    //     std::unique_lock lock(stderrMutex);
+    //     std::cerr << "\tServer: " << serverGameState << "\n\tClient: " << clientGameState << std::endl;
+    // }
+    // #endif
     std::map<Type, bool> mismatches = compareGameStates(splitServerState, splitClientState);
     if (restoreGameState(splitServerState, mismatches)) {
         std::istringstream state(serverGameState);
@@ -880,14 +851,14 @@ bool restoreGameState(
  * @param serverGameState A string in the format defined by serializeGameState
  * @cite serialize.cpp
  * @note Refer to serializeGameState for reverse implementation details
- * @warning We assume the gameStateMutex to be already locked before the function is called
  */
 void restoreGameState(const std::string& serverGameState) {
     std::istringstream state(serverGameState);
     #if DEBUG
     {
         std::unique_lock lock(stderrMutex);
-        std::cerr << "Restoring the game state to \n\t" << serverGameState << std::endl;
+        std::cerr << "Restoring the game state to \n\t"
+            << serverGameState.substr(0, 20) << "..." << std::endl;
     }
     #endif
     {
