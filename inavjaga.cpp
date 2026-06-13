@@ -233,16 +233,11 @@ int main(int argc, char* argv[]) {
 
     auto start = std::chrono::high_resolution_clock::now();
     std::chrono::duration<double> delta;
-    bool catchupMode = false;
     for (int i=0; !end; i++) {
-        int sleepMs =
+        std::this_thread::sleep_for(std::chrono::milliseconds(
             ((int)(FRAME_DURATION / (std::pow(1 + (int)speedup, 2))))
-            - std::chrono::duration_cast<std::chrono::milliseconds>(delta).count();
-
-        if (!catchupMode && sleepMs > 0) {
-            std::this_thread::sleep_for(std::chrono::milliseconds(sleepMs));
-        }
-        catchupMode = false;
+            - std::chrono::duration_cast<std::chrono::milliseconds>(delta).count()
+        ));
 
         #if DEBUG
         {
@@ -280,9 +275,6 @@ int main(int argc, char* argv[]) {
             #endif
             #if CLIENT
             if (int rc = recvUpdates(remoteIO); rc >= 0) {
-                if (rc > i) {
-                    catchupMode = true;
-                }
                 i = rc;
             }
             #elif SERVER
