@@ -256,7 +256,6 @@ int main(int argc, char* argv[]) {
         start = std::chrono::high_resolution_clock::now();
 
         fullProcessFrame(i);
-        std::flush(std::cout);
 
         {
             delta = std::chrono::high_resolution_clock::now() - start;
@@ -282,7 +281,7 @@ int main(int argc, char* argv[]) {
             #if CLIENT
             if (int rc = recvUpdates(remoteIO); rc >= 0) {
                 if (rc > i) {
-                    catchupMode = true;
+                    // catchupMode = true;
                 }
                 i = rc;
             }
@@ -300,6 +299,7 @@ int main(int argc, char* argv[]) {
             #endif
         }
 
+        std::flush(std::cout);
         delta = std::chrono::high_resolution_clock::now() - start;
         #if DEBUG
         {
@@ -682,8 +682,15 @@ int recvUpdates(RemoteInavjagaIO* remote_) {
             /// pastGameStatesBufferSize * FRAME_DURATION milliseconds
             restoreGameState(serverGameState, gameState);
             pastGameStates[serverFrame % pastGameStatesBufferSize] = serverGameState;
+                        for (int i = serverFrame + 1; i <= clientFrame; i++) {
+                fullProcessFrame(i);
+                pastGameStates[i % pastGameStatesBufferSize] = std::to_string(i)
+                    + "," + serialize(rng)
+                    + "," + serializeGameState();
+            }
+            gameState = pastGameStates[clientFrame % pastGameStatesBufferSize];
             reprint();
-            return serverFrame;
+            return clientFrame;
         }
     }
 }
