@@ -657,6 +657,7 @@ std::string InavjagaGSPIO::recvSyncData(int timeout) {
         size_t size = ntohl(convertedSize);
         // char* buffer = (char*)calloc(size, sizeof(char));
         std::vector<char> buffer(size);
+        received.reserve(size);
         do {
             timeout = initialTimeout - std::chrono::duration_cast<std::chrono::milliseconds>(
                 std::chrono::high_resolution_clock::now() - start
@@ -682,7 +683,8 @@ std::string InavjagaGSPIO::recvSyncData(int timeout) {
                     std::cerr << "Time to read " << size << " characters from the server." << std::endl;
                 }
                 #endif
-                if (int rc = recv(syncsocketfd, buffer.data(), size, 0); rc < 0) {
+                int rc = recv(syncsocketfd, buffer.data() + received.size(), size, 0);
+                if (rc < 0) {
                     std::unique_lock lock(stderrMutex);
                     std::cerr << "Receiving message failed with error " << rc
                             << " (" << errno << ")" << std::endl;
@@ -693,9 +695,9 @@ std::string InavjagaGSPIO::recvSyncData(int timeout) {
                             << " (" << errno << ")" << std::endl;
                     return received;
                 } else if (rc > 0) {
+                    received.append(buffer.data() + received.size(), rc);
                     size -= rc;
                 }
-                received.append(std::string(buffer.data()));
                 if (size == 0) {
                     return received;
                 }
