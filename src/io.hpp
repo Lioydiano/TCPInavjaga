@@ -46,6 +46,7 @@ protected:
     bool recvBool(int timeout = 1000) const;
     void sendCoordinates(const sista::Coordinates& coordinates) const;
 public:
+    bool isSyncReady();
     void sendSyncData(const std::string&);
     std::string recvSyncData(int timeout=1000);
     void sendNo();

@@ -614,6 +614,18 @@ bool InavjagaGSPIO::waitYes(int timeout) {
     return false;
 }
 
+bool InavjagaGSPIO::isSyncReady() {
+    struct pollfd pollFd_ = {0,0,0};
+    pollFd_.fd = this->syncsocketfd;
+    pollFd_.events = POLLIN;
+    if (int rc = poll(&pollFd_, 1, 0); rc < 0) {
+        std::unique_lock lock(stderrMutex);
+        std::cerr << "Polling failed with error " << rc << " (" << errno << ")" << std::endl;
+        throw std::runtime_error("Polling failed");
+    }
+    return pollFd_.revents & POLLIN;
+}
+
 void InavjagaGSPIO::sendSyncData(const std::string& message) {
     std::unique_lock lock(syncMutex);
     size_t length = message.length();
@@ -869,26 +881,27 @@ ClientRemoteInavjagaIO::ClientRemoteInavjagaIO(
  * @return The game state in its standard raw format
  */
 std::string ClientRemoteInavjagaIO::recvGameState(int timeout) {
-    // auto start = std::chrono::high_resolution_clock::now();
-    return this->neighbors[1]->recvSyncData(timeout);
-    // int delta = std::chrono::duration_cast<std::chrono::milliseconds>(
-    //     std::chrono::high_resolution_clock::now() - start
-    // ).count();
-    // #if DEBUG
-    // {
-    //     std::unique_lock lock(stderrMutex);
-    //     std::cerr << "It took us " << delta << "ms to recvSyncData, " << std::flush;
-    // }
-    // #endif
-    // std::string newData = "";
-    // if (delta < timeout / 10) { // Maybe we can catch up with one more frame
-    //     #if DEBUG
-    //     {
-    //         std::unique_lock lock(stderrMutex);
-    //         std::cerr << "thus we will be trying to wait " << timeout - delta << "ms" << std::endl;
-    //     }
-    //     #endif
-    //     newData = this->neighbors[1]->recvSyncData(timeout - delta);
-    // }
-    // return newData.empty() ? data : newData;
+    auto start = std::chrono::high_resolution_clock::now();
+    std::string data = this->neighbors[1]->recvSyncData(timeout);
+    int delta = std::chrono::duration_cast<std::chrono::milliseconds>(
+        std::chrono::high_resolution_clock::now() - start
+    ).count();
+    #if DEBUG
+    {
+        std::unique_lock lock(stderrMutex);
+        std::cerr << "It took us " << delta << "ms to recvSyncData, " << std::flush;
+    }
+    #endif
+    std::string newData = "";
+    if (this->neighbors[1]->isSyncReady() && delta < timeout / 2) {
+        // Maybe we can catch up with one more frame
+        #if DEBUG
+        {
+            std::unique_lock lock(stderrMutex);
+            std::cerr << "thus we will be trying to wait " << timeout - delta << "ms" << std::endl;
+        }
+        #endif
+        newData = this->neighbors[1]->recvSyncData(timeout - delta);
+    }
+    return newData.empty() ? data : newData;
 }
