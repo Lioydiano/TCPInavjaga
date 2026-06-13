@@ -281,7 +281,7 @@ int main(int argc, char* argv[]) {
             #if CLIENT
             if (int rc = recvUpdates(remoteIO); rc >= 0) {
                 if (rc > i) {
-                    // catchupMode = true;
+                    catchupMode = true;
                 }
                 i = rc;
             }
@@ -682,7 +682,7 @@ int recvUpdates(RemoteInavjagaIO* remote_) {
             /// pastGameStatesBufferSize * FRAME_DURATION milliseconds
             restoreGameState(serverGameState, gameState);
             pastGameStates[serverFrame % pastGameStatesBufferSize] = serverGameState;
-                        for (int i = serverFrame + 1; i <= clientFrame; i++) {
+            for (int i = serverFrame + 1; i <= clientFrame; i++) {
                 fullProcessFrame(i);
                 pastGameStates[i % pastGameStatesBufferSize] = std::to_string(i)
                     + "," + serialize(rng)
