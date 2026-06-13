@@ -237,7 +237,7 @@ int main(int argc, char* argv[]) {
         std::this_thread::sleep_for(std::chrono::milliseconds(
             ((int)(FRAME_DURATION / (std::pow(1 + (int)speedup, 2))))
             - std::chrono::duration_cast<std::chrono::milliseconds>(delta).count()
-        ));
+        )); // If there is speedup, the waiting time is reduced by a factor of 4
 
         #if DEBUG
         {
