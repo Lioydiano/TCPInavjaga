@@ -614,6 +614,18 @@ bool InavjagaGSPIO::waitYes(int timeout) {
     return false;
 }
 
+bool InavjagaGSPIO::isSyncReady() {
+    struct pollfd pollFd_ = {0,0,0};
+    pollFd_.fd = this->syncsocketfd;
+    pollFd_.events = POLLIN;
+    if (int rc = poll(&pollFd_, 1, 0); rc < 0) {
+        std::unique_lock lock(stderrMutex);
+        std::cerr << "Polling failed with error " << rc << " (" << errno << ")" << std::endl;
+        throw std::runtime_error("Polling failed");
+    }
+    return pollFd_.revents & POLLIN;
+}
+
 void InavjagaGSPIO::sendSyncData(const std::string& message) {
     std::unique_lock lock(syncMutex);
     size_t length = message.length();
@@ -645,6 +657,7 @@ std::string InavjagaGSPIO::recvSyncData(int timeout) {
         size_t size = ntohl(convertedSize);
         // char* buffer = (char*)calloc(size, sizeof(char));
         std::vector<char> buffer(size);
+        received.reserve(size);
         do {
             timeout = initialTimeout - std::chrono::duration_cast<std::chrono::milliseconds>(
                 std::chrono::high_resolution_clock::now() - start
@@ -670,7 +683,8 @@ std::string InavjagaGSPIO::recvSyncData(int timeout) {
                     std::cerr << "Time to read " << size << " characters from the server." << std::endl;
                 }
                 #endif
-                if (int rc = recv(syncsocketfd, buffer.data(), size, MSG_WAITALL); rc < 0) {
+                int rc = recv(syncsocketfd, buffer.data() + received.size(), size, 0);
+                if (rc < 0) {
                     std::unique_lock lock(stderrMutex);
                     std::cerr << "Receiving message failed with error " << rc
                             << " (" << errno << ")" << std::endl;
@@ -681,9 +695,9 @@ std::string InavjagaGSPIO::recvSyncData(int timeout) {
                             << " (" << errno << ")" << std::endl;
                     return received;
                 } else if (rc > 0) {
+                    received.append(buffer.data() + received.size(), rc);
                     size -= rc;
                 }
-                received.append(std::string(buffer.data()));
                 if (size == 0) {
                     return received;
                 }
@@ -862,6 +876,34 @@ ClientRemoteInavjagaIO::ClientRemoteInavjagaIO(
     std::shared_ptr<ClientInavjagaGSPIO> connectionToServer
 ): RemoteInavjagaIO({nullptr, connectionToServer}) {}
 
+/** @brief Receives the game state from the server within a specified timeout
+ * @note It may consume multiple frames and only return the most recent.
+ * @param timeout The time in milliseconds after which to return regardless
+ * @retval "" When the timeout has passed without anything being received
+ * @return The game state in its standard raw format
+ */
 std::string ClientRemoteInavjagaIO::recvGameState(int timeout) {
-    return this->neighbors[1]->recvSyncData(timeout);
+    auto start = std::chrono::high_resolution_clock::now();
+    std::string data = this->neighbors[1]->recvSyncData(timeout);
+    int delta = std::chrono::duration_cast<std::chrono::milliseconds>(
+        std::chrono::high_resolution_clock::now() - start
+    ).count();
+    #if DEBUG
+    {
+        std::unique_lock lock(stderrMutex);
+        std::cerr << "It took us " << delta << "ms to recvSyncData, " << std::flush;
+    }
+    #endif
+    std::string newData = "";
+    if (this->neighbors[1]->isSyncReady() && delta < timeout / 2) {
+        // Maybe we can catch up with one more frame
+        #if DEBUG
+        {
+            std::unique_lock lock(stderrMutex);
+            std::cerr << "thus we will be trying to wait " << timeout - delta << "ms" << std::endl;
+        }
+        #endif
+        newData = this->neighbors[1]->recvSyncData(timeout - delta);
+    }
+    return newData.empty() ? data : newData;
 }

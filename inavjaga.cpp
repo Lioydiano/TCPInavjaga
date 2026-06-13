@@ -238,6 +238,7 @@ int main(int argc, char* argv[]) {
             ((int)(FRAME_DURATION / (std::pow(1 + (int)speedup, 2))))
             - std::chrono::duration_cast<std::chrono::milliseconds>(delta).count()
         )); // If there is speedup, the waiting time is reduced by a factor of 4
+
         #if DEBUG
         {
             delta = std::chrono::high_resolution_clock::now() - start;
@@ -250,7 +251,6 @@ int main(int argc, char* argv[]) {
         start = std::chrono::high_resolution_clock::now();
 
         fullProcessFrame(i);
-        std::flush(std::cout);
 
         {
             delta = std::chrono::high_resolution_clock::now() - start;
@@ -291,6 +291,7 @@ int main(int argc, char* argv[]) {
             #endif
         }
 
+        std::flush(std::cout);
         delta = std::chrono::high_resolution_clock::now() - start;
         #if DEBUG
         {
