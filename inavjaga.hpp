@@ -27,6 +27,8 @@ extern std::map<int, std::vector<int>> breaches; // {y, {x1, x2, x3...}}
 enum EndReason {STARVED=0, SHOT=1, EATEN=2, STABBED=3, TOUCHDOWN=4, QUIT=5};
 
 void setConstantsToReceivedValues(const std::map<std::string, std::variant<int, float>>&);
+void pickUpConstants();
+void initializeGlobalsFromConstants();
 void placeClientPlayer(std::shared_ptr<ClientInavjagaGSPIO>);
 sista::Coordinates negotiateCoordinates(std::weak_ptr<sista::SwappableField>, std::shared_ptr<ServerInavjagaGSPIO>);
 sista::Coordinates negotiateCoordinates(std::weak_ptr<sista::SwappableField>, std::shared_ptr<ClientInavjagaGSPIO>);

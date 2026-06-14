@@ -1489,7 +1489,22 @@ void printEndInformation(EndReason endReason) {
     std::cout << std::flush;
 }
 
-#if CLIENT
+void initializeGlobalsFromConstants() {
+    dumbMoveDistribution = std::bernoulli_distribution(DUMB_MOVE_PROBABILITY);
+    Mine::explosion = std::bernoulli_distribution(MINE_EXPLOSION_IN_FRAME_PROBABILITY);
+    Mine::mineDamage = std::uniform_int_distribution<int>(MINE_MINIMUM_DAMAGE, MINE_MAXIMUM_DAMAGE);
+    Wall::wearing = std::bernoulli_distribution(WALL_WEARING_PROBABILITY);
+    Archer::moving = std::bernoulli_distribution(ARCHER_MOVING_PROBABILITY);
+    Archer::shooting = std::bernoulli_distribution(ARCHER_SHOOTING_PROBABILITY);
+    Archer::spawning = std::bernoulli_distribution(ARCHER_SPAWNING_PROBABILITY);
+    Worm::turning = std::bernoulli_distribution(WORM_TURNING_PROBABILITY);
+    Worm::moving = std::bernoulli_distribution(WORM_MOVING_PROBABILITY);
+    Worm::spawning = std::bernoulli_distribution(WORM_SPAWNING_PROBABILITY);
+    Worm::eatingTail = std::bernoulli_distribution(WORM_EATING_TAIL_PROBABILITY);
+    Worm::eatingArcher = std::bernoulli_distribution(WORM_EATING_ARCHER_PROBABILITY);
+    Worm::clayRelease = std::bernoulli_distribution(CLAY_RELEASE_PROBABILITY);
+}
+
 /** @brief Sets the local constants to the values passed as parameter
  * @param constants The constants to be set
  * @todo Add error handling around std::get<T> or maybe just go for std::holds_alternative<T>
@@ -1528,39 +1543,81 @@ void setConstantsToReceivedValues(const std::map<std::string, std::variant<int, 
     MINE_MAXIMUM_DAMAGE = std::get<int>(constants.at("MINE_MAXIMUM_DAMAGE"));
     MINE_SENSITIVITY_RADIUS = std::get<int>(constants.at("MINE_SENSITIVITY_RADIUS"));
     MINE_DAMAGE_RADIUS = std::get<int>(constants.at("MINE_DAMAGE_RADIUS"));
-    Mine::explosion = std::bernoulli_distribution(MINE_EXPLOSION_IN_FRAME_PROBABILITY);
-    Mine::mineDamage = std::uniform_int_distribution<int>(MINE_MINIMUM_DAMAGE, MINE_MAXIMUM_DAMAGE);
     INITIAL_WALL_STRENGTH = std::get<int>(constants.at("INITIAL_WALL_STRENGTH"));
     WORM_HEALTH_POINTS = std::get<int>(constants.at("WORM_HEALTH_POINTS"));
     WALL_WEARING_PROBABILITY = std::get<float>(constants.at("WALL_WEARING_PROBABILITY"));
-    Wall::wearing = std::bernoulli_distribution(WALL_WEARING_PROBABILITY);
     DAMAGED_WALLS_COUNT = std::get<int>(constants.at("DAMAGED_WALLS_COUNT"));
     MINE_EXPLOSION_IN_FRAME_PROBABILITY = std::get<float>(constants.at("MINE_EXPLOSION_IN_FRAME_PROBABILITY"));
     DUMB_MOVE_PROBABILITY = std::get<float>(constants.at("DUMB_MOVE_PROBABILITY"));
-    dumbMoveDistribution = std::bernoulli_distribution(DUMB_MOVE_PROBABILITY);
     ARCHER_SPAWNING_PROBABILITY = std::get<float>(constants.at("ARCHER_SPAWNING_PROBABILITY"));
     ARCHER_MOVING_PROBABILITY = std::get<float>(constants.at("ARCHER_MOVING_PROBABILITY"));
     ARCHER_SHOOTING_PROBABILITY = std::get<float>(constants.at("ARCHER_SHOOTING_PROBABILITY"));
-    Archer::moving = std::bernoulli_distribution(ARCHER_MOVING_PROBABILITY);
-    Archer::shooting = std::bernoulli_distribution(ARCHER_SHOOTING_PROBABILITY);
-    Archer::spawning = std::bernoulli_distribution(ARCHER_SPAWNING_PROBABILITY);
     WORM_TURNING_PROBABILITY = std::get<float>(constants.at("WORM_TURNING_PROBABILITY"));
     WORM_SPAWNING_PROBABILITY = std::get<float>(constants.at("WORM_SPAWNING_PROBABILITY"));
     WORM_EATING_ARCHER_PROBABILITY = std::get<float>(constants.at("WORM_EATING_ARCHER_PROBABILITY"));
     WORM_EATING_TAIL_PROBABILITY = std::get<float>(constants.at("WORM_EATING_TAIL_PROBABILITY"));
     WORM_MOVING_PROBABILITY = std::get<float>(constants.at("WORM_MOVING_PROBABILITY"));
     CLAY_RELEASE_PROBABILITY = std::get<float>(constants.at("CLAY_RELEASE_PROBABILITY"));
-    Worm::turning = std::bernoulli_distribution(WORM_TURNING_PROBABILITY);
-    Worm::moving = std::bernoulli_distribution(WORM_MOVING_PROBABILITY);
-    Worm::spawning = std::bernoulli_distribution(WORM_SPAWNING_PROBABILITY);
-    Worm::eatingTail = std::bernoulli_distribution(WORM_EATING_TAIL_PROBABILITY);
-    Worm::eatingArcher = std::bernoulli_distribution(WORM_EATING_ARCHER_PROBABILITY);
-    Worm::clayRelease = std::bernoulli_distribution(CLAY_RELEASE_PROBABILITY);
     INITIAL_ARCHERS = std::get<int>(constants.at("INITIAL_ARCHERS"));
     INITIAL_WORMS = std::get<int>(constants.at("INITIAL_WORMS"));
     WORM_LENGTH = std::get<int>(constants.at("WORM_LENGTH"));
+    initializeGlobalsFromConstants();
 }
-#endif
+
+void pickUpConstants() {
+    WIDTH = cWIDTH;
+    HEIGHT = cHEIGHT;
+    TUNNEL_UNIT = cTUNNEL_UNIT;
+    PORTALS_PER_LINE = cPORTALS_PER_LINE;
+    FRAME_DURATION = cFRAME_DURATION;
+    BULLET_SPEED = cBULLET_SPEED;
+    DROP_INVENTORY_ON_DEATH = cDROP_INVENTORY_ON_DEATH;
+    INITIAL_CLAY = cINITIAL_CLAY;
+    INITIAL_BULLETS = cINITIAL_BULLETS;
+    INITIAL_MEAT = cINITIAL_MEAT;
+    INITIAL_INVENTORY = {
+        INITIAL_CLAY,
+        INITIAL_BULLETS,
+        INITIAL_MEAT
+    };
+    LOOT_ARCHER_CLAY = cLOOT_ARCHER_CLAY;
+    LOOT_ARCHER_BULLETS = cLOOT_ARCHER_BULLETS;
+    LOOT_ARCHER_MEAT = cLOOT_ARCHER_MEAT;
+    LOOT_WORM_HEAD_CLAY = cLOOT_WORM_HEAD_CLAY;
+    LOOT_WORM_HEAD_BULLETS = cLOOT_WORM_HEAD_BULLETS;
+    LOOT_WORM_HEAD_MEAT = cLOOT_WORM_HEAD_MEAT;
+    COST_OF_MINE_CLAY = cCOST_OF_MINE_CLAY;
+    COST_OF_MINE_BULLETS = cCOST_OF_MINE_BULLETS;
+    COST_OF_MINE_MEAT = cCOST_OF_MINE_MEAT;
+    MEAT_DURATION_PERIOD = cMEAT_DURATION_PERIOD;
+    SPAWN_COORDINATES_Y = cSPAWN_COORDINATES_Y;
+    SPAWN_COORDINATES_X = cSPAWN_COORDINATES_X;
+    RESPAWN_COORDINATES_Y = cRESPAWN_COORDINATES_Y;
+    RESPAWN_COORDINATES_X = cRESPAWN_COORDINATES_X;
+    MINE_MINIMUM_DAMAGE = cMINE_MINIMUM_DAMAGE;
+    MINE_MAXIMUM_DAMAGE = cMINE_MAXIMUM_DAMAGE;
+    MINE_SENSITIVITY_RADIUS = cMINE_SENSITIVITY_RADIUS;
+    MINE_DAMAGE_RADIUS = cMINE_DAMAGE_RADIUS;
+    MINE_EXPLOSION_IN_FRAME_PROBABILITY = cMINE_EXPLOSION_IN_FRAME_PROBABILITY;
+    INITIAL_WALL_STRENGTH = cINITIAL_WALL_STRENGTH;
+    WALL_WEARING_PROBABILITY = cWALL_WEARING_PROBABILITY;
+    DAMAGED_WALLS_COUNT = cDAMAGED_WALLS_COUNT;
+    WORM_HEALTH_POINTS = cWORM_HEALTH_POINTS;
+    DUMB_MOVE_PROBABILITY = cDUMB_MOVE_PROBABILITY;
+    ARCHER_SPAWNING_PROBABILITY = cARCHER_SPAWNING_PROBABILITY;
+    ARCHER_MOVING_PROBABILITY = cARCHER_MOVING_PROBABILITY;
+    ARCHER_SHOOTING_PROBABILITY = cARCHER_SHOOTING_PROBABILITY;
+    WORM_TURNING_PROBABILITY = cWORM_TURNING_PROBABILITY;
+    WORM_SPAWNING_PROBABILITY = cWORM_SPAWNING_PROBABILITY;
+    WORM_EATING_ARCHER_PROBABILITY = cWORM_EATING_ARCHER_PROBABILITY;
+    WORM_EATING_TAIL_PROBABILITY = cWORM_EATING_TAIL_PROBABILITY;
+    WORM_MOVING_PROBABILITY = cWORM_MOVING_PROBABILITY;
+    CLAY_RELEASE_PROBABILITY = cCLAY_RELEASE_PROBABILITY;
+    INITIAL_ARCHERS = cINITIAL_ARCHERS;
+    INITIAL_WORMS = cINITIAL_WORMS;
+    WORM_LENGTH = cWORM_LENGTH;
+    initializeGlobalsFromConstants();
+}
 
 /** @brief Places the client's player at the coordinates negotiated with the server
  * @param connectionToServer the connection over which to negotiate with the server
