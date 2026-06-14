@@ -136,6 +136,7 @@ int main(int argc, char* argv[]) {
     rng.seed(seed);
 
     #if SERVER
+    pickUpConstants();
     for (std::shared_ptr<ServerInavjagaGSPIO> clientConnection : clientConnections) {
         if (clientConnection == nullptr) continue;
         if (clientConnection->sendConstants()) {
