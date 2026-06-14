@@ -63,6 +63,7 @@ int main(int argc, char* argv[]) {
     }
 
     #if SERVER
+    pickUpConstants();
     field = std::make_shared<sista::SwappableField>(WIDTH, HEIGHT);
     sista::Coordinates spawn = sista::Coordinates(SPAWN_COORDINATES_Y, SPAWN_COORDINATES_X);
     Player::localPlayer = std::make_shared<Player>(spawn);
@@ -136,7 +137,6 @@ int main(int argc, char* argv[]) {
     rng.seed(seed);
 
     #if SERVER
-    pickUpConstants();
     for (std::shared_ptr<ServerInavjagaGSPIO> clientConnection : clientConnections) {
         if (clientConnection == nullptr) continue;
         if (clientConnection->sendConstants()) {
