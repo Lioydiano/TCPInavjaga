@@ -45,7 +45,13 @@ endif
 # Set STATIC=0 to prefer dynamic linking, otherwise static linking is used
 STATIC ?= 0
 
-OBJ = $(SRC:.cpp=.o)
+ifeq ($(SERVER),1)
+BUILD_DIR = build/server
+else
+BUILD_DIR = build/client
+endif
+
+OBJ = $(patsubst %.cpp,$(BUILD_DIR)/%.o,$(SRC))
 DEP = $(OBJ:.o=.d)
 
 ifeq ($(SERVER),1)
@@ -78,7 +84,8 @@ endif
 
 $(SISTA_LOCAL_SRC): | prepare-local-sista
 
-%.o: %.cpp Makefile
+$(BUILD_DIR)/%.o: %.cpp Makefile
+	@mkdir -p $(dir $@)
 	$(CXX) $(CXXFLAGS) $(DEFINEFLAGS) $(DEPFLAGS) -c $< -o $@
 
 ifeq ($(USE_LOCAL_SISTA),1)
@@ -113,5 +120,6 @@ clean:
 	rm -f *.d
 	rm -f src/*.d
 	rm -f include/sista/*.d
+	rm -rf build
 
 .PHONY: all clean prepare-local-sista
