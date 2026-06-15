@@ -10,6 +10,7 @@
 #include <mutex>
 #include <stack>
 #include <iostream>
+#include <atomic>
 #include <random>
 #include <queue>
 #include <map>
@@ -46,7 +47,7 @@ std::mutex streamMutex = std::mutex();
 std::mutex stderrMutex = std::mutex();
 bool speedup = false;
 int lastDeathFrame = 0;
-bool end = false;
+std::atomic<bool> end{false};
 
 
 int main(int argc, char* argv[]) {
@@ -304,7 +305,7 @@ int main(int argc, char* argv[]) {
         #endif
     }
 
-    end = true; // Needed to ensure the input function returns and the thread localInputThread gets joined
+    end.store(true); // Needed to ensure the input function returns and the thread localInputThread gets joined
     deallocateAll();
     localInputThread.join();
     remoteInputThread.join();
@@ -568,9 +569,9 @@ void fullProcessFrame(int i) {
     if (Player::localPlayer->inventory.meat < 0) {
         printEndInformation(EndReason::STARVED);
         Player::localPlayer->dead = true;
-        end = true;
+        end.store(true);
     }
-    end = endConditions();
+    end.store(endConditions());
 }
 
 void updateClients(RemoteInavjagaIO* remote_) {
@@ -1434,7 +1435,7 @@ bool act(MoveEvent event) {
             if (event.playerId == Player::localPlayerId) {
                 printEndInformation(EndReason::QUIT);
                 Player::localPlayer->dead = true;
-                end = true;
+                end.store(true);
             } else {
                 Player::disconnectPlayer(event.playerId);
             }
